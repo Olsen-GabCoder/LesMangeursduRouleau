@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="id" name="menu_item_copy_text" />
+    <item type="id" name="menu_item_delete_message" />
+    <item type="id" name="menu_group_reactions" />
+    <!-- <item type="id" name="menu_item_react_message" /> -->
+</resources>

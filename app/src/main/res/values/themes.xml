@@ -1,0 +1,51 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Base.Theme.LesMangeursDuRouleau" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/primary_accent</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSurface">@color/card_background</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/profile_background</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="android:colorBackground">@color/profile_background</item>
+        <item name="colorOnBackground">@color/text_primary</item>
+        <item name="colorOutline">@color/icon_tint</item>
+        <item name="textInputStyle">@style/Widget.Material3.TextInputLayout.OutlinedBox</item>
+        <item name="android:textColorHint">@color/text_secondary</item>
+        <item name="editTextColor">@color/text_primary</item>
+        <item name="colorError">@color/error_color</item>
+        <item name="colorOnError">@color/white</item>
+    </style>
+
+    <style name="Theme.LesMangeursDuRouleau" parent="Base.Theme.LesMangeursDuRouleau" />
+
+    <style name="ChatBubbleSent">
+        <item name="android:background">@drawable/bg_chat_bubble_sent_dark</item>
+        <item name="android:padding">@dimen/chat_message_padding</item>
+    </style>
+
+    <style name="RoundedImageStyle">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+
+    <style name="ChatBubbleReceived">
+        <item name="android:background">@drawable/bg_chat_bubble_received_dark</item>
+        <item name="android:padding">@dimen/chat_message_padding</item>
+    </style>
+
+    <style name="ChatTextSent">
+        <item name="android:textColor">@color/chat_text_sent_dark</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="ChatTextReceived">
+        <item name="android:textColor">@color/chat_text_received_dark</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="ChatTimestamp">
+        <item name="android:textColor">@color/chat_timestamp_dark</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+</resources>

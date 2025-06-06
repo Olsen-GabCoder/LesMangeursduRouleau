@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+
+    <color name="profile_background">#FDFDFD</color> <color name="card_background">#FFFFFF</color>     <color name="gradient_start_violet">#5D3FD3</color> <color name="gradient_end_violet">#7C5DDE</color>   <color name="primary_accent">#6366F1</color>        <color name="primary_accent_transparent">#806366F1</color> <color name="text_primary">#1F2937</color>          <color name="text_secondary">#6B7280</color>        <color name="icon_tint">#7C8894</color>             <color name="profile_picture_border">#FFFFFF</color> <color name="tonal_button_background">#EEF2FF</color> <color name="error_color">#C23F4E</color>            <color name="error_ripple">#22C23F4E</color>         <color name="chat_background_dark">#0B141A</color>
+    <color name="chat_input_background_dark">#1F2C34</color>
+    <color name="chat_input_text_dark">#E9EDEF</color>
+    <color name="chat_input_hint_dark">#8696A0</color>
+
+    <color name="chat_bubble_sent_bg_dark">#0B80FE</color>
+    <color name="chat_text_sent_dark">#FFFFFF</color>
+    <color name="chat_bubble_received_bg_dark">#1F2C34</color>
+    <color name="chat_text_received_dark">#E9EDEF</color>
+
+    <color name="chat_send_button_bg_dark">#0B80FE</color>
+    <color name="chat_send_button_icon_dark">#FFFFFFFF</color>
+
+    <color name="chat_timestamp_dark">#8696A0</color>
+    <color name="chat_sender_name_dark">#8696A0</color>
+
+    <color name="reaction_background">#2C3E50</color>
+    <color name="reaction_text_color">#E0E0E0</color>
+    <color name="reaction_stroke_color">#34495E</color>
+    <color name="reaction_text_color_selected">#FFFFFF</color>
+
+    <color name="background_chat_original_light">#F5F7FA</color>
+    <color name="chat_bubble_sent_bg_start_original_blue">#4A90E2</color>
+    <color name="chat_bubble_sent_bg_end_original_blue">#2B6CC4</color>
+    <color name="chat_bubble_received_bg_original_light_gray">#E8ECEF</color>
+    <color name="chat_text_sent_original_white">#FFFFFF</color>
+    <color name="chat_text_received_original_dark_gray">#1A1A1A</color>
+    <color name="chat_timestamp_original_gray">#7A7A7A</color>
+    <color name="chat_sender_name_original_gray">#4A4A4A</color>
+    <color name="accent_color_original_blue">#4A90E2</color>
+    <color name="md_theme_onBackground">#1C1B1F</color>
+    <color name="colorAccent">#FF4081</color>
+
+    <color name="md_theme_primary">#6750A4</color>
+    <color name="colorAccentDark">#C51162</color>
+    <color name="notification_color">#FF4081</color>
+    <color name="primary_green">#4CAF50</color>
+    <color name="gradient_stroke">#E0E0E0</color>
+    <color name="gradient_background">#F5F7FA</color>
+    <color name="md_theme_background">#FFFBFE</color>
+    <color name="gray_light">#E0E0E0</color>
+    <color name="secondary_accent">#7986CB</color>
+    <color name="progress_background">#E0E0E0</color>
+    <color name="ripple_accent">#4FC3F7</color>
+    <color name="colorPrimary">#3F51B5</color> <!-- Exemple : Indigo -->
+    <color name="colorSecondary">#FF4081</color>
+    </resources>

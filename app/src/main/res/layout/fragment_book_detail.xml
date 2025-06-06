@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    tools:context=".ui.readings.detail.BookDetailFragment"> <!-- Assure-toi que le context pointe vers la bonne classe de Fragment -->
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/iv_book_detail_cover"
+            android:layout_width="150dp"
+            android:layout_height="225dp"
+            android:scaleType="centerCrop"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:srcCompat="@drawable/ic_book_placeholder"
+        android:contentDescription="Couverture du livre" />
+
+        <TextView
+            android:id="@+id/tv_book_detail_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:textAppearance="?attr/textAppearanceHeadline5"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/iv_book_detail_cover"
+            app:layout_constraintTop_toTopOf="@id/iv_book_detail_cover"
+            tools:text="Titre du Livre Très Très Long Qui Peut Déborder" />
+
+        <TextView
+            android:id="@+id/tv_book_detail_author_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Auteur :"
+            android:textAppearance="?attr/textAppearanceSubtitle2"
+            app:layout_constraintStart_toStartOf="@id/tv_book_detail_title"
+            app:layout_constraintTop_toBottomOf="@id/tv_book_detail_title" />
+
+        <TextView
+            android:id="@+id/tv_book_detail_author"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textAppearance="?attr/textAppearanceBody1"
+            app:layout_constraintBaseline_toBaselineOf="@id/tv_book_detail_author_label"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/tv_book_detail_author_label"
+            tools:text="Nom de l'Auteur" />
+
+        <TextView
+            android:id="@+id/tv_book_detail_synopsis_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Synopsis :"
+            android:textAppearance="?attr/textAppearanceSubtitle1"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/iv_book_detail_cover" />
+
+        <TextView
+            android:id="@+id/tv_book_detail_synopsis"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textAppearance="?attr/textAppearanceBody2"
+            android:lineSpacingMultiplier="1.2"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_book_detail_synopsis_label"
+            tools:text="Ceci est un synopsis assez long pour tester l'affichage sur plusieurs lignes. Il devrait s'étendre et décrire l'intrigue fascinante du livre, les personnages mémorables, et les thèmes profonds explorés par l'auteur. Lire, c'est voyager sans bouger de chez soi, découvrir des mondes inconnus et des perspectives nouvelles." />
+
+        <ProgressBar
+            android:id="@+id/progress_bar_book_detail"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:visibility="visible"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

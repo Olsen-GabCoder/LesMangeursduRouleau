@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <ImageView
+        android:id="@+id/iv_sender_avatar"
+        android:layout_width="@dimen/chat_avatar_size"
+        android:layout_height="@dimen/chat_avatar_size"
+        android:layout_marginStart="4dp"
+        android:contentDescription="Avatar de l'expéditeur"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/bubble_layout_container"
+        tools:srcCompat="@drawable/ic_profile_placeholder"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/bubble_layout_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constrainedWidth="true"
+        app:layout_constraintWidth_max="wrap"
+        app:layout_constraintWidth_percent="0.75"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout_constraintStart_toEndOf="@id/iv_sender_avatar"
+        tools:layout_marginStart="8dp">
+
+        <TextView
+            android:id="@+id/tv_message_sender"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/chat_message_padding"
+            android:layout_marginEnd="@dimen/chat_message_padding"
+            android:layout_marginTop="2dp"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="Nom Expéditeur"
+            tools:textColor="@color/chat_sender_name_dark"
+            tools:visibility="visible" />
+
+        <LinearLayout
+            android:id="@+id/bubble_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="bottom"
+            android:paddingStart="@dimen/chat_message_padding"
+            android:paddingTop="8dp"
+            android:paddingEnd="@dimen/chat_message_padding"
+            android:paddingBottom="8dp"
+            tools:background="@drawable/bg_chat_bubble_received_dark">
+
+            <TextView
+                android:id="@+id/tv_message_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                tools:text="Ceci est un exemple de message un peu long pour voir comment il s'ajuste."
+                tools:textColor="@color/chat_text_received_dark" />
+
+            <TextView
+                android:id="@+id/tv_message_timestamp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textSize="10sp"
+                android:visibility="visible"
+                tools:text="10:30"
+                tools:textColor="@color/chat_timestamp_dark" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_reactions_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_reactions_background"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:elevation="2dp"
+        android:visibility="gone"
+        tools:visibility="visible"
+        tools:background="@color/colorAccent"
+
+        app:layout_constraintBottom_toBottomOf="@+id/bubble_layout_container"
+        app:layout_constraintTop_toBottomOf="@+id/bubble_layout_container"
+        app:layout_constraintVertical_bias="1.0"
+
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+
+        android:layout_marginBottom="-8dp"
+        android:layout_marginStart="-8dp"
+        android:layout_marginEnd="-8dp"
+        />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
