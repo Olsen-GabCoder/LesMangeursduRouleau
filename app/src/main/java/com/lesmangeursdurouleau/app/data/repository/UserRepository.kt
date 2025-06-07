@@ -13,7 +13,7 @@ interface UserRepository {
     suspend fun updateUserBio(userId: String, bio: String): Resource<Unit>
     suspend fun updateUserCity(userId: String, city: String): Resource<Unit>
     suspend fun updateUserEditPermission(userId: String, canEdit: Boolean): Resource<Unit>
-
-    // NOUVELLE MÉTHODE : Pour mettre à jour le timestamp de la dernière permission accordée
     suspend fun updateUserLastPermissionTimestamp(userId: String, timestamp: Long?): Resource<Unit>
+    // NOUVELLE MÉTHODE : Pour mettre à jour le jeton FCM de l'utilisateur
+    suspend fun updateUserFCMToken(userId: String, token: String): Resource<Unit>
 }

@@ -73,9 +73,12 @@ class AddEditMonthlyReadingViewModel @Inject constructor(
     private val _debateDate = MutableStateFlow<Date?>(null)
     val debateDate: StateFlow<Date?> = _debateDate.asStateFlow()
 
-    // Statut des phases (pas exposé, car géré lors de la mise à jour)
-    internal var analysisStatus: String = Phase.STATUS_PLANIFIED
-    internal var debateStatus: String = Phase.STATUS_PLANIFIED
+    // AJOUTÉ: StateFlows pour les statuts des phases, permettant la mise à jour par l'UI
+    private val _analysisStatus = MutableStateFlow(Phase.STATUS_PLANIFIED)
+    val analysisStatus: StateFlow<String> = _analysisStatus.asStateFlow()
+
+    private val _debateStatus = MutableStateFlow(Phase.STATUS_PLANIFIED)
+    val debateStatus: StateFlow<String> = _debateStatus.asStateFlow()
 
     // CORRIGÉ : Type générique maintenant MonthlyReading? pour permettre Resource.Success(null)
     private val _monthlyReadingAndBookForEdit = MutableStateFlow<Resource<Pair<MonthlyReading?, Book?>>>(Resource.Loading())
@@ -180,8 +183,8 @@ class AddEditMonthlyReadingViewModel @Inject constructor(
                             _analysisDate.value = monthlyReading.analysisPhase.date
                             _debateDate.value = monthlyReading.debatePhase.date
                             // IMPORTANT : Mettre à jour les statuts internes du ViewModel
-                            this@AddEditMonthlyReadingViewModel.analysisStatus = monthlyReading.analysisPhase.status
-                            this@AddEditMonthlyReadingViewModel.debateStatus = monthlyReading.debatePhase.status
+                            _analysisStatus.value = monthlyReading.analysisPhase.status
+                            _debateStatus.value = monthlyReading.debatePhase.status
 
                             // Note: Les champs _bookTitle, _bookAuthor, etc. ne sont plus définis ici directement.
                             // Ils seront définis par le `populateForm` du Fragment une fois que le `monthlyReadingAndBookForEdit` sera prêt.
@@ -218,6 +221,26 @@ class AddEditMonthlyReadingViewModel @Inject constructor(
     fun setDebateDate(date: Date?) {
         _debateDate.value = date
     }
+
+    // NOUVEAU : Setters pour les statuts des phases
+    fun setAnalysisStatus(status: String) {
+        if (Phase.STATUS_PLANIFIED == status || Phase.STATUS_IN_PROGRESS == status || Phase.STATUS_COMPLETED == status) {
+            _analysisStatus.value = status
+            Log.d("AddEditMonthlyReadingVM", "Analysis status set to: $status")
+        } else {
+            Log.w("AddEditMonthlyReadingVM", "Attempted to set invalid analysis status: $status")
+        }
+    }
+
+    fun setDebateStatus(status: String) {
+        if (Phase.STATUS_PLANIFIED == status || Phase.STATUS_IN_PROGRESS == status || Phase.STATUS_COMPLETED == status) {
+            _debateStatus.value = status
+            Log.d("AddEditMonthlyReadingVM", "Debate status set to: $status")
+        } else {
+            Log.w("AddEditMonthlyReadingVM", "Attempted to set invalid debate status: $status")
+        }
+    }
+
 
     fun addMonthlyReading(
         book: Book, // Objet Book avec les données du formulaire
@@ -269,6 +292,10 @@ class AddEditMonthlyReadingViewModel @Inject constructor(
                     finalBookId = _selectedBookId.value!!
                     Log.d("AddEditMonthlyReadingVM", "Using existing book ID: $finalBookId (no book update needed)")
                 }
+
+                // Log des statuts AVANT l'appel au use case
+                Log.d("AddEditMonthlyReadingVM", "Add: Analysis Status sent to UseCase: ${_analysisStatus.value}")
+                Log.d("AddEditMonthlyReadingVM", "Add: Debate Status sent to UseCase: ${_debateStatus.value}")
 
                 val result = addMonthlyReadingUseCase.invoke(
                     bookId = finalBookId,
@@ -345,16 +372,20 @@ class AddEditMonthlyReadingViewModel @Inject constructor(
                     Log.d("AddEditMonthlyReadingVM", "Using existing book ID: $finalBookId (no book update needed)")
                 }
 
+                // Log des statuts AVANT l'appel au use case
+                Log.d("AddEditMonthlyReadingVM", "Update: Analysis Status sent to UseCase: ${_analysisStatus.value}")
+                Log.d("AddEditMonthlyReadingVM", "Update: Debate Status sent to UseCase: ${_debateStatus.value}")
+
                 val result = updateMonthlyReadingUseCase.invoke(
                     id = monthlyReadingId,
                     bookId = finalBookId,
                     year = year,
                     month = month,
                     analysisDate = analysisDate,
-                    analysisStatus = this@AddEditMonthlyReadingViewModel.analysisStatus,
+                    analysisStatus = _analysisStatus.value, // UTILISE LE STATEFLOW MIS À JOUR
                     analysisMeetingLink = analysisMeetingLink,
                     debateDate = debateDate,
-                    debateStatus = this@AddEditMonthlyReadingViewModel.debateStatus,
+                    debateStatus = _debateStatus.value,     // UTILISE LE STATEFLOW MIS À JOUR
                     debateMeetingLink = debateMeetingLink,
                     customDescription = customDescription
                 )

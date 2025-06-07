@@ -176,7 +176,7 @@
                     tools:text="Juin"/>
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Titre pour les phases -->
+            <!-- Titre pour la phase d'Analyse -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -205,6 +205,24 @@
                     android:inputType="none" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- AJOUTÉ: Phase Analyse : Statut -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_analysis_status"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:hint="@string/analysis_status_label">
+
+                <AutoCompleteTextView
+                    android:id="@+id/actv_analysis_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"
+                    android:focusable="true"
+                    android:clickable="true" />
+            </com.google.android.material.textfield.TextInputLayout>
+
             <!-- Phase Analyse : Lien de réunion -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/til_analysis_link"
@@ -221,7 +239,7 @@
                     android:inputType="textUri" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Titre pour les phases -->
+            <!-- Titre pour la phase de Débat -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -248,6 +266,24 @@
                     android:focusable="false"
                     android:clickable="true"
                     android:inputType="none" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- AJOUTÉ: Phase Débat : Statut -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_debate_status"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:hint="@string/debate_status_label">
+
+                <AutoCompleteTextView
+                    android:id="@+id/actv_debate_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"
+                    android:focusable="true"
+                    android:clickable="true" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Phase Débat : Lien de réunion -->

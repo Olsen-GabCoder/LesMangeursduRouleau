@@ -46,7 +46,6 @@ class UserRepositoryImpl @Inject constructor(
             return Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserProfile: Erreur lors de la mise à jour du profil pour $userId: ${e.message}", e)
-            // REVERTED: Revenir à la version sans 'throwable'
             return Resource.Error("Erreur lors de la mise à jour du profil: ${e.localizedMessage}")
         }
     }
@@ -65,7 +64,6 @@ class UserRepositoryImpl @Inject constructor(
             return Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserBio: Erreur lors de la mise à jour de la bio pour $userId: ${e.message}", e)
-            // REVERTED: Revenir à la version sans 'throwable'
             return Resource.Error("Erreur lors de la mise à jour de la biographie: ${e.localizedMessage}")
         }
     }
@@ -84,7 +82,6 @@ class UserRepositoryImpl @Inject constructor(
             return Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserCity: Erreur lors de la mise à jour de la ville pour $userId: ${e.message}", e)
-            // REVERTED: Revenir à la version sans 'throwable'
             return Resource.Error("Erreur lors de la mise à jour de la ville: ${e.localizedMessage}")
         }
     }
@@ -128,12 +125,10 @@ class UserRepositoryImpl @Inject constructor(
                 return Resource.Success(photoUrl)
             } else {
                 Log.e(TAG, "updateUserProfilePicture: Échec de l'upload de la photo sur Storage pour $userId: ${uploadResult.message}")
-                // REVERTED: Revenir à la version sans 'throwable'
                 return Resource.Error(uploadResult.message ?: "Erreur lors de l'upload de la photo.")
             }
         } catch (e: Exception) {
             Log.e(TAG, "updateUserProfilePicture: Exception générale lors de la mise à jour de la photo de profil pour $userId: ${e.message}", e)
-            // REVERTED: Revenir à la version sans 'throwable'
             return Resource.Error("Erreur: ${e.localizedMessage}")
         }
     }
@@ -145,7 +140,6 @@ class UserRepositoryImpl @Inject constructor(
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e(TAG, "getAllUsers: Erreur Firestore - ${error.message}", error)
-                    // REVERTED: Revenir à la version sans 'throwable'
                     trySend(Resource.Error("Erreur Firestore: ${error.localizedMessage ?: "Erreur inconnue"}"))
                     close(error)
                     return@addSnapshotListener
@@ -163,7 +157,7 @@ class UserRepositoryImpl @Inject constructor(
                                 city = document.getString("city"),
                                 createdAt = document.getTimestamp("createdAt")?.toDate()?.time,
                                 canEditReadings = document.getBoolean("canEditReadings") ?: false,
-                                lastPermissionGrantedTimestamp = document.getLong("lastPermissionGrantedTimestamp") // LECTURE DU NOUVEAU CHAMP
+                                lastPermissionGrantedTimestamp = document.getLong("lastPermissionGrantedTimestamp")
                             )
                             usersList.add(user)
                         } catch (e: Exception) {
@@ -193,7 +187,6 @@ class UserRepositoryImpl @Inject constructor(
         val listenerRegistration = docRef.addSnapshotListener { documentSnapshot, error ->
             if (error != null) {
                 Log.e(TAG, "getUserById: Erreur Firestore pour ID '$userId': ${error.message}", error)
-                // REVERTED: Revenir à la version sans 'throwable'
                 trySend(Resource.Error("Erreur Firestore: ${error.localizedMessage ?: "Erreur inconnue"}"))
                 close(error)
                 return@addSnapshotListener
@@ -210,13 +203,12 @@ class UserRepositoryImpl @Inject constructor(
                         city = documentSnapshot.getString("city"),
                         createdAt = documentSnapshot.getTimestamp("createdAt")?.toDate()?.time,
                         canEditReadings = documentSnapshot.getBoolean("canEditReadings") ?: false,
-                        lastPermissionGrantedTimestamp = documentSnapshot.getLong("lastPermissionGrantedTimestamp") // LECTURE DU NOUVEAU CHAMP
+                        lastPermissionGrantedTimestamp = documentSnapshot.getLong("lastPermissionGrantedTimestamp")
                     )
                     Log.i(TAG, "getUserById: Utilisateur converti avec succès pour ID '$userId': $user")
                     trySend(Resource.Success(user))
                 } catch (e: Exception) {
                     Log.e(TAG, "getUserById: Erreur de conversion du document pour ID '$userId': ${e.message}", e)
-                    // REVERTED: Revenir à la version sans 'throwable'
                     trySend(Resource.Error("Erreur de conversion des données utilisateur."))
                 }
             } else {
@@ -244,7 +236,6 @@ class UserRepositoryImpl @Inject constructor(
             Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserTypingStatus: Erreur lors de la mise à jour du statut de frappe pour '$userId': ${e.message}", e)
-            // REVERTED: Revenir à la version sans 'throwable'
             return Resource.Error("Erreur technique lors de la mise à jour du statut: ${e.localizedMessage}")
         }
     }
@@ -256,12 +247,10 @@ class UserRepositoryImpl @Inject constructor(
             return Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserEditPermission: Erreur lors de la mise à jour de la permission d'édition pour $userId: ${e.message}", e)
-            // REVERTED: Revenir à la version sans 'throwable'
             return Resource.Error(e.localizedMessage ?: "Erreur lors de la mise à jour de la permission d'édition.")
         }
     }
 
-    // NOUVELLE MÉTHODE IMPLÉMENTÉE : Pour mettre à jour le timestamp de la dernière permission accordée
     override suspend fun updateUserLastPermissionTimestamp(userId: String, timestamp: Long?): Resource<Unit> {
         return try {
             val updateData = if (timestamp != null) {
@@ -270,14 +259,38 @@ class UserRepositoryImpl @Inject constructor(
                 // Pour supprimer le champ, utilisez FieldValue.delete() si timestamp est null
                 mapOf("lastPermissionGrantedTimestamp" to com.google.firebase.firestore.FieldValue.delete())
             }
-            // Utilise SetOptions.merge pour n'affecter que le champ 'lastPermissionGrantedTimestamp'
             usersCollection.document(userId).set(updateData, SetOptions.merge()).await()
             Log.d(TAG, "updateUserLastPermissionTimestamp: Timestamp de permission de l'utilisateur $userId mis à jour à $timestamp.")
             Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserLastPermissionTimestamp: Erreur lors de la mise à jour du timestamp de permission pour $userId: ${e.message}", e)
-            // REVERTED: Revenir à la version sans 'throwable'
             return Resource.Error(e.localizedMessage ?: "Erreur lors de la mise à jour du timestamp de permission.")
+        }
+    }
+
+    // NOUVELLE MÉTHODE IMPLÉMENTÉE : Pour mettre à jour le jeton FCM de l'utilisateur
+    override suspend fun updateUserFCMToken(userId: String, token: String): Resource<Unit> {
+        if (userId.isBlank()) {
+            Log.e(TAG, "updateUserFCMToken: userId est vide.")
+            return Resource.Error("L'ID utilisateur ne peut pas être vide pour la mise à jour du jeton FCM.")
+        }
+        if (token.isBlank()) {
+            Log.e(TAG, "updateUserFCMToken: Le jeton FCM est vide pour l'utilisateur $userId.")
+            return Resource.Error("Le jeton FCM ne peut pas être vide.")
+        }
+
+        return try {
+            val tokenUpdate = mapOf("fcmToken" to token)
+            // Utilise SetOptions.merge() pour ajouter/mettre à jour uniquement le champ 'fcmToken' sans affecter les autres
+            usersCollection
+                .document(userId)
+                .set(tokenUpdate, SetOptions.merge())
+                .await()
+            Log.d(TAG, "updateUserFCMToken: Jeton FCM mis à jour avec succès pour l'utilisateur $userId.")
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "updateUserFCMToken: Erreur lors de la mise à jour du jeton FCM pour l'utilisateur $userId: ${e.message}", e)
+            return Resource.Error("Erreur lors de la mise à jour du jeton FCM: ${e.localizedMessage}")
         }
     }
 }

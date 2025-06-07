@@ -38,6 +38,15 @@
         <activity
             android:name=".ui.readings.BookDetailActivity"
             android:exported="false" />
+
+        <!-- Déclaration du service Firebase Cloud Messaging -->
+        <service
+            android:name=".notifications.MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
         <!-- FIN DE L'AJOUT DU SERVICE FCM -->
 
         <meta-data

@@ -245,4 +245,7 @@
     <string name="error_unknown_generic">Une erreur inattendue est survenue. Veuillez réessayer.</string>
     <string name="error_internal_app_generic">Une erreur interne de l\'application est survenue.</string>
 
+    <!-- Add/Edit Monthly Reading Form -->
+    <string name="analysis_status_label">Statut de la phase d\'analyse</string>
+    <string name="debate_status_label">Statut de la phase de débat</string>
 </resources>

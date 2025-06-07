@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -45,12 +46,10 @@ class AddEditMonthlyReadingFragment : Fragment() {
     private val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
     private lateinit var bookDropdownAdapter: ArrayAdapter<String>
+    private lateinit var phaseStatusAdapter: ArrayAdapter<String> // NOUVEAU: Adaptateur pour les statuts de phase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // L'utilisation de setHasOptionsMenu(true) est dépréciée.
-        // La nouvelle approche est d'utiliser MenuHost et MenuProvider.
-        // Pour l'instant, nous la laissons telle quelle pour ne pas introduire trop de changements d'un coup.
         setHasOptionsMenu(true)
     }
 
@@ -71,6 +70,7 @@ class AddEditMonthlyReadingFragment : Fragment() {
 
         setupBookInputFields()
         setupDatePickers()
+        setupPhaseStatusSpinners() // NOUVEAU: Appel à la fonction de setup des Spinners de statut
         setupListeners()
         setupObservers()
 
@@ -89,6 +89,12 @@ class AddEditMonthlyReadingFragment : Fragment() {
             // Le formulaire doit être activé en mode ajout, car il n'y a pas de lecture à charger
             setFormEnabled(true)
             binding.progressBarAddEditMonthlyReading.visibility = View.GONE
+            // Initialiser les statuts par défaut pour l'ajout
+            viewModel.setAnalysisStatus(Phase.STATUS_PLANIFIED)
+            viewModel.setDebateStatus(Phase.STATUS_PLANIFIED)
+            // Mettre à jour les dropdowns pour afficher le statut par défaut
+            binding.actvAnalysisStatus.setText(getString(R.string.status_planified), false)
+            binding.actvDebateStatus.setText(getString(R.string.status_planified), false)
         }
     }
 
@@ -126,9 +132,9 @@ class AddEditMonthlyReadingFragment : Fragment() {
                 if (s.isNullOrBlank() || (viewModel.selectedBookId.value != null && s.toString() != (viewModel.allBooks.value as? Resource.Success)?.data?.find { it.id == viewModel.selectedBookId.value }?.title)) {
                     viewModel.setSelectedBookId(null)
                     // Optionnel : Effacer aussi les autres champs du livre si le titre est effacé.
-                    // viewModel.setBookAuthor("")
-                    // viewModel.setBookSynopsis(null)
-                    // viewModel.setBookCoverImageUrl(null)
+                    // binding.etBookAuthor.setText("")
+                    // binding.etBookSynopsis.setText("")
+                    // binding.etBookCoverUrl.setText("")
                 }
             }
             override fun afterTextChanged(s: Editable?) {}
@@ -163,6 +169,55 @@ class AddEditMonthlyReadingFragment : Fragment() {
         }
         binding.tilDebateDate.setEndIconOnClickListener {
             binding.etDebateDate.performClick()
+        }
+    }
+
+    // NOUVEAU: Fonction pour configurer les Spinners de statut
+    private fun setupPhaseStatusSpinners() {
+        val statusOptions = arrayOf(
+            getString(R.string.status_planified),
+            getString(R.string.status_in_progress),
+            getString(R.string.status_completed)
+        )
+        // Map pour convertir le texte affiché en constante de statut (pour le ViewModel)
+        val statusTextToConstantMap = mapOf(
+            getString(R.string.status_planified) to Phase.STATUS_PLANIFIED,
+            getString(R.string.status_in_progress) to Phase.STATUS_IN_PROGRESS,
+            getString(R.string.status_completed) to Phase.STATUS_COMPLETED
+        )
+
+        phaseStatusAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, statusOptions)
+
+        binding.actvAnalysisStatus.setAdapter(phaseStatusAdapter)
+        binding.actvAnalysisStatus.setOnItemClickListener { parent, _, position, _ ->
+            val selectedStatusText = parent.getItemAtPosition(position).toString()
+            val statusConstant = statusTextToConstantMap[selectedStatusText]
+            if (statusConstant != null) {
+                viewModel.setAnalysisStatus(statusConstant)
+                Log.d("AddEditMonthlyReading", "Analysis status selected: $selectedStatusText -> $statusConstant")
+            } else {
+                Log.w("AddEditMonthlyReading", "Invalid analysis status selected: $selectedStatusText")
+            }
+        }
+        // Permet d'ouvrir le dropdown en cliquant sur l'icône de fin
+        binding.tilAnalysisStatus.setEndIconOnClickListener {
+            binding.actvAnalysisStatus.showDropDown()
+        }
+
+        binding.actvDebateStatus.setAdapter(phaseStatusAdapter)
+        binding.actvDebateStatus.setOnItemClickListener { parent, _, position, _ ->
+            val selectedStatusText = parent.getItemAtPosition(position).toString()
+            val statusConstant = statusTextToConstantMap[selectedStatusText]
+            if (statusConstant != null) {
+                viewModel.setDebateStatus(statusConstant)
+                Log.d("AddEditMonthlyReading", "Debate status selected: $selectedStatusText -> $statusConstant")
+            } else {
+                Log.w("AddEditMonthlyReading", "Invalid debate status selected: $selectedStatusText")
+            }
+        }
+        // Permet d'ouvrir le dropdown en cliquant sur l'icône de fin
+        binding.tilDebateStatus.setEndIconOnClickListener {
+            binding.actvDebateStatus.showDropDown()
         }
     }
 
@@ -317,6 +372,25 @@ class AddEditMonthlyReadingFragment : Fragment() {
                                             viewModel.setYearMonth(monthlyReading.year, monthlyReading.month)
                                             viewModel.setAnalysisDate(monthlyReading.analysisPhase.date)
                                             viewModel.setDebateDate(monthlyReading.debatePhase.date)
+                                            // NOUVEAU: Mettre à jour la sélection des spinners de statut
+                                            val analysisStatusText = when (monthlyReading.analysisPhase.status) {
+                                                Phase.STATUS_PLANIFIED -> getString(R.string.status_planified)
+                                                Phase.STATUS_IN_PROGRESS -> getString(R.string.status_in_progress)
+                                                Phase.STATUS_COMPLETED -> getString(R.string.status_completed)
+                                                else -> getString(R.string.status_planified) // Fallback
+                                            }
+                                            binding.actvAnalysisStatus.setText(analysisStatusText, false)
+                                            viewModel.setAnalysisStatus(monthlyReading.analysisPhase.status)
+
+                                            val debateStatusText = when (monthlyReading.debatePhase.status) {
+                                                Phase.STATUS_PLANIFIED -> getString(R.string.status_planified)
+                                                Phase.STATUS_IN_PROGRESS -> getString(R.string.status_in_progress)
+                                                Phase.STATUS_COMPLETED -> getString(R.string.status_completed)
+                                                else -> getString(R.string.status_planified) // Fallback
+                                            }
+                                            binding.actvDebateStatus.setText(debateStatusText, false)
+                                            viewModel.setDebateStatus(monthlyReading.debatePhase.status)
+
                                         } else {
                                             // Ce cas signifie qu'un monthlyReadingId a été fourni, mais la lecture n'existe pas.
                                             Toast.makeText(requireContext(), "Lecture mensuelle non trouvée.", Toast.LENGTH_SHORT).show()
@@ -427,11 +501,28 @@ class AddEditMonthlyReadingFragment : Fragment() {
                 binding.etAnalysisDate.setText(dateFormatter.format(it))
             }
             binding.etAnalysisLink.setText(mr.analysisPhase.meetingLink)
+            // NOUVEAU: Définir le statut de la phase d'analyse
+            val analysisStatusText = when (mr.analysisPhase.status) {
+                Phase.STATUS_PLANIFIED -> getString(R.string.status_planified)
+                Phase.STATUS_IN_PROGRESS -> getString(R.string.status_in_progress)
+                Phase.STATUS_COMPLETED -> getString(R.string.status_completed)
+                else -> getString(R.string.status_planified) // Fallback
+            }
+            binding.actvAnalysisStatus.setText(analysisStatusText, false)
+
 
             mr.debatePhase.date?.let {
                 binding.etDebateDate.setText(dateFormatter.format(it))
             }
             binding.etDebateLink.setText(mr.debatePhase.meetingLink)
+            // NOUVEAU: Définir le statut de la phase de débat
+            val debateStatusText = when (mr.debatePhase.status) {
+                Phase.STATUS_PLANIFIED -> getString(R.string.status_planified)
+                Phase.STATUS_IN_PROGRESS -> getString(R.string.status_in_progress)
+                Phase.STATUS_COMPLETED -> getString(R.string.status_completed)
+                else -> getString(R.string.status_planified) // Fallback
+            }
+            binding.actvDebateStatus.setText(debateStatusText, false)
 
             binding.etCustomDescription.setText(mr.customDescription)
         } ?: run {
@@ -440,11 +531,14 @@ class AddEditMonthlyReadingFragment : Fragment() {
             // L'année et le mois sont déjà définis par défaut pour le mode ajout dans onViewCreated.
             binding.etAnalysisDate.setText("")
             binding.etAnalysisLink.setText("")
+            // Ne pas toucher au statut ici, il est déjà initialisé à PLANIFIED en onCreate
             binding.etDebateDate.setText("")
             binding.etDebateLink.setText("")
+            // Ne pas toucher au statut ici, il est déjà initialisé à PLANIFIED en onCreate
             binding.etCustomDescription.setText("")
         }
     }
+
 
     private fun setFormEnabled(enabled: Boolean) {
         binding.tilSelectBookAutocomplete.isEnabled = enabled
@@ -454,9 +548,13 @@ class AddEditMonthlyReadingFragment : Fragment() {
         binding.tilBookCoverUrl.isEnabled = enabled
 
         binding.tilAnalysisDate.isEnabled = enabled
+        binding.tilAnalysisStatus.isEnabled = enabled // AJOUTÉ
         binding.tilAnalysisLink.isEnabled = enabled
+
         binding.tilDebateDate.isEnabled = enabled
+        binding.tilDebateStatus.isEnabled = enabled // AJOUTÉ
         binding.tilDebateLink.isEnabled = enabled
+
         binding.tilCustomDescription.isEnabled = enabled
         binding.btnSaveMonthlyReading.isEnabled = enabled
     }
