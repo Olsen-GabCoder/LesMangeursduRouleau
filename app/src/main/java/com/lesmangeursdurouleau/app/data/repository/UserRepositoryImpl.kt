@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
+import com.google.firebase.firestore.FieldValue // Import ajouté pour FieldValue.delete()
+import com.google.firebase.firestore.FirebaseFirestoreException // Import pour capturer les exceptions Firestore spécifiques
 
 class UserRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
@@ -109,12 +111,30 @@ class UserRepositoryImpl @Inject constructor(
 
                 Log.d(TAG, "updateUserProfilePicture: Tentative de mise à jour de 'profilePictureUrl' dans Firestore avec: $photoUrl")
                 val userDocRef = usersCollection.document(userId)
-                userDocRef.update("profilePictureUrl", photoUrl).await()
-                Log.i(TAG, "updateUserProfilePicture: 'profilePictureUrl' dans Firestore MIS À JOUR pour $userId avec $photoUrl.")
+
+                // >>> DÉBUT DES LOGS DE DIAGNOSTIC AVANCÉS POUR FIRESTORE <<<
+                try {
+                    val updateData = mapOf("profilePictureUrl" to photoUrl)
+                    Log.d(TAG, "updateUserProfilePicture: Firestore - Appel de set(..., SetOptions.merge()) avec URL: $photoUrl")
+                    userDocRef.set(updateData, SetOptions.merge()).await()
+                    Log.i(TAG, "updateUserProfilePicture: Firestore - Écriture de 'profilePictureUrl' RÉUSSIE pour $userId avec $photoUrl.")
+                } catch (e: FirebaseFirestoreException) {
+                    Log.e(TAG, "updateUserProfilePicture: Firestore - ERREUR SPÉCIFIQUE FIRESTORE lors de la mise à jour de la photo pour $userId. Code: ${e.code}, Message: ${e.message}", e)
+                    return Resource.Error("Erreur Firestore (${e.code.name}): ${e.localizedMessage}")
+                } catch (e: Exception) {
+                    Log.e(TAG, "updateUserProfilePicture: Firestore - ERREUR GÉNÉRIQUE lors de la mise à jour de la photo pour $userId: ${e.message}", e)
+                    return Resource.Error("Erreur inattendue lors de la mise à jour Firestore: ${e.localizedMessage}")
+                }
+                // >>> FIN DES LOGS DE DIAGNOSTIC AVANCÉS POUR FIRESTORE <<<
+
 
                 Log.d(TAG, "updateUserProfilePicture: Tentative de mise à jour de Firebase Auth photoUri avec: $photoUrl")
                 val profileUpdates = UserProfileChangeRequest.Builder().setPhotoUri(android.net.Uri.parse(photoUrl)).build()
                 user.updateProfile(profileUpdates).await()
+
+                user.reload().await()
+                Log.d(TAG, "updateUserProfilePicture: Firebase Auth user object rechargé.")
+
                 val updatedAuthPhotoUrl = firebaseAuth.currentUser?.photoUrl?.toString()
                 Log.i(TAG, "updateUserProfilePicture: Firebase Auth photoUri MIS À JOUR pour $userId. Nouvelle URL dans Auth: $updatedAuthPhotoUrl")
 
@@ -179,7 +199,6 @@ class UserRepositoryImpl @Inject constructor(
             Log.w(TAG, "getUserById: Tentative de récupération avec un userId vide.")
             trySend(Resource.Error("L'ID utilisateur ne peut pas être vide."))
             close()
-            return@callbackFlow
         }
         trySend(Resource.Loading())
         Log.i(TAG, "getUserById: Tentative de récupération de l'utilisateur ID: '$userId' depuis la collection '${FirebaseConstants.COLLECTION_USERS}'.")
@@ -256,8 +275,7 @@ class UserRepositoryImpl @Inject constructor(
             val updateData = if (timestamp != null) {
                 mapOf("lastPermissionGrantedTimestamp" to timestamp)
             } else {
-                // Pour supprimer le champ, utilisez FieldValue.delete() si timestamp est null
-                mapOf("lastPermissionGrantedTimestamp" to com.google.firebase.firestore.FieldValue.delete())
+                mapOf("lastPermissionGrantedTimestamp" to FieldValue.delete())
             }
             usersCollection.document(userId).set(updateData, SetOptions.merge()).await()
             Log.d(TAG, "updateUserLastPermissionTimestamp: Timestamp de permission de l'utilisateur $userId mis à jour à $timestamp.")
@@ -268,7 +286,6 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    // NOUVELLE MÉTHODE IMPLÉMENTÉE : Pour mettre à jour le jeton FCM de l'utilisateur
     override suspend fun updateUserFCMToken(userId: String, token: String): Resource<Unit> {
         if (userId.isBlank()) {
             Log.e(TAG, "updateUserFCMToken: userId est vide.")
@@ -281,7 +298,6 @@ class UserRepositoryImpl @Inject constructor(
 
         return try {
             val tokenUpdate = mapOf("fcmToken" to token)
-            // Utilise SetOptions.merge() pour ajouter/mettre à jour uniquement le champ 'fcmToken' sans affecter les autres
             usersCollection
                 .document(userId)
                 .set(tokenUpdate, SetOptions.merge())

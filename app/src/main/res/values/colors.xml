@@ -16,6 +16,8 @@
     <color name="chat_send_button_bg_dark">#0B80FE</color>
     <color name="chat_send_button_icon_dark">#FFFFFFFF</color>
 
+    <color name="ucrop_dimmed_layer_color">#80000000</color> <!-- Noir semi-transparent -->
+
     <color name="chat_timestamp_dark">#8696A0</color>
     <color name="chat_sender_name_dark">#8696A0</color>
 

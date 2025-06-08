@@ -15,7 +15,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.lesmangeursdurouleau.app.data.repository.UserRepository
+import com.lesmangeursdurouleau.app.data.repository.UserRepository // N'oubliez pas cet import
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -77,7 +77,8 @@ class AuthViewModel @Inject constructor(
 
     fun registerUser(email: String, password: String, username: String) {
         _registrationResult.value = AuthResultWrapper.Loading
-        _justRegistered.value = false
+        _justRegistered.value = false // Réinitialiser avant l'opération
+
         firebaseAuthInstance.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful && task.result?.user != null) {
@@ -111,24 +112,25 @@ class AuthViewModel @Inject constructor(
                         "email" to email,
                         "profilePictureUrl" to null,
                         "createdAt" to FieldValue.serverTimestamp(),
-                        "isEmailVerified" to false
+                        "isEmailVerified" to false // Important: Initialement false
                     )
                     firestoreInstance.collection("users").document(firebaseUser.uid)
                         .set(userDocument)
                         .addOnSuccessListener {
                             Log.d(TAG, "Profil utilisateur créé dans Firestore pour ${firebaseUser.uid}")
+                            _justRegistered.value = true // Indiquer qu'une inscription vient d'avoir lieu
+                            firebaseAuthInstance.signOut() // Déconnexion pour forcer la vérification d'email
+                            _currentUser.value = null // Mettre à jour le LiveData pour refléter la déconnexion
+                            _userDisplayName.value = null // Mettre à jour le LiveData
                             _registrationResult.value = AuthResultWrapper.Success(firebaseUser)
-                            _currentUser.value = firebaseUser
-                            _userDisplayName.value = username
-                            _justRegistered.value = true
                         }
                         .addOnFailureListener { e ->
                             Log.e(TAG, "Erreur création profil Firestore pour ${firebaseUser.uid}", e)
-                            // Même en cas d'échec Firestore, on considère l'inscription Auth comme un succès partiel
-                            _registrationResult.value = AuthResultWrapper.Success(firebaseUser)
-                            _currentUser.value = firebaseUser
-                            _userDisplayName.value = username
-                            _justRegistered.value = true
+                            _justRegistered.value = true // Indiquer qu'une inscription vient d'avoir lieu
+                            firebaseAuthInstance.signOut() // Déconnexion pour forcer la vérification d'email
+                            _currentUser.value = null // Mettre à jour le LiveData pour refléter la déconnexion
+                            _userDisplayName.value = null // Mettre à jour le LiveData
+                            _registrationResult.value = AuthResultWrapper.Success(firebaseUser) // L'inscription Auth a réussi
                         }
                 } else {
                     Log.e(TAG, "Échec inscription Firebase Auth.", task.exception)
@@ -280,11 +282,13 @@ class AuthViewModel @Inject constructor(
                     Log.d(TAG, "Nom d'utilisateur récupéré: ${_userDisplayName.value} pour UID: $userId")
                 } else {
                     Log.d(TAG, "Aucun document utilisateur trouvé dans Firestore pour UID: $userId")
+                    // Fallback sur le displayName de Firebase Auth si le document Firestore n'existe pas ou ne contient pas le champ
                     _userDisplayName.value = firebaseAuthInstance.currentUser?.displayName
                 }
             }
             .addOnFailureListener { exception ->
                 Log.e(TAG, "Erreur lors de la récupération du nom d'utilisateur depuis Firestore:", exception)
+                // Fallback sur le displayName de Firebase Auth en cas d'erreur
                 _userDisplayName.value = firebaseAuthInstance.currentUser?.displayName
             }
     }
@@ -325,66 +329,59 @@ class AuthViewModel @Inject constructor(
         _registrationResult.value = null
     }
 
+    // MODIFICATION ICI : DÉLÉGATION À USERREPOSITORY
     fun updateUserProfile(userId: String, username: String) {
+        if (userId.isBlank()) {
+            _profileUpdateResult.value = Resource.Error("ID utilisateur invalide pour la mise à jour du profil.")
+            Log.e(TAG, "updateUserProfile: userId est vide.")
+            return
+        }
+        if (username.isBlank()) {
+            _profileUpdateResult.value = Resource.Error("Le pseudo ne peut pas être vide.")
+            Log.e(TAG, "updateUserProfile: username est vide.")
+            return
+        }
+
         _profileUpdateResult.value = Resource.Loading()
-        val profileUpdates = UserProfileChangeRequest.Builder()
-            .setDisplayName(username)
-            .build()
+        viewModelScope.launch {
+            Log.d(TAG, "updateUserProfile: Lancement de la coroutine pour appeler userRepository.updateUserProfile")
+            val result = userRepository.updateUserProfile(userId, username)
+            _profileUpdateResult.postValue(result) // Utiliser postValue car on est sur une coroutine
 
-        firebaseAuthInstance.currentUser?.updateProfile(profileUpdates)
-            ?.addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    firestoreInstance.collection("users").document(userId)
-                        .update("username", username)
-                        .addOnSuccessListener {
-                            _userDisplayName.value = username
-                            _profileUpdateResult.value = Resource.Success(Unit)
-                            Log.d(TAG, "Profil utilisateur (Auth et Firestore) mis à jour pour $username.")
-                        }
-                        .addOnFailureListener { e ->
-                            _profileUpdateResult.value = Resource.Error("Erreur Firestore: ${e.message}")
-                            Log.e(TAG, "Erreur MAJ username Firestore:", e)
-                        }
-                } else {
-                    _profileUpdateResult.value = Resource.Error("Erreur Auth: ${task.exception?.message}")
-                    Log.e(TAG, "Erreur MAJ displayName Auth:", task.exception)
-                }
+            if (result is Resource.Success) {
+                // Si la mise à jour est un succès, mettez à jour le nom d'utilisateur dans le ViewModel
+                // cela reflétera le changement immédiatement dans l'UI dépendante de _userDisplayName.
+                _userDisplayName.value = username
+                Log.i(TAG, "updateUserProfile: Pseudo mis à jour avec succès via UserRepository. Nouveau pseudo: $username")
+            } else if (result is Resource.Error) {
+                Log.e(TAG, "updateUserProfile: Échec de la mise à jour du pseudo via UserRepository: ${result.message}")
             }
+        }
     }
+    // FIN DE LA MODIFICATION
 
-    // --- IMPLÉMENTATION DE updateProfilePicture ---
     fun updateProfilePicture(userId: String, imageData: ByteArray) {
         Log.d(TAG, "updateProfilePicture: Début pour UserID: $userId")
         _profilePictureUpdateResult.value = Resource.Loading()
         viewModelScope.launch {
             Log.d(TAG, "updateProfilePicture: Lancement de la coroutine pour appeler userRepository.updateUserProfilePicture")
             val result = userRepository.updateUserProfilePicture(userId, imageData)
-            // Le résultat du repository est un Resource<String> (URL ou message d'erreur)
             _profilePictureUpdateResult.postValue(result) // Poster directement le résultat
-            Log.d(TAG, "updateProfilePicture: Résultat posté à _profilePictureUpdateResult: $result")
 
             if (result is Resource.Success) {
-                // Optionnel : Mettre à jour _currentUser.value.photoUrl si nécessaire,
-                // mais ProfileViewModel gère déjà sa propre logique pour afficher la photo.
-                // Firebase Auth est déjà mis à jour par le repository.
-                // On pourrait forcer un rechargement de l'utilisateur Auth ici si on voulait
-                // être absolument sûr que _currentUser reflète immédiatement le changement,
-                // mais cela pourrait être redondant.
-                // firebaseAuthInstance.currentUser?.reload()?.addOnCompleteListener { ... }
                 Log.i(TAG, "updateProfilePicture: Mise à jour de la photo de profil réussie. Nouvelle URL: ${result.data}")
             } else if (result is Resource.Error) {
                 Log.e(TAG, "updateProfilePicture: Échec de la mise à jour de la photo de profil: ${result.message}")
             }
         }
     }
-    // --- FIN DE L'IMPLÉMENTATION ---
 
     fun logoutUser() {
         Log.d(TAG, "Déconnexion de l'utilisateur.")
         firebaseAuthInstance.signOut()
         _currentUser.value = null
         _userDisplayName.value = null
-        _justRegistered.value = false
+        _justRegistered.value = false // Réinitialiser cet indicateur à la déconnexion générale
         _loginResult.value = null
         _registrationResult.value = null
         _profileUpdateResult.value = null
@@ -393,6 +390,7 @@ class AuthViewModel @Inject constructor(
     }
 
     fun consumeJustRegisteredEvent() {
+        Log.d(TAG, "Consommation de justRegisteredEvent.")
         _justRegistered.value = false
     }
 }

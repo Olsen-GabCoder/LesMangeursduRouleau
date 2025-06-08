@@ -46,6 +46,7 @@ android {
 dependencies {
     implementation ("com.facebook.shimmer:shimmer:0.5.0")
     implementation ("com.google.android.material:material:1.12.0")
+    implementation ("com.github.yalantis:ucrop:2.2.8")
 
     // AndroidX Core & UI
     implementation(libs.androidx.core.ktx)
