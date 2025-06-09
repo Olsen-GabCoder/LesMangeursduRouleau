@@ -14,6 +14,36 @@ interface UserRepository {
     suspend fun updateUserCity(userId: String, city: String): Resource<Unit>
     suspend fun updateUserEditPermission(userId: String, canEdit: Boolean): Resource<Unit>
     suspend fun updateUserLastPermissionTimestamp(userId: String, timestamp: Long?): Resource<Unit>
-    // NOUVELLE MÉTHODE : Pour mettre à jour le jeton FCM de l'utilisateur
     suspend fun updateUserFCMToken(userId: String, token: String): Resource<Unit>
+
+    /**
+     * Permet à l'utilisateur courant de suivre un autre utilisateur.
+     * @param currentUserId L'ID de l'utilisateur qui effectue l'action de suivre.
+     * @param targetUserId L'ID de l'utilisateur à suivre.
+     * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
+     */
+    suspend fun followUser(currentUserId: String, targetUserId: String): Resource<Unit>
+
+    /**
+     * Permet à l'utilisateur courant de ne plus suivre un autre utilisateur.
+     * @param currentUserId L'ID de l'utilisateur qui effectue l'action de ne plus suivre.
+     * @param targetUserId L'ID de l'utilisateur à ne plus suivre.
+     * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
+     */
+    suspend fun unfollowUser(currentUserId: String, targetUserId: String): Resource<Unit>
+
+    /**
+     * Vérifie si l'utilisateur courant suit un utilisateur cible.
+     * @param currentUserId L'ID de l'utilisateur qui vérifie le suivi.
+     * @param targetUserId L'ID de l'utilisateur dont on veut savoir s'il est suivi.
+     * @return Un Flow de Resource<Boolean> indiquant l'état de suivi.
+     */
+    fun isFollowing(currentUserId: String, targetUserId: String): Flow<Resource<Boolean>>
+
+    /**
+     * Récupère la liste des utilisateurs suivis par un utilisateur donné.
+     * @param userId L'ID de l'utilisateur dont on veut la liste des suivis.
+     * @return Un Flow de Resource<List<User>> contenant les profils des utilisateurs suivis.
+     */
+    fun getFollowingUsers(userId: String): Flow<Resource<List<User>>>
 }

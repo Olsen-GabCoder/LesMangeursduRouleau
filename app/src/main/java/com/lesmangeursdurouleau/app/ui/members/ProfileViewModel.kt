@@ -21,9 +21,16 @@ class ProfileViewModel @Inject constructor(
     internal val firebaseAuth: FirebaseAuth
 ) : ViewModel() {
 
+    // Ceci est la source de vérité principale pour le profil de l'utilisateur
     private val _userProfileData = MutableLiveData<Resource<User>>()
     val userProfileData: LiveData<Resource<User>> = _userProfileData
 
+    // LiveData individuels, ils seront mis à jour LORSQUE userProfileData change
+    // et aussi optimistically lors des mises à jour spécifiques.
+    // LE FRAGMENT NE DEVRAIT OBSERVER QUE userProfileData pour peupler l'UI.
+    // Ces LiveData individuels servent principalement pour les bindings bidirectionnels ou des cas très spécifiques.
+    // Sincèrement, je recommande de les supprimer et de ne travailler qu'avec userProfileData.
+    // Si vous les gardez, ils DOIVENT refléter ce qui est dans userProfileData.
     private val _email = MutableLiveData<String?>()
     val email: LiveData<String?> = _email
 
@@ -39,6 +46,7 @@ class ProfileViewModel @Inject constructor(
     private val _city = MutableLiveData<String?>()
     val city: LiveData<String?> = _city
 
+    // Les résultats des mises à jour, pour les SnackBar/Toast
     private val _cityUpdateResult = MutableLiveData<Resource<Unit>?>()
     val cityUpdateResult: LiveData<Resource<Unit>?> = _cityUpdateResult
 
@@ -48,110 +56,66 @@ class ProfileViewModel @Inject constructor(
     private val _usernameUpdateResult = MutableLiveData<Resource<Unit>?>()
     val usernameUpdateResult: LiveData<Resource<Unit>?> = _usernameUpdateResult
 
-    private val _profilePictureUpdateResult = MutableLiveData<Resource<String>?>()
-    val profilePictureUpdateResult: LiveData<Resource<String>?> = _profilePictureUpdateResult
-
+    // NOTE: profilePictureUpdateResult est mieux géré dans AuthViewModel car c'est lui qui upload.
+    // L'observation de AuthViewModel.profilePictureUpdateResult dans ProfileFragment est correcte.
+    // Ce LiveData ici est redondant avec celui d'AuthViewModel.
 
     init {
         Log.d("ProfileViewModel", "ViewModel initialisé.")
         loadCurrentUserProfile()
+
+        // Important: Observer userProfileData et mettre à jour les LiveData individuels
+        // Ceci garantit que les LiveData individuels sont toujours synchronisés avec la source de vérité.
+        _userProfileData.observeForever { resource ->
+            if (resource is Resource.Success && resource.data != null) {
+                val user = resource.data
+                _email.value = user.email
+                _displayName.value = user.username
+                _profilePictureUrl.value = user.profilePictureUrl
+                _bio.value = user.bio
+                _city.value = user.city
+                Log.d("ProfileViewModel", "LiveData individuels mis à jour depuis userProfileData: ${user.username}")
+            } else if (resource is Resource.Error) {
+                // En cas d'erreur de chargement principal, réinitialiser les LiveData individuels
+                _email.value = null
+                _displayName.value = null
+                _profilePictureUrl.value = null
+                _bio.value = null
+                _city.value = null
+                Log.e("ProfileViewModel", "LiveData individuels réinitialisés suite à une erreur userProfileData.")
+            }
+            // Ne rien faire en cas de Loading, car les valeurs précédentes peuvent encore être valides.
+        }
     }
 
     fun loadCurrentUserProfile() {
         Log.d("ProfileViewModel", "loadCurrentUserProfile: Entrée dans la fonction.")
         val firebaseCurrentUser = firebaseAuth.currentUser
-        if (firebaseCurrentUser != null) {
-            Log.d("ProfileViewModel", "loadCurrentUserProfile: Utilisateur connecté: ${firebaseCurrentUser.uid}, Email: ${firebaseCurrentUser.email}")
-            // Mettre à jour les champs de base de Firebase Auth
-            _email.value = firebaseCurrentUser.email
-            _displayName.value = firebaseCurrentUser.displayName // Sera écrasé par Firestore si présent
-
-            _userProfileData.value = Resource.Loading()
-
-            viewModelScope.launch {
-                userRepository.getUserById(firebaseCurrentUser.uid)
-                    .catch { e ->
-                        Log.e("ProfileViewModel", "Erreur lors de la collecte du getUserById flow", e)
-                        _userProfileData.postValue(Resource.Error("Erreur Firestore: ${e.localizedMessage}"))
-                        // En cas d'erreur Firestore, fallback sur les données Firebase Auth existantes
-                        _displayName.postValue(firebaseCurrentUser.displayName)
-                        _email.postValue(firebaseCurrentUser.email)
-                        _profilePictureUrl.postValue(firebaseCurrentUser.photoUrl?.toString()) // Utiliser la photo Auth en cas d'erreur Firestore
-                        _bio.postValue(null)
-                        _city.postValue(null)
-                    }
-                    .collectLatest { resource ->
-                        Log.d("ProfileViewModel", "loadCurrentUserProfile: Reçu de Firestore: $resource")
-                        _userProfileData.postValue(resource) // Émettre le Resource brut pour l'état général de l'UI
-                        when (resource) {
-                            is Resource.Success -> {
-                                val userFromDb = resource.data
-                                if (userFromDb != null) {
-                                    Log.d("ProfileViewModel", "loadCurrentUserProfile: Succès Firestore. User: ${userFromDb.username}, Email: ${userFromDb.email}, DB Photo URL: ${userFromDb.profilePictureUrl}, DB Bio: ${userFromDb.bio}, DB City: ${userFromDb.city}")
-                                    // Utiliser Firestore comme source de vérité principale
-                                    _displayName.postValue(
-                                        userFromDb.username.takeUnless { it.isBlank() }
-                                            ?: firebaseCurrentUser.displayName
-                                    )
-                                    _email.postValue(
-                                        userFromDb.email.takeUnless { it.isBlank() }
-                                            ?: firebaseCurrentUser.email
-                                    )
-                                    _bio.postValue(userFromDb.bio)
-                                    _city.postValue(userFromDb.city)
-
-                                    val urlFromDb = userFromDb.profilePictureUrl
-                                    // firebaseAuth.currentUser.photoUrl est maintenant fiable car rechargé après update
-                                    val urlFromAuth = firebaseAuth.currentUser?.photoUrl?.toString()
-                                    Log.d("ProfileViewModel", "loadCurrentUserProfile (Final Logic): DB Photo URL: '$urlFromDb', Auth Photo URL: '$urlFromAuth'")
-
-                                    // Prioriser Firestore. Si Firestore est vide, alors Auth.
-                                    val finalUrl = urlFromDb.takeUnless { it.isNullOrBlank() } ?: urlFromAuth
-
-                                    if (_profilePictureUrl.value != finalUrl) {
-                                        Log.d("ProfileViewModel", "loadCurrentUserProfile (Final Logic): _profilePictureUrl posté avec: '$finalUrl' (différent de la valeur actuelle '${_profilePictureUrl.value}')")
-                                        _profilePictureUrl.postValue(finalUrl)
-                                    } else {
-                                        Log.d("ProfileViewModel", "loadCurrentUserProfile (Final Logic): finalUrl ('$finalUrl') est identique à _profilePictureUrl.value, pas de repost.")
-                                    }
-                                } else {
-                                    Log.w("ProfileViewModel", "loadCurrentUserProfile: Données utilisateur nulles depuis Firestore pour ${firebaseCurrentUser.uid}. Fallback sur données Auth.")
-                                    _displayName.postValue(firebaseCurrentUser.displayName)
-                                    _email.postValue(firebaseCurrentUser.email)
-                                    _profilePictureUrl.postValue(firebaseCurrentUser.photoUrl?.toString())
-                                    _bio.postValue(null)
-                                    _city.postValue(null)
-                                }
-                            }
-                            is Resource.Error -> {
-                                Log.e("ProfileViewModel", "loadCurrentUserProfile: Erreur Resource Firestore: ${resource.message}. Fallback sur données Auth.")
-                                // Les postValue en cas d'erreur ont déjà été faits dans le catch block
-                                //_displayName.postValue(firebaseCurrentUser.displayName)
-                                //_email.postValue(firebaseCurrentUser.email)
-                                //_profilePictureUrl.postValue(firebaseCurrentUser.photoUrl?.toString())
-                                //_bio.postValue(null)
-                                //_city.postValue(null)
-                            }
-                            is Resource.Loading -> {
-                                Log.d("ProfileViewModel", "loadCurrentUserProfile: Chargement des données Firestore...")
-                                // L'UI du Fragment gère déjà l'état de chargement via _userProfileData
-                            }
-                        }
-                    }
-            }
-        } else {
-            Log.w("ProfileViewModel", "loadCurrentUserProfile: Aucun utilisateur Firebase connecté.")
+        if (firebaseCurrentUser == null) {
             _userProfileData.value = Resource.Error("Utilisateur non connecté.")
-            _email.value = null
-            _displayName.value = null
-            _profilePictureUrl.value = null
-            _bio.value = null
-            _city.value = null
+            Log.e("ProfileViewModel", "loadCurrentUserProfile: Aucun utilisateur Firebase connecté.")
+            return
+        }
+
+        _userProfileData.value = Resource.Loading()
+
+        viewModelScope.launch {
+            userRepository.getUserById(firebaseCurrentUser.uid)
+                .catch { e ->
+                    Log.e("ProfileViewModel", "Erreur lors de la collecte du getUserById flow", e)
+                    _userProfileData.postValue(Resource.Error("Erreur de chargement du profil: ${e.localizedMessage}"))
+                }
+                .collectLatest { resource ->
+                    Log.d("ProfileViewModel", "loadCurrentUserProfile: Reçu de Firestore: $resource")
+                    _userProfileData.postValue(resource) // Émettre le Resource brut pour l'état général de l'UI
+                    // Les LiveData individuels seront mis à jour via l'observeForever ci-dessus.
+                }
         }
     }
 
     // Cette méthode est appelée depuis ProfileFragment après un succès d'upload.
     // Elle met à jour _profilePictureUrl pour une mise à jour UI immédiate et optimiste.
+    // Et met à jour l'objet User interne.
     fun setCurrentProfilePictureUrl(newUrl: String?) {
         Log.d("ProfileViewModel", "setCurrentProfilePictureUrl: Mise à jour directe de _profilePictureUrl avec: '$newUrl'")
         _profilePictureUrl.value = newUrl
@@ -183,8 +147,14 @@ class ProfileViewModel @Inject constructor(
             val result = userRepository.updateUserProfile(userId, newUsername)
             _usernameUpdateResult.postValue(result)
             if (result is Resource.Success) {
-                Log.i("ProfileViewModel", "updateUsername: Succès de la mise à jour du pseudo vers '$newUsername'. Mise à jour de _displayName.")
-                _displayName.postValue(newUsername)
+                Log.i("ProfileViewModel", "updateUsername: Succès de la mise à jour du pseudo vers '$newUsername'.")
+                // Mettre à jour l'objet User dans userProfileData pour refléter le changement
+                val currentResource = _userProfileData.value
+                if (currentResource is Resource.Success && currentResource.data != null) {
+                    val updatedUser = currentResource.data.copy(username = newUsername)
+                    _userProfileData.postValue(Resource.Success(updatedUser))
+                }
+                // _displayName sera mis à jour via l'observeForever de _userProfileData
             } else if (result is Resource.Error) {
                 Log.e("ProfileViewModel", "updateUsername: Échec de la mise à jour du pseudo: ${result.message}")
             }
@@ -204,8 +174,13 @@ class ProfileViewModel @Inject constructor(
             val result = userRepository.updateUserBio(userId, newBio.trim())
             _bioUpdateResult.postValue(result)
             if (result is Resource.Success) {
-                Log.i("ProfileViewModel", "updateBio: Succès de la mise à jour de la bio. Mise à jour de _bio.")
-                _bio.postValue(newBio.trim())
+                Log.i("ProfileViewModel", "updateBio: Succès de la mise à jour de la bio.")
+                val currentResource = _userProfileData.value
+                if (currentResource is Resource.Success && currentResource.data != null) {
+                    val updatedUser = currentResource.data.copy(bio = newBio.trim())
+                    _userProfileData.postValue(Resource.Success(updatedUser))
+                }
+                // _bio sera mis à jour via l'observeForever de _userProfileData
             } else if (result is Resource.Error) {
                 Log.e("ProfileViewModel", "updateBio: Échec de la mise à jour de la bio: ${result.message}")
             }
@@ -226,8 +201,13 @@ class ProfileViewModel @Inject constructor(
             _cityUpdateResult.postValue(result)
 
             if (result is Resource.Success<*>) {
-                Log.i("ProfileViewModel", "updateCity: Succès de la mise à jour de la ville. Mise à jour de _city.")
-                _city.postValue(newCity.trim())
+                Log.i("ProfileViewModel", "updateCity: Succès de la mise à jour de la ville.")
+                val currentResource = _userProfileData.value
+                if (currentResource is Resource.Success && currentResource.data != null) {
+                    val updatedUser = currentResource.data.copy(city = newCity.trim())
+                    _userProfileData.postValue(Resource.Success(updatedUser))
+                }
+                // _city sera mis à jour via l'observeForever de _userProfileData
             } else if (result is Resource.Error<*>) {
                 Log.e("ProfileViewModel", "updateCity: Échec de la mise à jour de la ville: ${result.message}")
             }
@@ -246,7 +226,4 @@ class ProfileViewModel @Inject constructor(
         _cityUpdateResult.value = null
     }
 
-    fun clearProfilePictureUpdateResult() {
-        _profilePictureUpdateResult.value = null
-    }
 }

@@ -1,22 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Les Mangeurs du Rouleau</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
-    <string name="no_readings_available">Aucune lecture pour le moment.</string>
-    <string name="no_synopsis_available">Aucun synopsis disponible.</string>
-    <string name="no_meetings_scheduled">Aucune réunion programmée pour le moment.</string>
-    <string name="fill_all_fields">Veuillez remplir tous les champs</string>
-    <string name="login_successful">Connexion réussie: %1$s</string> <!-- %1$s sera remplacé par l'email -->
-    <string name="login_failed">Erreur de connexion: %1$s</string>
-    <string name="error_field_required">Ce champ est requis</string>
-    <string name="error_password_too_short">Le mot de passe doit contenir au moins 6 caractères</string>
-    <string name="error_passwords_do_not_match">Les mots de passe ne correspondent pas</string>
-    <string name="registration_successful_please_login">Inscription réussie pour %1$s. Veuillez vous connecter.</string>
-    <string name="registration_failed">Erreur d\'inscription: %1$s</string>
-    <string name="error_loading_book_details">Erreur lors du chargement des détails du livre.</string>
-    <string name="email_not_available">Email non disponible</string>
-    <string name="not_logged_in">Non connecté</string>
+
+    <string name="fill_all_fields">Veuillez remplir tous les champs.</string>
+    <string name="unknown_error">Une erreur inconnue est survenue.</string>
+    <string name="cancel">Annuler</string>
+    <string name="na">N/A</string>
+    <string name="error_opening_link">Impossible d\'ouvrir le lien.</string>
+    <string name="default_username">Utilisateur</string>
+    <string name="error_generic_with_message">Erreur : %1$s</string>
+
+    <string name="login_title">Connexion</string>
+    <string name="reset_password_title">Réinitialiser le mot de passe</string>
+    <string name="login_successful">Connexion réussie : %1$s</string>
+    <string name="login_failed">Erreur de connexion : %1$s</string>
+    <string name="error_field_required">Ce champ est requis.</string>
+    <string name="error_invalid_email">L\'adresse e-mail n\'est pas valide.</string>
+    <string name="error_password_too_short">Le mot de passe doit contenir au moins 6 caractères.</string>
+    <string name="error_passwords_do_not_match">Les mots de passe ne correspondent pas.</string>
+    <string name="registration_successful_check_email">Inscription réussie ! Un e-mail de vérification a été envoyé à %1$s. Veuillez consulter votre boîte de réception pour activer votre compte.</string>
+    <string name="registration_failed">Erreur d\'inscription : %1$s</string>
+    <string name="email_not_verified_message_login_prompt">Votre adresse e-mail n\'est pas vérifiée. Veuillez consulter votre boîte de réception (et vos spams) pour l\'e-mail de vérification. Vous devez vérifier votre e-mail avant de pouvoir vous connecter.</string>
+    <string name="password_reset_email_sent_success">Un e-mail de réinitialisation a été envoyé (si le compte existe).</string>
+    <string name="password_reset_failed_generic_format">La réinitialisation du mot de passe a échoué : %1$s</string>
+    <string name="email_required_for_reset">L\'adresse e-mail est requise.</string>
+    <string name="default_web_client_id" translatable="false">699742629224-klvetg97ecmbfuiprl12vqhrlife0lon.apps.googleusercontent.com</string>
+    <string name="error_google_token_null">Erreur Google : Le token d\'identification n\'a pas été reçu.</string>
+    <string name="error_google_signin_failed_api">La connexion avec Google a échoué (code : %1$s).</string>
+    <string name="error_google_signin_failed">La connexion avec Google a échoué.</string>
+
+    <string name="link_account_title">Lier le compte Google</string>
+    <string name="link_account_message">Un compte existe déjà avec l\'adresse e-mail %1$s. Voulez-vous lier votre compte Google à ce compte existant ? Veuillez saisir le mot de passe de votre compte existant.</string>
+    <string name="password_hint_for_linking">Mot de passe du compte existant</string>
+    <string name="link_button_text">Lier</string>
+    <string name="password_required_for_linking">Le mot de passe est requis pour lier les comptes.</string>
+    <string name="linking_cancelled">Liaison de compte annulée.</string>
+
+    <string name="firebase_error_invalid_custom_token">Le token personnalisé est invalide.</string>
+    <string name="firebase_error_custom_token_mismatch">Le token personnalisé correspond à une autre audience.</string>
+    <string name="firebase_error_invalid_credential">Les informations d\'identification fournies sont incorrectes ou ont expiré.</string>
+    <string name="firebase_error_invalid_credential_generic">Les informations d\'identification sont invalides.</string>
+    <string name="firebase_error_user_disabled">Ce compte utilisateur a été désactivé.</string>
+    <string name="firebase_error_user_token_expired">La session utilisateur a expiré. Veuillez vous reconnecter.</string>
+    <string name="firebase_error_user_not_found">Aucun utilisateur trouvé avec ces informations.</string>
+    <string name="firebase_error_user_not_found_for_reset">Aucun compte n\'est associé à cette adresse e-mail.</string>
+    <string name="firebase_error_invalid_user_token">Le token utilisateur est invalide. Veuillez vous reconnecter.</string>
+    <string name="firebase_error_operation_not_allowed">Cette opération n\'est pas autorisée. Vérifiez les configurations de votre projet Firebase.</string>
+    <string name="firebase_error_email_already_in_use">Cette adresse e-mail est déjà utilisée par un autre compte.</string>
+    <string name="firebase_error_weak_password">Le mot de passe est trop faible. Il doit contenir au moins 6 caractères.</string>
+    <string name="firebase_error_wrong_password">Le mot de passe est incorrect.</string>
+    <string name="firebase_error_account_exists_with_different_credential">Un compte existe déjà avec cette adresse e-mail mais utilise un autre mode de connexion (ex: Google, Facebook).</string>
+    <string name="firebase_error_requires_recent_login">Cette opération est sensible et nécessite une authentification récente. Veuillez vous reconnecter.</string>
+    <string name="firebase_error_network_request_failed">Erreur de réseau. Veuillez vérifier votre connexion Internet.</string>
+
+    <string name="not_logged_in">Non connecté.</string>
     <string name="username_na">N/A</string>
     <string name="profile_picture_description">Photo de profil</string>
     <string name="select_picture">Changer la photo</string>
@@ -25,66 +62,11 @@
     <string name="email_label">Email :</string>
     <string name="save_profile">Enregistrer</string>
     <string name="logout">Déconnexion</string>
-    <string name="not_connected">Non connecté</string>
-    <string name="na">N/A</string>
-    <string name="username_not_defined">Pseudo non défini</string>
-    <string name="username_not_set">Pseudo non défini</string>
-    <string name="members_title">Membres</string>
-    <string name="no_members_found">Aucun membre trouvé</string>
-    <string name="error_loading_members">Erreur de chargement : %1$s</string>
-    <string name="member_clicked">Membre sélectionné : %1$s</string>
-    <string name="view_members">Voir les membres</string>
+    <string name="username_not_defined">Pseudo non défini.</string>
+    <string name="username_not_set">Pseudo non défini.</string>
     <string name="error_loading_user_data">Erreur lors du chargement des données de l\'utilisateur.</string>
-    <string name="error_unknown">Une erreur inconnue est survenue.</string>
-    <string name="general_chat_button_text">Discussion Générale</string>
-    <string name="unknown_user">Utilisateur inconnu</string>
-    <string name="message_cannot_be_empty">Le message ne peut pas être vide</string>
-    <string name="copy_text_action">Copier le texte</string>
-    <string name="text_copied_to_clipboard">Texte copié</string>
-    <string name="delete_message_action">Supprimer le message</string>
-    <string name="deleting_message">Suppression du message...</string>
-    <string name="message_deleted_successfully">Message supprimé</string>
-    <string name="someone">Quelqu\'un</string>
-    <string name="typing_indicator_text">%1$s est en train d\'écrire...</string>
-    <string name="send_message_button_description">Envoyer le message</string>
-    <string name="single_member_typing">Un membre écrit...</string>
-    <string name="multiple_members_typing">Plusieurs membres écrivent...</string>
-    <string name="add_reaction_action">Réactions</string>
-    <string name="reaction_updated_successfully">Réaction mise à jour !</string>
-    <string name="remove_reaction_indicator">(Supprimer)</string>
-    <string name="registration_successful_check_email">Inscription réussie ! Un email de vérification a été envoyé à %1$s. Veuillez consulter votre boîte de réception pour activer votre compte.</string>
-    <string name="login_error_email_not_verified">Votre adresse e-mail n\'est pas vérifiée. Veuillez consulter l\'e-mail de vérification qui vous a été envoyé.</string>
-    <string name="default_web_client_id" translatable="false">699742629224-klvetg97ecmbfuiprl12vqhrlife0lon.apps.googleusercontent.com</string>
-    <string name="error_invalid_email">Adresse e-mail invalide</string>
-    <string name="error_sending_reset_email">Erreur lors de l\'envoi de l\'e-mail de réinitialisation.</string>
-    <string name="login_title">Connexion</string>
-    <string name="reset_password_title">Réinitialiser le mot de passe</string>
-    <string name="email_required_for_reset">L\'adresse e-mail est requise.</string>
-    <string name="password_reset_email_sent_success">Un e-mail de réinitialisation a été envoyé (si le compte existe).</string>
-    <string name="password_reset_failed">Échec de l\'envoi de l\'e-mail de réinitialisation: %1$s</string>
-    <string name="unknown_error">Erreur inconnue</string>
-    <string name="email_not_verified_message">Adresse e-mail non vérifiée. Veuillez consulter vos e-mails.</string>
-
-    <string name="error_google_token_null">Erreur Google : Le token d\'identification n\'a pas été reçu.</string>
-    <string name="error_google_signin_failed_api">La connexion avec Google a échoué (code: %1$s).</string>
-    <string name="error_google_signin_failed">La connexion avec Google a échoué.</string>
-    <string name="default_username">Utilisateur</string>
-    <string name="email_not_verified_message_login_prompt">Votre adresse e-mail n\'est pas vérifiée. Veuillez consulter votre boîte de réception (et vos spams) pour l\'e-mail de vérification. Vous devez vérifier votre e-mail avant de pouvoir vous connecter.</string>
-    <!-- Chaînes pour la liaison de compte Google -->
-    <string name="link_account_title">Lier le compte Google</string>
-    <string name="link_account_message">Un compte existe déjà avec l\'adresse e-mail %1$s. Voulez-vous lier votre compte Google à ce compte existant ? Veuillez saisir le mot de passe de votre compte existant.</string>
-    <string name="password_hint_for_linking">Mot de passe du compte existant</string>
-    <string name="link_button_text">Lier</string>
-    <string name="cancel">Annuler</string>
-    <string name="password_required_for_linking">Le mot de passe est requis pour lier les comptes.</string>
-    <string name="linking_cancelled">Liaison de compte annulée.</string>
-    <!-- Utilisé par le code original -->
-    <string name="password_reset_failed_generic_format">La réinitialisation du mot de passe a échoué : %1$s</string> <!-- Suggéré dans ma correction -->
-
-    <!-- Chaînes ajoutées pour ProfileFragment -->
     <string name="user_not_connected_error">Utilisateur non connecté.</string>
     <string name="error_reading_image">Erreur lors de la lecture de l\'image.</string>
-    <string name="error_generic_with_message">Erreur: %1$s</string>
     <string name="error_loading_profile">Erreur de chargement du profil.</string>
     <string name="username_updated_success">Pseudo mis à jour avec succès.</string>
     <string name="error_updating_username">Erreur de mise à jour du pseudo.</string>
@@ -92,26 +74,8 @@
     <string name="error_updating_profile_picture">Erreur de mise à jour de la photo de profil.</string>
     <string name="user_not_connected_error_for_action">Veuillez vous connecter pour %1$s.</string>
     <string name="username_cannot_be_empty">Le pseudo ne peut pas être vide.</string>
-
-    <!-- Messages d'erreur Firebase (communs) -->
-    <string name="firebase_error_invalid_custom_token">Le token personnalisé est invalide.</string>
-    <string name="firebase_error_custom_token_mismatch">Le token personnalisé correspond à une autre audience.</string>
-    <string name="firebase_error_invalid_credential">Les informations d\'identification fournies sont incorrectes ou ont expiré.</string>
-    <string name="firebase_error_invalid_credential_generic">Les informations d\'identification sont invalides.</string> <!-- Pour ForgotPasswordDialog -->
-    <string name="firebase_error_user_disabled">Ce compte utilisateur a été désactivé.</string>
-    <string name="firebase_error_user_token_expired">La session utilisateur a expiré, veuillez vous reconnecter.</string>
-    <string name="firebase_error_user_not_found">Aucun utilisateur trouvé avec ces informations.</string> <!-- Pour Login -->
-    <string name="firebase_error_user_not_found_for_reset">Aucun compte n\'est associé à cette adresse e-mail.</string> <!-- Pour ForgotPasswordDialog -->
-    <string name="firebase_error_invalid_user_token">Le token utilisateur est invalide, veuillez vous reconnecter.</string>
-    <string name="firebase_error_operation_not_allowed">Cette opération n\'est pas autorisée. Vérifiez les configurations de votre projet Firebase.</string>
-    <string name="firebase_error_email_already_in_use">Cette adresse e-mail est déjà utilisée par un autre compte.</string>
-    <string name="firebase_error_weak_password">Le mot de passe est trop faible. Il doit contenir au moins 6 caractères.</string>
-    <string name="firebase_error_wrong_password">Le mot de passe est incorrect.</string>
-    <string name="firebase_error_account_exists_with_different_credential">Un compte existe déjà avec cette adresse e-mail mais utilise un autre mode de connexion (ex: Google, Facebook).</string>
-    <string name="firebase_error_requires_recent_login">Cette opération est sensible et nécessite une authentification récente. Veuillez vous reconnecter.</string>
-    <string name="firebase_error_network_request_failed">Erreur de réseau. Veuillez vérifier votre connexion Internet.</string>
     <string name="bio_label">Biographie :</string>
-    <string name="bio_hint">Parlez un peu de vous...</string>
+    <string name="bio_hint">Parlez un peu de vous…</string>
     <string name="bio_updated_success">Biographie mise à jour avec succès.</string>
     <string name="error_updating_bio">Erreur lors de la mise à jour de la biographie.</string>
     <string name="profile_title_default">Profil</string>
@@ -121,17 +85,34 @@
     <string name="error_updating_city">Erreur lors de la mise à jour de la ville.</string>
     <string name="member_status_label">Statut de membre :</string>
     <string name="no_custom_description">Aucune description personnalisée.</string>
-    <string name="status_planified">Planifiée</string>
-    <string name="status_in_progress">En cours</string>
-    <string name="status_completed">Terminée</string>
-    <string name="status_unknown">Inconnu</string>
-    <string name="date_not_available">Date non disponible</string>
-    <string name="meeting_link">Lien de réunion</string>
+
+    <string name="members_title">Membres</string>
+    <string name="no_members_found">Aucun membre trouvé.</string>
+    <string name="error_loading_members">Erreur de chargement : %1$s</string>
+    <string name="member_clicked">Membre sélectionné : %1$s</string>
+    <string name="view_members">Voir les membres</string>
+
+    <string name="general_chat_button_text">Discussion Générale</string>
+    <string name="unknown_user">Utilisateur inconnu</string>
+    <string name="message_cannot_be_empty">Le message ne peut pas être vide.</string>
+    <string name="copy_text_action">Copier le texte</string>
+    <string name="text_copied_to_clipboard">Texte copié.</string>
+    <string name="delete_message_action">Supprimer le message</string>
+    <string name="deleting_message">Suppression du message…</string>
+    <string name="message_deleted_successfully">Message supprimé.</string>
+    <string name="someone">Quelqu\'un</string>
+    <string name="typing_indicator_text">%1$s est en train d\'écrire…</string>
+    <string name="send_message_button_description">Envoyer le message</string>
+    <string name="single_member_typing">Un membre écrit…</string>
+    <string name="multiple_members_typing">Plusieurs membres écrivent…</string>
+    <string name="add_reaction_action">Réactions</string>
+    <string name="reaction_updated_successfully">Réaction mise à jour !</string>
+    <string name="remove_reaction_indicator">(Supprimer)</string>
+
+    <string name="no_readings_available">Aucune lecture pour le moment.</string>
+    <string name="no_synopsis_available">Aucun synopsis disponible.</string>
     <string name="edit_monthly_reading_button_description">Modifier %1$s</string>
     <string name="edit_monthly_reading_button_description_generic">Modifier cette lecture mensuelle</string>
-    <string name="analysis_phase_label">Analyse :</string>
-    <string name="debate_phase_label">Débat :</string>
-
     <string name="add_monthly_reading_title">Ajouter une Lecture Mensuelle</string>
     <string name="edit_monthly_reading_title">Modifier la Lecture Mensuelle</string>
     <string name="select_book_label">Sélectionner un livre *</string>
@@ -153,8 +134,6 @@
     <string name="success_updating_monthly_reading">Lecture mensuelle mise à jour avec succès !</string>
     <string name="select_date">Sélectionner une date</string>
     <string name="error_loading_books">Erreur lors du chargement des livres pour la sélection.</string>
-
-    <!-- Section Lectures Mensuelles -->
     <string name="previous_month">Mois précédent</string>
     <string name="next_month">Mois suivant</string>
     <string name="filter_all">Toutes</string>
@@ -164,7 +143,6 @@
     <string name="no_monthly_readings_available">Aucune lecture mensuelle n\'est planifiée pour cette période ou ce filtre.</string>
     <string name="add_monthly_reading_button_description">Ajouter une nouvelle lecture mensuelle</string>
     <string name="error_loading_monthly_readings">Erreur lors du chargement des lectures mensuelles : %1$s</string>
-    <!-- Ajoutez ces chaînes de caractères -->
     <string name="book_details_title">Détails du Livre</string>
     <string name="search_existing_book_label">Rechercher ou saisir le titre du livre *</string>
     <string name="book_title_label">Titre du livre *</string>
@@ -174,32 +152,33 @@
     <string name="monthly_meeting_details_title">Détails de la Réunion Mensuelle</string>
     <string name="error_book_title_required">Le titre du livre est obligatoire.</string>
     <string name="error_book_author_required">L\'auteur du livre est obligatoire.</string>
-    <string name="error_loading_books_label">erreurs_load\n</string>
+    <string name="error_loading_books_label">erreurs_load</string>
     <string name="loading_books_label">load_books</string>
-
-    <string name="error_opening_link">Impossible d\'ouvrir le lien.</string>
     <string name="unknown_book_title">Titre inconnu</string>
     <string name="unknown_author">Auteur inconnu</string>
-    <!-- Dans res/values/strings.xml -->
     <string name="phase_completed_toast_message">Cette phase a été achevée le %s</string>
-    <string name="meeting_link_text">Lien de réunion</string> <!-- Texte générique pour le lien -->
-
+    <string name="meeting_link_text">Lien de réunion</string>
     <string name="phase_date_passed_toast_message">La date de cette phase est passée (le %s).</string>
-
     <string name="meeting_link_text_locked">Lien verrouillé</string>
-
-    <!-- Dans res/values/strings.xml -->
-    <string name="progress_not_started">0%</string> <!-- Double pourcentage pour échapper le % -->
+    <string name="progress_not_started">0%</string>
     <string name="progress_completed">100%</string>
-
-
-    <!-- Ces lignes sont à ajouter ou à mettre à jour dans votre res/values/strings.xml -->
-
-    <!-- Pour item_monthly_reading.xml -->
     <string name="book_cover_description">Couverture du livre</string>
+    <string name="progress_not_started_text">0%</string>
+    <string name="progress_completed_text">100%</string>
+    <string name="error_book_not_found">Le livre associé à cette lecture n\'a pas été trouvé. Veuillez en sélectionner un nouveau ou en créer un.</string>
+    <string name="analysis_status_label">Statut de la phase d\'analyse</string>
+    <string name="debate_status_label">Statut de la phase de débat</string>
+    <string name="analysis_phase_label">Analyse :</string>
+    <string name="debate_phase_label">Débat :</string>
+    <string name="status_planified">Planifiée</string>
+    <string name="status_in_progress">En cours</string>
+    <string name="status_completed">Terminée</string>
+    <string name="status_unknown">Inconnu</string>
+    <string name="date_not_available">Date non disponible</string>
+    <string name="meeting_link">Lien de réunion</string>
 
-    <string name="progress_not_started_text">0%</string> <!-- Double %% pour échapper le % -->
-    <string name="progress_completed_text">100%</string> <!-- Double %% pour échapper le % -->
+
+    <string name="no_meetings_scheduled">Aucune réunion programmée pour le moment.</string>
 
     <string name="menu_dashboard">Accueil</string>
     <string name="menu_dashboard_description">Accéder au tableau de bord principal</string>
@@ -220,8 +199,6 @@
     <string name="nav_meetings">Réunions</string>
     <string name="nav_profile">Profil</string>
 
-    <!-- Ajoutez ces nouvelles chaînes dans res/values/strings.xml -->
-
     <string name="dialog_title_enter_secret_code">Entrez le code secret</string>
     <string name="secret_code_hint">Code secret</string>
     <string name="enter_code_button">Entrer</string>
@@ -233,19 +210,44 @@
     <string name="error_permissions_document_not_found">Document de permissions introuvable.</string>
     <string name="error_not_logged_in_for_permission">Vous devez être connecté pour accorder la permission.</string>
 
-    <!-- NOUVELLE CHAINE AJOUTÉE -->
-    <string name="error_book_not_found">Le livre associé à cette lecture n\'a pas été trouvé. Veuillez en sélectionner un nouveau ou en créer un.</string>
+    <string name="password_hint">Mot de passe</string>
+    <string name="login_button_text">Se connecter</string>
+    <string name="google_sign_in_text">Se connecter avec Google</string>
+    <string name="no_account_register">Pas encore de compte ? S\'inscrire</string>
+    <string name="forgot_password_link">Mot de passe oublié ?</string>
+    <string name="welcome_title">Bienvenue</string>
+    <string name="or_separator_text">OU</string>
+    <string name="error_unknown">Une erreur inconnue est survenue</string>
+    <string name="error_loading_book_details">Erreur lors du chargement des détails du livre</string>
+    <string name="error_auth_generic">Une erreur d\'authentification est survenue</string>
+    <string name="error_server_unavailable_generic">Le serveur est momentanément indisponible. Veuillez réessayer plus tard.</string>
+    <string name="error_permission_denied_generic">Vous n\'avez pas la permission d\'effectuer cette action.</string>
+    <string name="personal_info_title">Informations personnelles</string>
+    <string name="quick_actions_title">Actions rapides</string>
+    <string name="register_title">Inscription</string>
+    <string name="username_hint_register">Nom d\'utilisateur (Pseudo)</string>
+    <string name="confirm_password_hint">Confirmer le mot de passe</string>
+    <string name="error_unknown_generic">Une erreur inattendue est survenue.</string>
+    <string name="error_network_generic">Problème de connexion réseau. Veuillez réessayer.</string>
+    <string name="general_chat_title">Discussion générale</string>
+    <string name="fab_select_picture_description">Sélectionner une image</string>
+    <string name="user_info_title">Informations de l\'utilisateur</string>
+    <string name="joined_since_label">Membre depuis</string>
+    <string name="joined_date_label">Membre depuis</string>
+    <string name="profile_picture_content_description">Photo de profil de l\'utilisateur</string>
 
-    <!-- NOUVEAUX MESSAGES D'ERREUR GÉNÉRIQUES (pour ErrorMessageMapper) -->
-    <string name="error_network_generic">Problème de connexion réseau. Veuillez vérifier votre connexion Internet.</string>
-    <string name="error_auth_generic">Erreur d\'authentification. Veuillez réessayer ou vous reconnecter.</string>
-    <string name="error_permission_denied_generic">Accès refusé. Vous n\'avez pas les permissions nécessaires.</string>
-    <string name="error_data_not_found_generic">Les données demandées n\'ont pas été trouvées.</string>
-    <string name="error_server_unavailable_generic">Le serveur n\'est pas disponible. Veuillez réessayer plus tard.</string>
-    <string name="error_unknown_generic">Une erreur inattendue est survenue. Veuillez réessayer.</string>
-    <string name="error_internal_app_generic">Une erreur interne de l\'application est survenue.</string>
-
-    <!-- Add/Edit Monthly Reading Form -->
-    <string name="analysis_status_label">Statut de la phase d\'analyse</string>
-    <string name="debate_status_label">Statut de la phase de débat</string>
+    <string name="register_button_text">S\'inscrire</string>
+    <string name="already_have_account_login">Déjà un compte ? Se connecter</string>
+    <string name="email_not_available">E-mail non disponible</string>
+    <string name="error_data_not_found_generic">Les données demandées sont introuvables.</string>
+    <string name="reset_password_dialog_title">Réinitialiser le mot de passe</string>
+    <string name="reset_password_instructions">Veuillez saisir l\'adresse e-mail associée à votre compte. Nous vous enverrons un lien pour réinitialiser votre mot de passe.</string>
+    <string name="send_reset_email_button_text">Envoyer l\'e-mail de réinitialisation</string>
+    <string name="follow">Suivre</string>
+    <string name="unfollow">Désabonner</string>
+    <string name="followers_label">Abonnés</string>
+    <string name="following_label">Abonnements</string>
+    <string name="loading_follow_status">Chargement...</string>
+    <string name="follow_error">Erreur de suivi</string>
+    <string name="my_profile_title">Mon Profil</string>
 </resources>

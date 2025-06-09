@@ -5,9 +5,15 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
@@ -16,10 +22,11 @@ import com.lesmangeursdurouleau.app.data.model.User
 import com.lesmangeursdurouleau.app.databinding.FragmentPublicProfileBinding
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest // Assurez-vous d'avoir cet import
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-// import java.util.TimeZone // Décommenter si utilisé
 
 @AndroidEntryPoint
 class PublicProfileFragment : Fragment() {
@@ -29,6 +36,10 @@ class PublicProfileFragment : Fragment() {
 
     private val viewModel: PublicProfileViewModel by viewModels()
     private val args: PublicProfileFragmentArgs by navArgs()
+
+    companion object {
+        private const val TAG = "PublicProfileFragment"
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,6 +55,7 @@ class PublicProfileFragment : Fragment() {
         (activity as? AppCompatActivity)?.supportActionBar?.title = args.username.takeIf { !it.isNullOrBlank() } ?: getString(R.string.profile_title_default)
 
         setupObservers()
+        setupFollowButton()
     }
 
     private fun setupObservers() {
@@ -53,20 +65,23 @@ class PublicProfileFragment : Fragment() {
                     binding.progressBarPublicProfile.visibility = View.VISIBLE
                     binding.tvPublicProfileError.visibility = View.GONE
                     binding.scrollViewPublicProfile.visibility = View.GONE
+                    Log.d(TAG, "Chargement du profil public pour ID: ${args.userId}")
                 }
                 is Resource.Success -> {
                     binding.progressBarPublicProfile.visibility = View.GONE
                     resource.data?.let { user ->
                         binding.scrollViewPublicProfile.visibility = View.VISIBLE
                         populateProfileData(user)
+                        // Mettre à jour le titre de l'ActionBar si le pseudo de l'utilisateur est disponible et différent
                         if ((activity as? AppCompatActivity)?.supportActionBar?.title != user.username && user.username.isNotBlank()) {
                             (activity as? AppCompatActivity)?.supportActionBar?.title = user.username
+                            Log.i(TAG, "Titre ActionBar mis à jour avec le pseudo: ${user.username}")
                         }
                     } ?: run {
                         binding.tvPublicProfileError.text = getString(R.string.error_loading_user_data)
                         binding.tvPublicProfileError.visibility = View.VISIBLE
                         binding.scrollViewPublicProfile.visibility = View.GONE
-                        Log.e("PublicProfileFragment", "User data is null on success for ID: ${args.userId}")
+                        Log.e(TAG, "User data is null on success for ID: ${args.userId}")
                     }
                 }
                 is Resource.Error -> {
@@ -74,9 +89,66 @@ class PublicProfileFragment : Fragment() {
                     binding.tvPublicProfileError.text = resource.message ?: getString(R.string.error_unknown)
                     binding.tvPublicProfileError.visibility = View.VISIBLE
                     binding.scrollViewPublicProfile.visibility = View.GONE
-                    Log.e("PublicProfileFragment", "Error loading profile: ${resource.message}")
+                    Log.e(TAG, "Erreur lors du chargement du profil public pour ID: ${args.userId}: ${resource.message}")
                 }
             }
+        }
+
+        // NOUVEL OBSERVATEUR POUR LE STATUT DE SUIVI - CORRIGÉ
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.isFollowing.collectLatest { isFollowingResource ->
+                    val currentUserId = viewModel.currentUserId.value // Récupérer la valeur actuelle du LiveData
+                    val targetUserId = args.userId // L'ID du profil affiché
+
+                    if (currentUserId != null && targetUserId != null && currentUserId == targetUserId) {
+                        // C'est le propre profil de l'utilisateur, masquer le bouton
+                        binding.btnToggleFollow.visibility = View.GONE
+                        Log.d(TAG, "Bouton de suivi masqué car c'est le propre profil de l'utilisateur.")
+                        return@collectLatest // Sortir de ce collectLatest
+                    }
+
+                    when (isFollowingResource) {
+                        is Resource.Loading -> {
+                            binding.btnToggleFollow.text = getString(R.string.loading_follow_status)
+                            binding.btnToggleFollow.isEnabled = false // Désactiver pendant le chargement
+                            binding.btnToggleFollow.visibility = View.VISIBLE // Assurer la visibilité
+                            Log.d(TAG, "Chargement du statut de suivi...")
+                        }
+                        is Resource.Success -> {
+                            binding.btnToggleFollow.isEnabled = true // Activer une fois le statut connu
+                            binding.btnToggleFollow.visibility = View.VISIBLE // Assurer la visibilité
+                            if (isFollowingResource.data == true) {
+                                binding.btnToggleFollow.text = getString(R.string.unfollow)
+                                // Utiliser le style OutlinedButton pour désabonner avec des couleurs spécifiques
+                                binding.btnToggleFollow.setTextColor(requireContext().getColor(R.color.error_color)) // Couleur texte rouge
+                                binding.btnToggleFollow.strokeColor = requireContext().getColorStateList(R.color.error_color) // Couleur contour rouge
+                                Log.d(TAG, "Bouton affiché: Désabonner")
+                            } else {
+                                binding.btnToggleFollow.text = getString(R.string.follow)
+                                // Utiliser le style OutlinedButton pour suivre (couleur primaire)
+                                binding.btnToggleFollow.setTextColor(requireContext().getColor(R.color.primary_accent))
+                                binding.btnToggleFollow.strokeColor = requireContext().getColorStateList(R.color.primary_accent)
+                                Log.d(TAG, "Bouton affiché: Suivre")
+                            }
+                        }
+                        is Resource.Error -> {
+                            binding.btnToggleFollow.text = getString(R.string.follow_error)
+                            binding.btnToggleFollow.isEnabled = false // Désactiver en cas d'erreur
+                            binding.btnToggleFollow.visibility = View.VISIBLE // Assurer la visibilité
+                            Toast.makeText(context, isFollowingResource.message, Toast.LENGTH_LONG).show()
+                            Log.e(TAG, "Erreur de statut de suivi: ${isFollowingResource.message}")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun setupFollowButton() {
+        binding.btnToggleFollow.setOnClickListener {
+            Log.d(TAG, "Bouton de suivi cliqué.")
+            viewModel.toggleFollowStatus()
         }
     }
 
@@ -88,47 +160,57 @@ class PublicProfileFragment : Fragment() {
             .transition(DrawableTransitionOptions.withCrossFade())
             .circleCrop()
             .into(binding.ivPublicProfilePicture)
+        Log.d(TAG, "Image de profil chargée pour ${user.username}. URL: ${user.profilePictureUrl}")
 
         binding.tvPublicProfileUsername.text = user.username.ifEmpty { getString(R.string.username_not_set) }
+        Log.d(TAG, "Pseudo: ${binding.tvPublicProfileUsername.text}")
+
+        // Affichage des compteurs de suivi
+        binding.tvFollowersCount.text = user.followersCount.toString()
+        binding.tvFollowingCount.text = user.followingCount.toString()
+        Log.d(TAG, "Compteurs mis à jour: Followers=${user.followersCount}, Following=${user.followingCount}")
+
         binding.tvPublicProfileEmail.text = user.email.ifEmpty { getString(R.string.na) }
+        Log.d(TAG, "Email: ${binding.tvPublicProfileEmail.text}")
 
         user.createdAt?.let { timestamp ->
             try {
                 val sdf = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())
                 binding.tvPublicProfileJoinedDate.text = sdf.format(Date(timestamp))
+                Log.d(TAG, "Date d'inscription: ${binding.tvPublicProfileJoinedDate.text}")
             } catch (e: Exception) {
-                Log.e("PublicProfileFragment", "Erreur de formatage de la date createdAt: $timestamp", e)
+                Log.e(TAG, "Erreur de formatage de la date createdAt: $timestamp", e)
                 binding.tvPublicProfileJoinedDate.text = getString(R.string.na)
             }
         } ?: run {
             binding.tvPublicProfileJoinedDate.text = getString(R.string.na)
+            Log.d(TAG, "Date d'inscription: N/A (createdAt est null)")
         }
 
         if (!user.bio.isNullOrBlank()) {
-            binding.tvPublicProfileBioLabel.visibility = View.VISIBLE
-            binding.tvPublicProfileBio.visibility = View.VISIBLE
+            binding.cardPublicProfileBio.visibility = View.VISIBLE
             binding.tvPublicProfileBio.text = user.bio
+            Log.d(TAG, "Bio affichée: ${user.bio}")
         } else {
-            binding.tvPublicProfileBioLabel.visibility = View.GONE
-            binding.tvPublicProfileBio.visibility = View.GONE
+            binding.cardPublicProfileBio.visibility = View.GONE
             binding.tvPublicProfileBio.text = ""
+            Log.d(TAG, "Bio non disponible ou vide. Carte masquée.")
         }
 
-        // --- AFFICHAGE DE LA VILLE ---
         if (!user.city.isNullOrBlank()) {
-            binding.tvPublicProfileCityLabel.visibility = View.VISIBLE
-            binding.tvPublicProfileCity.visibility = View.VISIBLE
+            binding.cardPublicProfileCity.visibility = View.VISIBLE
             binding.tvPublicProfileCity.text = user.city
+            Log.d(TAG, "Ville affichée: ${user.city}")
         } else {
-            binding.tvPublicProfileCityLabel.visibility = View.GONE
-            binding.tvPublicProfileCity.visibility = View.GONE
-            binding.tvPublicProfileCity.text = "" // Effacer au cas où
+            binding.cardPublicProfileCity.visibility = View.GONE
+            binding.tvPublicProfileCity.text = ""
+            Log.d(TAG, "Ville non disponible ou vide. Carte masquée.")
         }
-        // --- FIN DE L'AFFICHAGE DE LA VILLE ---
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        Log.d(TAG, "onDestroyView: Binding nulifié.")
     }
 }

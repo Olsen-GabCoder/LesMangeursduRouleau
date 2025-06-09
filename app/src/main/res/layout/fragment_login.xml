@@ -4,182 +4,184 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
+    android:background="@color/auth_background_dark"
     tools:context=".ui.auth.LoginFragment">
 
-    <!-- Titre de la page -->
     <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tv_login_title"
+        android:id="@+id/tv_welcome_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Connexion"
-        android:textAppearance="?attr/textAppearanceHeadline5"
-        android:layout_marginTop="32dp"
+        android:text="@string/welcome_title"
+        android:textAppearance="?attr/textAppearanceHeadline3"
+        android:textColor="@color/text_on_dark_background"
+        android:textStyle="bold"
+        android:layout_marginTop="80dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Champ Email (utilisé pour la connexion ET la réinitialisation) -->
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/til_email_login"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/login_card_container"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:hint="Adresse e-mail"
-        app:layout_constraintTop_toBottomOf="@id/tv_login_title"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="48dp"
+        app:cardBackgroundColor="@color/auth_card_background_light"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="8dp"
+        app:layout_constraintTop_toBottomOf="@id/tv_welcome_title"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_email_login"
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textEmailAddress" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:padding="24dp">
 
-    <!-- Groupe d'éléments pour la CONNEXION (initialement visible) -->
-    <androidx.constraintlayout.widget.Group
-        android:id="@+id/group_login_elements"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="visible"
-        app:constraint_referenced_ids="til_password_login, tv_forgot_password, btn_login, btn_google_sign_in, tv_go_to_register" />
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_email_login"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:hint="@string/email_label"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxStrokeColor="@color/outline_stroke_color"
+                app:boxStrokeWidth="1dp"
+                app:hintTextColor="?attr/colorPrimary"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
 
-    <!-- Champ Mot de passe (partie du groupe de connexion) -->
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/til_password_login"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:hint="Mot de passe"
-        app:passwordToggleEnabled="true"
-        app:layout_constraintTop_toBottomOf="@id/til_email_login"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_email_login"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textEmailAddress"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp"
+                    android:textColor="@color/text_on_light_background_primary"
+                    android:textColorHint="@color/text_on_light_background_secondary" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_password_login"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="textPassword" />
-    </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_password_login"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:hint="@string/password_hint"
+                app:passwordToggleEnabled="true"
+                app:passwordToggleTint="?attr/colorPrimary"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxStrokeColor="@color/outline_stroke_color"
+                app:boxStrokeWidth="1dp"
+                app:hintTextColor="?attr/colorPrimary"
+                app:layout_constraintTop_toBottomOf="@id/til_email_login"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
 
-    <!-- Lien Mot de passe oublié (partie du groupe de connexion) -->
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tv_forgot_password"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Mot de passe oublié ?"
-        android:textColor="?attr/colorPrimary"
-        android:layout_marginTop="8dp"
-        android:padding="4dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?attr/selectableItemBackground"
-        app:layout_constraintTop_toBottomOf="@id/til_password_login"
-        app:layout_constraintEnd_toEndOf="@id/til_password_login" />
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_password_login"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPassword"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp"
+                    android:textColor="@color/text_on_light_background_primary"
+                    android:textColorHint="@color/text_on_light_background_secondary" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Bouton Se connecter (partie du groupe de connexion) -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_login"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Se connecter"
-        app:layout_constraintTop_toBottomOf="@id/tv_forgot_password"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/tv_forgot_password"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/forgot_password_link"
+                android:textColor="@color/text_link_color"
+                android:layout_marginTop="8dp"
+                android:minHeight="48dp" android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:gravity="center_vertical"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"
+                app:layout_constraintTop_toBottomOf="@id/til_password_login"
+                app:layout_constraintEnd_toEndOf="@id/til_password_login" />
 
-    <!-- Bouton Connexion Google (partie du groupe de connexion) -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_google_sign_in"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Se connecter avec Google"
-        app:icon="@drawable/ic_google_logo"
-    app:iconGravity="textStart"
-    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-    app:layout_constraintTop_toBottomOf="@id/btn_login"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintEnd_toEndOf="parent" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_login"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/login_button_text"
+                android:textColor="@color/white"
+                android:backgroundTint="?attr/colorPrimary"
+                app:cornerRadius="12dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp"
+                android:textAppearance="?attr/textAppearanceButton"
+                android:textStyle="bold"
+                app:layout_constraintTop_toBottomOf="@id/tv_forgot_password"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Lien vers l'inscription (partie du groupe de connexion) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_google_sign_in"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/google_sign_in_text"
+                android:textColor="@color/google_btn_text_color"
+                android:backgroundTint="@color/white"
+                app:icon="@drawable/ic_google_logo"
+                app:iconTint="@null"
+                app:iconGravity="textStart"
+                app:cornerRadius="12dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp"
+                android:textAppearance="?attr/textAppearanceButton"
+                android:textStyle="bold"
+                app:strokeColor="@color/google_btn_border_color"
+                app:strokeWidth="1dp"
+                app:layout_constraintTop_toBottomOf="@id/btn_login" app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.card.MaterialCardView>
+
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/tv_go_to_register"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Pas encore de compte ? S'inscrire"
-        android:textColor="?attr/colorPrimary"
-        android:clickable="true"
+        android:layout_marginBottom="40dp"
+        android:text="@string/no_account_register"
+        android:textColor="@color/text_on_dark_background" android:clickable="true"
         android:focusable="true"
+        android:minHeight="48dp" android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:gravity="center_vertical"
         android:background="?attr/selectableItemBackground"
-        app:layout_constraintTop_toBottomOf="@id/btn_google_sign_in"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-
-    <!-- Groupe d'éléments pour la RÉINITIALISATION DE MOT DE PASSE (initialement masqué) -->
-    <androidx.constraintlayout.widget.Group
-        android:id="@+id/group_reset_password_elements"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:constraint_referenced_ids="tv_reset_instructions, btn_send_reset_email, tv_back_to_login" />
-
-    <!-- Texte d'instruction pour la réinitialisation -->
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tv_reset_instructions"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Veuillez saisir l'adresse e-mail associée à votre compte. Nous vous enverrons un lien pour réinitialiser votre mot de passe."
-        android:textAppearance="?attr/textAppearanceBody2"
-        android:gravity="center_horizontal"
-        app:layout_constraintTop_toBottomOf="@id/til_email_login"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Bouton Envoyer l'e-mail de réinitialisation -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_send_reset_email"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="Envoyer l'e-mail de réinitialisation"
-        app:layout_constraintTop_toBottomOf="@id/tv_reset_instructions"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Lien Retour à la connexion -->
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tv_back_to_login"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Retour à la connexion"
-        android:textColor="?attr/colorPrimary"
-        android:clickable="true"
-        android:focusable="true"
-        android:padding="8dp"
-        android:background="?attr/selectableItemBackground"
-        app:layout_constraintTop_toBottomOf="@id/btn_send_reset_email"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- ProgressBar (commun aux deux états) -->
     <ProgressBar
         android:id="@+id/progress_bar_login"
         style="?android:attr/progressBarStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:visibility="gone"
+        android:indeterminateTint="@color/white"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         tools:visibility="invisible" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
