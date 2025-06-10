@@ -5,15 +5,14 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.Lifecycle // Import pour Lifecycle
+import androidx.lifecycle.lifecycleScope // Import pour lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle // Import pour repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
@@ -56,6 +55,7 @@ class PublicProfileFragment : Fragment() {
 
         setupObservers()
         setupFollowButton()
+        setupCounterClickListeners()
     }
 
     private fun setupObservers() {
@@ -72,7 +72,6 @@ class PublicProfileFragment : Fragment() {
                     resource.data?.let { user ->
                         binding.scrollViewPublicProfile.visibility = View.VISIBLE
                         populateProfileData(user)
-                        // Mettre à jour le titre de l'ActionBar si le pseudo de l'utilisateur est disponible et différent
                         if ((activity as? AppCompatActivity)?.supportActionBar?.title != user.username && user.username.isNotBlank()) {
                             (activity as? AppCompatActivity)?.supportActionBar?.title = user.username
                             Log.i(TAG, "Titre ActionBar mis à jour avec le pseudo: ${user.username}")
@@ -95,38 +94,36 @@ class PublicProfileFragment : Fragment() {
         }
 
         // NOUVEL OBSERVATEUR POUR LE STATUT DE SUIVI - CORRIGÉ
+        // Lancement de la collecte dans une coroutine scope liée au cycle de vie du fragment
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.isFollowing.collectLatest { isFollowingResource ->
-                    val currentUserId = viewModel.currentUserId.value // Récupérer la valeur actuelle du LiveData
-                    val targetUserId = args.userId // L'ID du profil affiché
+                    val currentUserId = viewModel.currentUserId.value
+                    val targetUserId = args.userId
 
                     if (currentUserId != null && targetUserId != null && currentUserId == targetUserId) {
-                        // C'est le propre profil de l'utilisateur, masquer le bouton
                         binding.btnToggleFollow.visibility = View.GONE
                         Log.d(TAG, "Bouton de suivi masqué car c'est le propre profil de l'utilisateur.")
-                        return@collectLatest // Sortir de ce collectLatest
+                        return@collectLatest
                     }
 
                     when (isFollowingResource) {
                         is Resource.Loading -> {
                             binding.btnToggleFollow.text = getString(R.string.loading_follow_status)
-                            binding.btnToggleFollow.isEnabled = false // Désactiver pendant le chargement
-                            binding.btnToggleFollow.visibility = View.VISIBLE // Assurer la visibilité
+                            binding.btnToggleFollow.isEnabled = false
+                            binding.btnToggleFollow.visibility = View.VISIBLE
                             Log.d(TAG, "Chargement du statut de suivi...")
                         }
                         is Resource.Success -> {
-                            binding.btnToggleFollow.isEnabled = true // Activer une fois le statut connu
-                            binding.btnToggleFollow.visibility = View.VISIBLE // Assurer la visibilité
+                            binding.btnToggleFollow.isEnabled = true
+                            binding.btnToggleFollow.visibility = View.VISIBLE
                             if (isFollowingResource.data == true) {
                                 binding.btnToggleFollow.text = getString(R.string.unfollow)
-                                // Utiliser le style OutlinedButton pour désabonner avec des couleurs spécifiques
-                                binding.btnToggleFollow.setTextColor(requireContext().getColor(R.color.error_color)) // Couleur texte rouge
-                                binding.btnToggleFollow.strokeColor = requireContext().getColorStateList(R.color.error_color) // Couleur contour rouge
+                                binding.btnToggleFollow.setTextColor(requireContext().getColor(R.color.error_color))
+                                binding.btnToggleFollow.strokeColor = requireContext().getColorStateList(R.color.error_color)
                                 Log.d(TAG, "Bouton affiché: Désabonner")
                             } else {
                                 binding.btnToggleFollow.text = getString(R.string.follow)
-                                // Utiliser le style OutlinedButton pour suivre (couleur primaire)
                                 binding.btnToggleFollow.setTextColor(requireContext().getColor(R.color.primary_accent))
                                 binding.btnToggleFollow.strokeColor = requireContext().getColorStateList(R.color.primary_accent)
                                 Log.d(TAG, "Bouton affiché: Suivre")
@@ -134,8 +131,8 @@ class PublicProfileFragment : Fragment() {
                         }
                         is Resource.Error -> {
                             binding.btnToggleFollow.text = getString(R.string.follow_error)
-                            binding.btnToggleFollow.isEnabled = false // Désactiver en cas d'erreur
-                            binding.btnToggleFollow.visibility = View.VISIBLE // Assurer la visibilité
+                            binding.btnToggleFollow.isEnabled = false
+                            binding.btnToggleFollow.visibility = View.VISIBLE
                             Toast.makeText(context, isFollowingResource.message, Toast.LENGTH_LONG).show()
                             Log.e(TAG, "Erreur de statut de suivi: ${isFollowingResource.message}")
                         }
@@ -152,6 +149,32 @@ class PublicProfileFragment : Fragment() {
         }
     }
 
+    private fun setupCounterClickListeners() {
+        binding.llFollowersClickableArea.setOnClickListener {
+            val targetUserId = args.userId
+            val targetUsername = args.username ?: getString(R.string.profile_title_default)
+            val action = PublicProfileFragmentDirections.actionPublicProfileFragmentDestinationToMembersFragmentDestinationFollowers(
+                userId = targetUserId,
+                listType = "followers",
+                listTitle = getString(R.string.title_followers_of, targetUsername)
+            )
+            findNavController().navigate(action)
+            Log.d(TAG, "Clic sur 'Followers'. Navigation vers la liste des followers pour User ID: $targetUserId")
+        }
+
+        binding.llFollowingClickableArea.setOnClickListener {
+            val targetUserId = args.userId
+            val targetUsername = args.username ?: getString(R.string.profile_title_default)
+            val action = PublicProfileFragmentDirections.actionPublicProfileFragmentDestinationToMembersFragmentDestinationFollowing(
+                userId = targetUserId,
+                listType = "following",
+                listTitle = getString(R.string.title_following_by, targetUsername)
+            )
+            findNavController().navigate(action)
+            Log.d(TAG, "Clic sur 'Following'. Navigation vers la liste des abonnements pour User ID: $targetUserId")
+        }
+    }
+
     private fun populateProfileData(user: User) {
         Glide.with(this)
             .load(user.profilePictureUrl)
@@ -165,7 +188,6 @@ class PublicProfileFragment : Fragment() {
         binding.tvPublicProfileUsername.text = user.username.ifEmpty { getString(R.string.username_not_set) }
         Log.d(TAG, "Pseudo: ${binding.tvPublicProfileUsername.text}")
 
-        // Affichage des compteurs de suivi
         binding.tvFollowersCount.text = user.followersCount.toString()
         binding.tvFollowingCount.text = user.followingCount.toString()
         Log.d(TAG, "Compteurs mis à jour: Followers=${user.followersCount}, Following=${user.followingCount}")

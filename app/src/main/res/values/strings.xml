@@ -250,4 +250,10 @@
     <string name="loading_follow_status">Chargement...</string>
     <string name="follow_error">Erreur de suivi</string>
     <string name="my_profile_title">Mon Profil</string>
+    <!-- Pour les titres des listes de suivi dans MembersFragment -->
+    <string name="title_followers_of">Followers de %s</string>
+    <string name="title_following_by">Abonnements de %s</string>
+    <!-- Pour MembersFragment (lors de l'affichage des listes de suivi) -->
+    <string name="no_followers_found">Aucun follower trouvé.</string>
+    <string name="no_following_found">Aucun abonnement trouvé.</string>
 </resources>

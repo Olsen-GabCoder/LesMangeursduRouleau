@@ -46,4 +46,11 @@ interface UserRepository {
      * @return Un Flow de Resource<List<User>> contenant les profils des utilisateurs suivis.
      */
     fun getFollowingUsers(userId: String): Flow<Resource<List<User>>>
+
+    /**
+     * NOUVEAU: Récupère la liste des utilisateurs qui suivent un utilisateur donné (ses "followers").
+     * @param userId L'ID de l'utilisateur dont on veut la liste des followers.
+     * @return Un Flow de Resource<List<User>> contenant les profils des followers.
+     */
+    fun getFollowersUsers(userId: String): Flow<Resource<List<User>>> // <-- NOUVELLE DÉCLARATION
 }

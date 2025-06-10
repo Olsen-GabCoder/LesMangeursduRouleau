@@ -166,12 +166,17 @@
                         android:layout_marginTop="16dp"
                         android:layout_marginBottom="24dp">
 
+                        <!-- NOUVEAU: Conteneur cliquable pour les followers -->
                         <LinearLayout
+                            android:id="@+id/ll_followers_clickable_area"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
                             android:gravity="center_horizontal"
-                            android:layout_marginEnd="32dp">
+                            android:layout_marginEnd="32dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackgroundBorderless"> <!-- Ajoute un effet de ripple au clic -->
                             <TextView
                                 android:id="@+id/tv_followers_count"
                                 android:layout_width="wrap_content"
@@ -188,11 +193,16 @@
                                 android:textColor="?attr/colorOnSurfaceVariant"/>
                         </LinearLayout>
 
+                        <!-- NOUVEAU: Conteneur cliquable pour les following -->
                         <LinearLayout
+                            android:id="@+id/ll_following_clickable_area"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:gravity="center_horizontal">
+                            android:gravity="center_horizontal"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackgroundBorderless"> <!-- Ajoute un effet de ripple au clic -->
                             <TextView
                                 android:id="@+id/tv_following_count"
                                 android:layout_width="wrap_content"
