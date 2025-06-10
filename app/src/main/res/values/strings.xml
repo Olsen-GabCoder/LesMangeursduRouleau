@@ -256,4 +256,5 @@
     <!-- Pour MembersFragment (lors de l'affichage des listes de suivi) -->
     <string name="no_followers_found">Aucun follower trouvé.</string>
     <string name="no_following_found">Aucun abonnement trouvé.</string>
+    <string name="mutual_follow_badge_description">Indicateur de suivi réciproque</string>
 </resources>

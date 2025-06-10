@@ -9,9 +9,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle // Import pour Lifecycle
-import androidx.lifecycle.lifecycleScope // Import pour lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle // Import pour repeatOnLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
@@ -21,7 +21,7 @@ import com.lesmangeursdurouleau.app.data.model.User
 import com.lesmangeursdurouleau.app.databinding.FragmentPublicProfileBinding
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collectLatest // Assurez-vous d'avoir cet import
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -93,8 +93,6 @@ class PublicProfileFragment : Fragment() {
             }
         }
 
-        // NOUVEL OBSERVATEUR POUR LE STATUT DE SUIVI - CORRIGÉ
-        // Lancement de la collecte dans une coroutine scope liée au cycle de vie du fragment
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.isFollowing.collectLatest { isFollowingResource ->
@@ -135,6 +133,44 @@ class PublicProfileFragment : Fragment() {
                             binding.btnToggleFollow.visibility = View.VISIBLE
                             Toast.makeText(context, isFollowingResource.message, Toast.LENGTH_LONG).show()
                             Log.e(TAG, "Erreur de statut de suivi: ${isFollowingResource.message}")
+                        }
+                    }
+                }
+            }
+        }
+
+        // NOUVEL OBSERVATEUR POUR L'INDICATEUR DE SUIVI RÉCIPROQUE - CIBLE MAINTENANT card_mutual_follow_badge
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.isMutualFollow.collectLatest { mutualFollowResource ->
+                    val currentUserId = viewModel.currentUserId.value
+                    val targetUserId = args.userId
+
+                    Log.d(TAG, "Observer isMutualFollow: Reçu -> $mutualFollowResource")
+
+                    if (currentUserId != null && targetUserId != null && currentUserId == targetUserId) {
+                        binding.cardMutualFollowBadge.visibility = View.GONE // CHANGEMENT D'ID ICI
+                        Log.d(TAG, "Badge de suivi mutuel masqué car c'est le propre profil de l'utilisateur.")
+                        return@collectLatest
+                    }
+
+                    when (mutualFollowResource) {
+                        is Resource.Loading -> {
+                            binding.cardMutualFollowBadge.visibility = View.GONE // CHANGEMENT D'ID ICI
+                            Log.d(TAG, "Chargement du statut de suivi mutuel. Badge masqué temporairement.")
+                        }
+                        is Resource.Success -> {
+                            if (mutualFollowResource.data == true) {
+                                binding.cardMutualFollowBadge.visibility = View.VISIBLE // CHANGEMENT D'ID ICI
+                                Log.d(TAG, "Suivi mutuel détecté. Badge affiché. Visibilité: VISIBLE")
+                            } else {
+                                binding.cardMutualFollowBadge.visibility = View.GONE // CHANGEMENT D'ID ICI
+                                Log.d(TAG, "Pas de suivi mutuel. Badge masqué. Visibilité: GONE")
+                            }
+                        }
+                        is Resource.Error -> {
+                            binding.cardMutualFollowBadge.visibility = View.GONE // CHANGEMENT D'ID ICI
+                            Log.e(TAG, "Erreur lors de la détermination du suivi mutuel: ${mutualFollowResource.message}. Badge masqué.")
                         }
                     }
                 }
