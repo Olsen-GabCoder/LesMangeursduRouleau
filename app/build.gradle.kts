@@ -3,9 +3,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.googleGmsServices)
-    alias(libs.plugins.navigationSafeArgs)
+    id("androidx.navigation.safeargs.kotlin") // Appliqué correctement pour Safe Args
     id("kotlin-kapt")
     id("dagger.hilt.android.plugin")
+    id("kotlin-parcelize")
 }
 
 android {
@@ -41,24 +42,30 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+    // SUPPRIMÉ : Ce bloc sourceSets est obsolète et peut causer des problèmes avec les versions récentes de Safe Args.
+    // sourceSets.getByName("main") {
+    //     java.srcDirs("build/generated/source/navigation-safe-args")
+    // }
 }
 
 dependencies {
-    implementation ("com.facebook.shimmer:shimmer:0.5.0")
-    implementation ("com.google.android.material:material:1.12.0")
-    implementation ("com.github.yalantis:ucrop:2.2.8")
-
-    // AndroidX Core & UI
+    // AndroidX Core & UI - Toutes gérées via libs.versions.toml
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.material)
+    implementation(libs.material) // Utilisation unique de libs.material
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.recyclerview) // TRÈS IMPORTANT : Ajout de RecyclerView via libs.versions.toml
 
-    // Navigation
+    // Navigation - Toutes gérées via libs.versions.toml
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
+
+    // Lifecycle - Toutes gérées via libs.versions.toml
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
     // Firebase - Utilisation de la BoM pour une gestion cohérente des versions
     implementation(platform(libs.firebase.bom))
@@ -66,29 +73,30 @@ dependencies {
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.storage.ktx)
     implementation(libs.firebase.messaging.ktx)
-
-    // AJOUTÉ: Firebase Analytics - Requis pour FCM dans certains cas
     implementation("com.google.firebase:firebase-analytics-ktx")
 
-    // Google Services - Versions alignées avec Firebase BoM
+    // Google Services - Versions spécifiques (car pas dans libs.versions.toml pour ces cas)
     implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation(libs.play.services.fido)
 
-    // AJOUTÉ: Work Manager pour les tâches en arrière-plan liées aux notifications
+    // Work Manager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
-    // Google Maps & Location
-    implementation("com.google.android.gms:play-services-maps:18.2.0")
-    implementation("com.google.android.gms:play-services-location:21.3.0")
-
     // Glide
     implementation(libs.glide)
-    implementation(libs.play.services.fido)
-    implementation(libs.androidx.espresso.core)
-    kapt("com.github.bumptech.glide:compiler:4.16.0")
+    kapt("com.github.bumptech.glide:compiler:4.16.0") // Utilisation unique de kapt pour Glide compiler
+
+    // Shimmer
+    implementation("com.facebook.shimmer:shimmer:0.5.0")
+
+    // UCrop
+    implementation("com.github.yalantis:ucrop:2.2.8")
 
     // Hilt Dependencies
     implementation("com.google.dagger:hilt-android:2.51.1")

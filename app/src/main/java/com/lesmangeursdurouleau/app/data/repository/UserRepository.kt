@@ -1,6 +1,7 @@
 package com.lesmangeursdurouleau.app.data.repository
 
 import com.lesmangeursdurouleau.app.data.model.User
+import com.lesmangeursdurouleau.app.data.model.UserBookReading // Import ajouté
 import com.lesmangeursdurouleau.app.utils.Resource
 import kotlinx.coroutines.flow.Flow
 
@@ -48,9 +49,25 @@ interface UserRepository {
     fun getFollowingUsers(userId: String): Flow<Resource<List<User>>>
 
     /**
-     * NOUVEAU: Récupère la liste des utilisateurs qui suivent un utilisateur donné (ses "followers").
+     * Récupère la liste des utilisateurs qui suivent un utilisateur donné (ses "followers").
      * @param userId L'ID de l'utilisateur dont on veut la liste des followers.
      * @return Un Flow de Resource<List<User>> contenant les profils des followers.
      */
-    fun getFollowersUsers(userId: String): Flow<Resource<List<User>>> // <-- NOUVELLE DÉCLARATION
+    fun getFollowersUsers(userId: String): Flow<Resource<List<User>>>
+
+    /**
+     * Récupère la lecture en cours d'un utilisateur.
+     * @param userId L'ID de l'utilisateur dont on veut récupérer la lecture en cours.
+     * @return Un Flow de Resource<UserBookReading?>. Retourne null si aucune lecture en cours n'est définie.
+     */
+    fun getCurrentReading(userId: String): Flow<Resource<UserBookReading?>>
+
+    /**
+     * Met à jour la lecture en cours d'un utilisateur.
+     * Si userBookReading est null, cela supprimera la lecture en cours.
+     * @param userId L'ID de l'utilisateur dont la lecture en cours est mise à jour.
+     * @param userBookReading L'objet UserBookReading à enregistrer/mettre à jour, ou null pour supprimer.
+     * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
+     */
+    suspend fun updateCurrentReading(userId: String, userBookReading: UserBookReading?): Resource<Unit>
 }

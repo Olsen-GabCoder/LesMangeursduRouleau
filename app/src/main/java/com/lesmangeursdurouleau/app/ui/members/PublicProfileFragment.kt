@@ -27,6 +27,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+
 @AndroidEntryPoint
 class PublicProfileFragment : Fragment() {
 
@@ -34,7 +35,7 @@ class PublicProfileFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: PublicProfileViewModel by viewModels()
-    private val args: PublicProfileFragmentArgs by navArgs()
+    private val args: PublicProfileFragmentArgs by navArgs() // Pour récupérer userId et username
 
     companion object {
         private const val TAG = "PublicProfileFragment"
@@ -51,11 +52,12 @@ class PublicProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        (activity as? AppCompatActivity)?.supportActionBar?.title = args.username.takeIf { !it.isNullOrBlank() } ?: getString(R.string.profile_title_default)
+        updateActionBarTitle(args.username) // Initialisation du titre avec le nom des args ou un défaut
 
         setupObservers()
         setupFollowButton()
         setupCounterClickListeners()
+        setupCurrentReadingButton()
     }
 
     private fun setupObservers() {
@@ -72,10 +74,7 @@ class PublicProfileFragment : Fragment() {
                     resource.data?.let { user ->
                         binding.scrollViewPublicProfile.visibility = View.VISIBLE
                         populateProfileData(user)
-                        if ((activity as? AppCompatActivity)?.supportActionBar?.title != user.username && user.username.isNotBlank()) {
-                            (activity as? AppCompatActivity)?.supportActionBar?.title = user.username
-                            Log.i(TAG, "Titre ActionBar mis à jour avec le pseudo: ${user.username}")
-                        }
+                        updateActionBarTitle(user.username) // Mise à jour du titre avec le nom du profil réel
                     } ?: run {
                         binding.tvPublicProfileError.text = getString(R.string.error_loading_user_data)
                         binding.tvPublicProfileError.visibility = View.VISIBLE
@@ -96,13 +95,13 @@ class PublicProfileFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.isFollowing.collectLatest { isFollowingResource ->
-                    val currentUserId = viewModel.currentUserId.value
-                    val targetUserId = args.userId
+                    val currentUserId = viewModel.currentUserId.value // ID de l'utilisateur connecté
+                    val targetUserId = args.userId // ID de l'utilisateur dont on voit le profil
 
-                    if (currentUserId != null && targetUserId != null && currentUserId == targetUserId) {
+                    if (currentUserId != null && currentUserId == targetUserId) {
                         binding.btnToggleFollow.visibility = View.GONE
                         Log.d(TAG, "Bouton de suivi masqué car c'est le propre profil de l'utilisateur.")
-                        return@collectLatest
+                        return@collectLatest // Ne pas continuer pour le propre profil
                     }
 
                     when (isFollowingResource) {
@@ -139,38 +138,111 @@ class PublicProfileFragment : Fragment() {
             }
         }
 
-        // NOUVEL OBSERVATEUR POUR L'INDICATEUR DE SUIVI RÉCIPROQUE - CIBLE MAINTENANT card_mutual_follow_badge
+        // OBSERVATEUR POUR L'INDICATEUR DE SUIVI RÉCIPROQUE
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.isMutualFollow.collectLatest { mutualFollowResource ->
                     val currentUserId = viewModel.currentUserId.value
                     val targetUserId = args.userId
 
-                    Log.d(TAG, "Observer isMutualFollow: Reçu -> $mutualFollowResource")
+                    Log.d(TAG, "Observateur isMutualFollow: Reçu -> $mutualFollowResource")
 
-                    if (currentUserId != null && targetUserId != null && currentUserId == targetUserId) {
-                        binding.cardMutualFollowBadge.visibility = View.GONE // CHANGEMENT D'ID ICI
+                    if (currentUserId != null && currentUserId == targetUserId) {
+                        binding.cardMutualFollowBadge.visibility = View.GONE
                         Log.d(TAG, "Badge de suivi mutuel masqué car c'est le propre profil de l'utilisateur.")
                         return@collectLatest
                     }
 
                     when (mutualFollowResource) {
                         is Resource.Loading -> {
-                            binding.cardMutualFollowBadge.visibility = View.GONE // CHANGEMENT D'ID ICI
+                            binding.cardMutualFollowBadge.visibility = View.GONE
                             Log.d(TAG, "Chargement du statut de suivi mutuel. Badge masqué temporairement.")
                         }
                         is Resource.Success -> {
                             if (mutualFollowResource.data == true) {
-                                binding.cardMutualFollowBadge.visibility = View.VISIBLE // CHANGEMENT D'ID ICI
+                                binding.cardMutualFollowBadge.visibility = View.VISIBLE
                                 Log.d(TAG, "Suivi mutuel détecté. Badge affiché. Visibilité: VISIBLE")
                             } else {
-                                binding.cardMutualFollowBadge.visibility = View.GONE // CHANGEMENT D'ID ICI
+                                binding.cardMutualFollowBadge.visibility = View.GONE
                                 Log.d(TAG, "Pas de suivi mutuel. Badge masqué. Visibilité: GONE")
                             }
                         }
                         is Resource.Error -> {
-                            binding.cardMutualFollowBadge.visibility = View.GONE // CHANGEMENT D'ID ICI
+                            binding.cardMutualFollowBadge.visibility = View.GONE
                             Log.e(TAG, "Erreur lors de la détermination du suivi mutuel: ${mutualFollowResource.message}. Badge masqué.")
+                        }
+                    }
+                }
+            }
+        }
+
+        // OBSERVATEUR POUR LA LECTURE EN COURS
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.currentReadingUiState.collectLatest { uiState ->
+                    // Masquer le bouton d'édition par défaut, il ne sera visible que pour le propriétaire du profil
+                    binding.btnEditCurrentReading.visibility = View.GONE
+
+                    when {
+                        uiState.isLoading -> {
+                            binding.cardCurrentReading.visibility = View.GONE // Masquer pendant le chargement
+                            Log.d(TAG, "currentReadingUiState (Public): Chargement en cours.")
+                        }
+                        uiState.error != null -> {
+                            binding.cardCurrentReading.visibility = View.GONE
+                            Toast.makeText(context, uiState.error, Toast.LENGTH_LONG).show() // Utilisation du Toast pour les erreurs
+                            Log.e(TAG, "currentReadingUiState (Public): Erreur: ${uiState.error}")
+                        }
+                        uiState.bookReading == null || uiState.bookDetails == null -> {
+                            binding.cardCurrentReading.visibility = View.GONE
+                            Log.d(TAG, "currentReadingUiState (Public): Aucune lecture en cours ou détails du livre manquants. Carte masquée.")
+                        }
+                        else -> { // Ce bloc est exécuté si uiState.bookReading et uiState.bookDetails sont tous deux non nuls.
+                            binding.cardCurrentReading.visibility = View.VISIBLE
+                            Log.d(TAG, "currentReadingUiState (Public): Affichage de la lecture en cours.")
+
+                            // Accès direct SANS safe call (?.), car leur non-nullité est garantie par la condition 'else'
+                            val reading = uiState.bookReading
+                            val book = uiState.bookDetails
+
+                            // Couverture du livre
+                            Glide.with(this@PublicProfileFragment)
+                                .load(book.coverImageUrl)
+                                .placeholder(R.drawable.ic_book_placeholder)
+                                .error(R.drawable.ic_book_placeholder)
+                                .transition(DrawableTransitionOptions.withCrossFade())
+                                .into(binding.ivCurrentReadingBookCover)
+
+                            // Titre et Auteur
+                            binding.tvCurrentReadingBookTitle.text = book.title
+                            binding.tvCurrentReadingBookAuthor.text = book.author
+
+                            // Progression
+                            val currentPage = reading.currentPage
+                            val totalPages = reading.totalPages
+                            if (totalPages > 0) {
+                                binding.tvCurrentReadingProgressText.text = getString(R.string.page_progress_format, currentPage, totalPages)
+                                val progressPercentage = (currentPage.toFloat() / totalPages.toFloat() * 100).toInt()
+                                binding.progressBarCurrentReading.progress = progressPercentage
+                            } else {
+                                binding.tvCurrentReadingProgressText.text = getString(R.string.page_progress_unknown)
+                                binding.progressBarCurrentReading.progress = 0
+                            }
+
+                            // Note personnelle
+                            val personalNote = reading.favoriteQuote?.takeIf { it.isNotBlank() }
+                                ?: reading.personalReflection?.takeIf { it.isNotBlank() }
+
+                            if (!personalNote.isNullOrBlank()) {
+                                binding.llPersonalReflectionSection.visibility = View.VISIBLE
+                                binding.tvCurrentReadingPersonalNote.text = personalNote
+                            } else {
+                                binding.llPersonalReflectionSection.visibility = View.GONE
+                                binding.tvCurrentReadingPersonalNote.text = ""
+                            }
+
+                            // Bouton "Mettre à jour" (visible seulement si c'est le profil de l'utilisateur connecté)
+                            binding.btnEditCurrentReading.visibility = if (uiState.isOwnedProfile) View.VISIBLE else View.GONE
                         }
                     }
                 }
@@ -211,6 +283,29 @@ class PublicProfileFragment : Fragment() {
         }
     }
 
+    // NOUVEAU: Listener pour le bouton "Mettre à jour la lecture"
+    private fun setupCurrentReadingButton() {
+        binding.btnEditCurrentReading.setOnClickListener {
+            val uiState = viewModel.currentReadingUiState.value
+            // Ce bouton ne doit être fonctionnel que si c'est le profil de l'utilisateur connecté
+            if (uiState.isOwnedProfile) {
+                Log.d(TAG, "Bouton 'Mettre à jour la lecture' cliqué. Navigation vers l'écran d'édition.")
+                // Navigation vers EditCurrentReadingFragment
+                val action = PublicProfileFragmentDirections.actionPublicProfileFragmentDestinationToEditCurrentReadingFragment()
+                findNavController().navigate(action)
+            } else {
+                Toast.makeText(context, "Vous ne pouvez modifier que votre propre lecture.", Toast.LENGTH_SHORT).show()
+                Log.d(TAG, "Tentative de modification de lecture sur un profil public qui n'est pas le sien.")
+            }
+        }
+    }
+
+    private fun updateActionBarTitle(username: String?) {
+        val title = username?.takeIf { it.isNotBlank() } ?: getString(R.string.profile_title_default)
+        (activity as? AppCompatActivity)?.supportActionBar?.title = title
+        Log.i(TAG, "Titre ActionBar mis à jour avec: $title")
+    }
+
     private fun populateProfileData(user: User) {
         Glide.with(this)
             .load(user.profilePictureUrl)
@@ -224,6 +319,7 @@ class PublicProfileFragment : Fragment() {
         binding.tvPublicProfileUsername.text = user.username.ifEmpty { getString(R.string.username_not_set) }
         Log.d(TAG, "Pseudo: ${binding.tvPublicProfileUsername.text}")
 
+        // Aucune suppression nécessaire si vous utilisez .toString() directement sur les entiers.
         binding.tvFollowersCount.text = user.followersCount.toString()
         binding.tvFollowingCount.text = user.followingCount.toString()
         Log.d(TAG, "Compteurs mis à jour: Followers=${user.followersCount}, Following=${user.followingCount}")

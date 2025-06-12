@@ -4,8 +4,8 @@ import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
 data class Phase(
-    val date: Date? = null, // Specific date for the phase
-    val status: String = "PLANIFIED", // Status: PLANIFIED, IN_PROGRESS, COMPLETED
+    val date: Date? = null,
+    val status: String = "PLANIFIED", 
     val meetingLink: String? = null
 ) {
     // Constants for phase statuses

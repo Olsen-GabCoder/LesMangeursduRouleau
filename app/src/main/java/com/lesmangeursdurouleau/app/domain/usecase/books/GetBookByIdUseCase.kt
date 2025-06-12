@@ -10,10 +10,12 @@ import javax.inject.Inject
 class GetBookByIdUseCase @Inject constructor(
     private val bookRepository: BookRepository
 ) {
-    operator fun invoke(bookId: String): Flow<Resource<Book>> {
+    // MODIFIÉ : Le type de retour indique que le Book peut être null
+    operator fun invoke(bookId: String): Flow<Resource<Book?>> {
         if (bookId.isBlank()) {
-            // Optionnel: gérer le cas d'un ID vide en amont
-            // return kotlinx.coroutines.flow.flowOf(Resource.Error("L'ID du livre ne peut pas être vide."))
+            // Gérer le cas d'un ID vide comme un Resource.Error, si c'est la logique désirée.
+            // Ou vous pouvez laisser le repository gérer cela et retourner un Resource.Success(null).
+            // Pour l'instant, je garde l'appel au repository qui gère déjà l'ID vide.
         }
         return bookRepository.getBookById(bookId)
     }

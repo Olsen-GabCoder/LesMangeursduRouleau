@@ -176,6 +176,8 @@
     <string name="status_unknown">Inconnu</string>
     <string name="date_not_available">Date non disponible</string>
     <string name="meeting_link">Lien de réunion</string>
+    <!-- Pour la section "Lecture en cours" sur le profil privé -->
+    <string name="manage_reading_button">Gérer la lecture</string>
 
 
     <string name="no_meetings_scheduled">Aucune réunion programmée pour le moment.</string>
@@ -257,4 +259,49 @@
     <string name="no_followers_found">Aucun follower trouvé.</string>
     <string name="no_following_found">Aucun abonnement trouvé.</string>
     <string name="mutual_follow_badge_description">Indicateur de suivi réciproque</string>
+    <!-- Pour la section "Lecture en cours" -->
+    <string name="current_reading_title">Lecture en cours</string>
+    <string name="personal_note_title">Note personnelle</string>
+    <string name="update_reading_button">Mettre à jour la lecture</string>
+    <!-- Pour la section "Lecture en cours" dans le Fragment -->
+    <string name="page_progress_format">Page %1$d / %2$d</string>
+    <string name="page_progress_unknown">Progression inconnue</string>
+    <string name="icon_reflection_description">Icône de note ou de crayon, indiquant le champ de réflexion personnelle.</string>
+    <string name="icon_quote_description">Icône de guillemet ouvrant, indiquant le champ de citation favorite.</string>
+    <string name="icon_total_pages_description">Icône numérique, indiquant le champ du nombre total de pages.</string>
+    <string name="icon_current_page_description">Icône numérique, indiquant le champ de la page actuelle.</string>
+
+    <!-- Pour l'écran "Gérer la lecture en cours" (EditCurrentReadingFragment) - compléments -->
+    <string name="change_book_button">Changer de livre</string>
+    <string name="title_not_available">Titre non disponible</string>
+    <string name="author_not_available">Auteur non disponible</string>
+    <string name="no_book_selected_title">Aucun livre sélectionné</string>
+    <string name="select_a_book_prompt">Appuyez sur \"Sélectionner un livre\" pour commencer.</string>
+    <string name="confirm_removal_title">Confirmer le retrait</string>
+    <string name="confirm_removal_message">Êtes-vous sûr de vouloir retirer cette lecture en cours ? Cela ne supprimera pas le livre de votre historique (si implémenté), mais il ne sera plus affiché sur votre profil.</string>
+    <string name="confirm_button">Confirmer</string>
+    <string name="cancel_button">Annuler</string>
+    <string name="select_book_icon_description">Icône représentant un livre avec une loupe, indiquant la section de sélection de livre.</string>
+    <string name="error_loading_data">Erreur de chargement des données</string>
+
+    <!-- Pour l'écran "Gérer la lecture en cours" (EditCurrentReadingFragment) -->
+    <string name="edit_reading_title">Gérer ma lecture</string>
+    <string name="select_book_title">Livre actuel</string>
+    <string name="select_book_button">Sélectionner un livre</string>
+    <string name="progress_title">Progression</string>
+    <string name="current_page_hint">Page actuelle</string>
+    <string name="total_pages_hint">Nombre total de pages</string>
+    <string name="personal_notes_title">Notes personnelles</string>
+    <string name="favorite_quote_hint">Citation favorite</string>
+    <string name="personal_reflection_hint">Réflexion personnelle</string>
+    <string name="save_reading_button">Enregistrer la lecture</string>
+    <string name="remove_reading_button">Retirer la lecture en cours</string>
+    <string name="error_invalid_page_numbers">La page actuelle doit être inférieure ou égale au total des pages.</string>
+    <string name="error_book_not_selected">Veuillez sélectionner un livre.</string>
+
+    <!-- Pour la section "Lecture en cours" sur le profil privé (Fragment_profile.xml) -->
+
+    <string name="add_reading_button">Ajouter une lecture</string>
+    <string name="no_current_reading_title">Aucune lecture en cours</string>
+    <string name="tap_to_add_reading">Appuyez pour en ajouter une</string>
 </resources>

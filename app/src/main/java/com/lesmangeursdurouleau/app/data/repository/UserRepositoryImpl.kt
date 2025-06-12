@@ -6,8 +6,9 @@ import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.lesmangeursdurouleau.app.data.model.User
+import com.lesmangeursdurouleau.app.data.model.UserBookReading
 import com.lesmangeursdurouleau.app.data.remote.FirebaseStorageService
-import com.lesmangeursdurouleau.app.remote.FirebaseConstants
+import com.lesmangeursdurouleau.app.remote.FirebaseConstants // Import mis à jour
 import com.lesmangeursdurouleau.app.utils.Resource
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +18,7 @@ import javax.inject.Inject
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.FieldPath
-import com.google.firebase.firestore.DocumentSnapshot // Import nécessaire pour DocumentSnapshot
+import com.google.firebase.firestore.DocumentSnapshot
 
 class UserRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
@@ -27,6 +28,9 @@ class UserRepositoryImpl @Inject constructor(
 
     companion object {
         private const val TAG = "UserRepositoryImpl"
+        // SUPPRIMÉ : Constantes déplacées vers FirebaseConstants.kt
+        // private const val SUBCOLLECTION_USER_READINGS = "user_readings"
+        // private const val DOCUMENT_ACTIVE_READING = "activeReading"
     }
 
     private val usersCollection = firestore.collection(FirebaseConstants.COLLECTION_USERS)
@@ -493,13 +497,8 @@ class UserRepositoryImpl @Inject constructor(
                             .addOnSuccessListener { usersSnapshot ->
                                 val chunkUsers = usersSnapshot.documents.mapNotNull { userDoc ->
                                     try {
-                                        // CORRECTION 2: Utilisation de la fonction helper pour la création de l'objet User
+                                        // Utilisation de la fonction helper pour la création de l'objet User
                                         createUserFromSnapshot(userDoc).apply {
-                                            // Les compteurs sont déjà mis à jour par createUserFromSnapshot
-                                            // mais on peut les laisser ici si on veut forcer une lecture spécifique ou s'assurer.
-                                            // Par exemple, si le snapshot ne contient pas tous les champs et que toObject se base sur un modèle plus complet.
-                                            // Cependant, dans votre cas, createUserFromSnapshot est déjà complet.
-                                            // Donc, ces lignes sont techniquement redondantes si createUserFromSnapshot est toujours utilisé.
                                             this.followersCount = userDoc.getLong("followersCount")?.toInt() ?: 0
                                             this.followingCount = userDoc.getLong("followingCount")?.toInt() ?: 0
                                         }
@@ -567,7 +566,7 @@ class UserRepositoryImpl @Inject constructor(
                             .addOnSuccessListener { usersSnapshot ->
                                 val chunkUsers = usersSnapshot.documents.mapNotNull { userDoc ->
                                     try {
-                                        // CORRECTION 2: Utilisation de la fonction helper pour la création de l'objet User
+                                        // Utilisation de la fonction helper pour la création de l'objet User
                                         createUserFromSnapshot(userDoc).apply {
                                             this.followersCount = userDoc.getLong("followersCount")?.toInt() ?: 0
                                             this.followingCount = userDoc.getLong("followingCount")?.toInt() ?: 0
@@ -604,6 +603,80 @@ class UserRepositoryImpl @Inject constructor(
         awaitClose {
             Log.d(TAG, "getFollowersUsers: Fermeture du listener de la liste des followers pour $userId")
             listenerRegistration.remove()
+        }
+    }
+
+    // IMPLÉMENTATION MISE À JOUR : Récupération de la lecture en cours (utilisation de FirebaseConstants)
+    override fun getCurrentReading(userId: String): Flow<Resource<UserBookReading?>> = callbackFlow {
+        if (userId.isBlank()) {
+            Log.w(TAG, "getCurrentReading: Tentative de récupération avec un userId vide.")
+            trySend(Resource.Error("L'ID utilisateur ne peut pas être vide."))
+            close()
+            return@callbackFlow
+        }
+
+        trySend(Resource.Loading())
+        Log.i(TAG, "getCurrentReading: Tentative de récupération de la lecture en cours pour l'utilisateur ID: '$userId'.")
+
+        val currentReadingDocRef = usersCollection.document(userId)
+            .collection(FirebaseConstants.SUBCOLLECTION_USER_READINGS) // Utilisation de la constante
+            .document(FirebaseConstants.DOCUMENT_ACTIVE_READING) // Utilisation de la constante
+
+        val listenerRegistration = currentReadingDocRef.addSnapshotListener { documentSnapshot, error ->
+            if (error != null) {
+                Log.e(TAG, "getCurrentReading: Erreur Firestore pour lecture en cours de ID '$userId': ${error.message}", error)
+                trySend(Resource.Error("Erreur Firestore: ${error.localizedMessage ?: "Erreur inconnue"}"))
+                close(error)
+                return@addSnapshotListener
+            }
+
+            if (documentSnapshot != null && documentSnapshot.exists()) {
+                Log.d(TAG, "getCurrentReading: Document de lecture en cours trouvé pour ID '$userId'. Tentative de conversion.")
+                try {
+                    val userBookReading = documentSnapshot.toObject(UserBookReading::class.java)
+                    Log.i(TAG, "getCurrentReading: Lecture en cours convertie avec succès pour ID '$userId': $userBookReading")
+                    trySend(Resource.Success(userBookReading))
+                } catch (e: Exception) {
+                    Log.e(TAG, "getCurrentReading: Erreur de conversion du document de lecture en cours pour ID '$userId': ${e.message}", e)
+                    trySend(Resource.Error("Erreur de conversion des données de lecture en cours."))
+                }
+            } else {
+                Log.d(TAG, "getCurrentReading: Aucun document de lecture en cours trouvé pour l'utilisateur ID '$userId'.")
+                trySend(Resource.Success(null)) // Aucun livre en cours de lecture
+            }
+        }
+
+        awaitClose {
+            Log.d(TAG, "getCurrentReading: Fermeture du listener de lecture en cours pour ID '$userId'.")
+            listenerRegistration.remove()
+        }
+    }
+
+    // IMPLÉMENTATION MISE À JOUR : Mise à jour de la lecture en cours (utilisation de FirebaseConstants)
+    override suspend fun updateCurrentReading(userId: String, userBookReading: UserBookReading?): Resource<Unit> {
+        if (userId.isBlank()) {
+            Log.w(TAG, "updateCurrentReading: Tentative de mise à jour avec un userId vide.")
+            return Resource.Error("L'ID utilisateur ne peut pas être vide.")
+        }
+
+        val currentReadingDocRef = usersCollection.document(userId)
+            .collection(FirebaseConstants.SUBCOLLECTION_USER_READINGS) // Utilisation de la constante
+            .document(FirebaseConstants.DOCUMENT_ACTIVE_READING) // Utilisation de la constante
+
+        return try {
+            if (userBookReading != null) {
+                Log.d(TAG, "updateCurrentReading: Mise à jour/création de la lecture en cours pour l'utilisateur '$userId'. Données: $userBookReading")
+                currentReadingDocRef.set(userBookReading, SetOptions.merge()).await()
+                Log.i(TAG, "updateCurrentReading: Lecture en cours mise à jour/créée avec succès pour l'utilisateur '$userId'.")
+            } else {
+                Log.d(TAG, "updateCurrentReading: Suppression de la lecture en cours pour l'utilisateur '$userId'.")
+                currentReadingDocRef.delete().await()
+                Log.i(TAG, "updateCurrentReading: Lecture en cours supprimée avec succès pour l'utilisateur '$userId'.")
+            }
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "updateCurrentReading: Erreur lors de la mise à jour de la lecture en cours pour l'utilisateur '$userId': ${e.message}", e)
+            Resource.Error("Erreur lors de la mise à jour de la lecture en cours: ${e.localizedMessage}")
         }
     }
 }

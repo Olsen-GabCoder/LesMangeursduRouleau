@@ -8,23 +8,22 @@ import androidx.lifecycle.viewModelScope
 import com.lesmangeursdurouleau.app.data.model.Book
 import com.lesmangeursdurouleau.app.domain.usecase.books.GetBookByIdUseCase
 import com.lesmangeursdurouleau.app.utils.Resource
-import dagger.hilt.android.lifecycle.HiltViewModel // NOUVEL IMPORT
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import javax.inject.Inject // NOUVEL IMPORT
+import javax.inject.Inject
 
-@HiltViewModel // AJOUT DE @HiltViewModel
-class BookDetailViewModel @Inject constructor( // AJOUT DE @Inject constructor
-    private val getBookByIdUseCase: GetBookByIdUseCase // INJECTION DU USE CASE
+@HiltViewModel
+class BookDetailViewModel @Inject constructor(
+    private val getBookByIdUseCase: GetBookByIdUseCase
 ) : ViewModel() {
 
-    private val _bookDetails = MutableLiveData<Resource<Book>>()
-    val bookDetails: LiveData<Resource<Book>> = _bookDetails
+    // MODIFIÉ : Le type de retour indique que le Book peut être null
+    private val _bookDetails = MutableLiveData<Resource<Book?>>()
+    val bookDetails: LiveData<Resource<Book?>> = _bookDetails
 
-    // SUPPRIMER CES LIGNES :
-    // private val bookRepository = BookRepositoryImpl()
-    // private val getBookByIdUseCase = GetBookByIdUseCase(bookRepository)
+    // La suppression de ces lignes est correcte, car Hilt gère l'injection.
 
     fun loadBookDetails(bookId: String) {
         if (bookId.isBlank()) {
@@ -41,9 +40,16 @@ class BookDetailViewModel @Inject constructor( // AJOUT DE @Inject constructor
                     _bookDetails.postValue(Resource.Error("Erreur technique: ${e.localizedMessage}"))
                 }
                 .collectLatest { resource ->
+                    // Le Resource<Book?> est maintenant correctement géré par le type du LiveData
                     _bookDetails.value = resource
                     when(resource) {
-                        is Resource.Success -> Log.d("BookDetailViewModel", "Book ID $bookId loaded: ${resource.data?.title}")
+                        is Resource.Success -> {
+                            if (resource.data != null) {
+                                Log.d("BookDetailViewModel", "Book ID $bookId loaded: ${resource.data.title}")
+                            } else {
+                                Log.d("BookDetailViewModel", "Book ID $bookId not found or data is null.")
+                            }
+                        }
                         is Resource.Error -> Log.e("BookDetailViewModel", "Error loading book ID $bookId: ${resource.message}")
                         is Resource.Loading -> Log.d("BookDetailViewModel", "Loading book ID $bookId...")
                     }

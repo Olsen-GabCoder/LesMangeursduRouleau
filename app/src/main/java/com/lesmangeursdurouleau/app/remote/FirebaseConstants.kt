@@ -10,4 +10,8 @@ object FirebaseConstants {
     const val DOCUMENT_PERMISSIONS = "permissions"
     const val FIELD_EDIT_READINGS_CODE = "edit_readings_code"
     const val FIELD_SECRET_CODE_LAST_UPDATED_TIMESTAMP = "lastSecretCodeUpdateTimestamp"
+
+    // NOUVELLES CONSTANTES POUR LA LECTURE EN COURS
+    const val SUBCOLLECTION_USER_READINGS = "user_readings"
+    const val DOCUMENT_ACTIVE_READING = "activeReading"
 }

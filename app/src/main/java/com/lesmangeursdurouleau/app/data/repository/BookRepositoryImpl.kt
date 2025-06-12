@@ -1,9 +1,8 @@
-package com.lesmangeursdurouleau.app.data.repository // Le package de l'implémentation reste le même
+package com.lesmangeursdurouleau.app.data.repository
 
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.lesmangeursdurouleau.app.data.model.Book
-import com.lesmangeursdurouleau.app.data.repository.BookRepository
 import com.lesmangeursdurouleau.app.remote.FirebaseConstants
 import com.lesmangeursdurouleau.app.utils.Resource
 import kotlinx.coroutines.channels.awaitClose
@@ -16,15 +15,18 @@ class BookRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore
 ) : BookRepository {
 
-    private val booksCollection = firestore.collection(FirebaseConstants.COLLECTION_BOOKS) // AJOUT: raccourci pour la collection
+    companion object {
+        private const val TAG = "BookRepositoryImpl" // Ajout du TAG pour les logs
+    }
+
+    private val booksCollection = firestore.collection(FirebaseConstants.COLLECTION_BOOKS)
 
     override fun getAllBooks(): Flow<Resource<List<Book>>> = callbackFlow {
         trySend(Resource.Loading())
-        val listenerRegistration = booksCollection // Utilise le raccourci
+        val listenerRegistration = booksCollection
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.w("BookRepositoryImpl", "Error listening for all books updates", error)
-                    // REVERTED: Revenir à la version sans 'throwable'
+                    Log.w(TAG, "Error listening for all books updates", error)
                     trySend(Resource.Error("Erreur Firestore: ${error.localizedMessage ?: "Erreur inconnue"}"))
                     close(error)
                     return@addSnapshotListener
@@ -42,36 +44,38 @@ class BookRepositoryImpl @Inject constructor(
                             )
                             books.add(book)
                         } catch (e: Exception) {
-                            Log.e("BookRepositoryImpl", "Error converting document to Book: ${document.id}", e)
+                            Log.e(TAG, "Error converting document to Book: ${document.id}", e)
                         }
                     }
-                    Log.d("BookRepositoryImpl", "All Books fetched: ${books.size}")
+                    Log.d(TAG, "All Books fetched: ${books.size}")
                     trySend(Resource.Success(books))
                 } else {
-                    Log.d("BookRepositoryImpl", "getAllBooks snapshot is null")
+                    Log.d(TAG, "getAllBooks snapshot is null")
                     trySend(Resource.Success(emptyList()))
                 }
             }
         awaitClose {
-            Log.d("BookRepositoryImpl", "Closing all books listener.")
+            Log.d(TAG, "Closing all books listener.")
             listenerRegistration.remove()
         }
     }
 
-    override fun getBookById(bookId: String): Flow<Resource<Book>> = callbackFlow {
-        trySend(Resource.Loading())
-        Log.d("BookRepositoryImpl", "Fetching book with ID: $bookId")
-        val documentRef = booksCollection.document(bookId) // Utilise le raccourci
+    // MODIFIÉ : Signature de retour est maintenant Flow<Resource<Book?>>
+    override fun getBookById(bookId: String): Flow<Resource<Book?>> = callbackFlow {
+        trySend(Resource.Loading(null)) // Envoyer un état de chargement avec des données null
+        Log.d(TAG, "Fetching book with ID: $bookId")
+        val documentRef = booksCollection.document(bookId)
         val listenerRegistration = documentRef.addSnapshotListener { documentSnapshot, error ->
             if (error != null) {
-                Log.w("BookRepositoryImpl", "Error listening for book ID $bookId updates", error)
-                // REVERTED: Revenir à la version sans 'throwable'
+                Log.w(TAG, "Error listening for book ID $bookId updates", error)
                 trySend(Resource.Error("Erreur Firestore: ${error.localizedMessage ?: "Erreur inconnue"}"))
                 close(error)
                 return@addSnapshotListener
             }
             if (documentSnapshot != null && documentSnapshot.exists()) {
                 try {
+                    // Tente de convertir le document en objet Book.
+                    // toObject peut retourner null si le document est vide ou ne correspond pas au modèle.
                     val book = documentSnapshot.toObject(Book::class.java)?.copy(
                         id = documentSnapshot.id,
                         title = documentSnapshot.getString("title") ?: "",
@@ -79,31 +83,31 @@ class BookRepositoryImpl @Inject constructor(
                         coverImageUrl = documentSnapshot.getString("coverImageUrl"),
                         synopsis = documentSnapshot.getString("synopsis")
                     )
+                    // Si la conversion est réussie (book n'est pas null), envoie le livre.
+                    // Sinon (book est null), envoie Resource.Success(null) pour indiquer l'absence de livre valide.
                     if (book != null) {
-                        Log.d("BookRepositoryImpl", "Book ID $bookId fetched: ${book.title}")
+                        Log.d(TAG, "Book ID $bookId fetched: ${book.title}")
                         trySend(Resource.Success(book))
                     } else {
-                        // Si la conversion échoue mais que le document existe, on peut envoyer une erreur spécifique
-                        trySend(Resource.Error("Données de livre invalides pour l'ID $bookId."))
+                        Log.w(TAG, "Book with ID $bookId exists but data conversion failed or is incomplete (returned null object).")
+                        trySend(Resource.Success(null)) // Indique que le livre n'est pas valide/complet
                     }
                 } catch (e: Exception) {
-                    Log.e("BookRepositoryImpl", "Error converting document to Book for ID $bookId", e)
-                    // REVERTED: Revenir à la version sans 'throwable'
-                    trySend(Resource.Error("Erreur de conversion des données du livre."))
+                    Log.e(TAG, "Error converting document to Book for ID $bookId", e)
+                    trySend(Resource.Error("Erreur de conversion des données du livre: ${e.localizedMessage}"))
                 }
             } else {
-                Log.w("BookRepositoryImpl", "Book with ID $bookId does not exist.")
-                // REVERTED: Revenir à la version originale du message (avant que je ne le modifie pour 'throwable')
-                trySend(Resource.Error("Livre non trouvé."))
+                Log.w(TAG, "Book with ID $bookId does not exist.")
+                // Si le document n'existe pas, cela n'est pas une erreur, mais l'absence de la ressource.
+                trySend(Resource.Success(null))
             }
         }
         awaitClose {
-            Log.d("BookRepositoryImpl", "Closing listener for book ID $bookId.")
+            Log.d(TAG, "Closing listener for book ID $bookId.")
             listenerRegistration.remove()
         }
     }
 
-    // MODIFIÉ : Retourne l'ID du livre créé
     override suspend fun addBook(book: Book): Resource<String> {
         return try {
             val bookData = hashMapOf(
@@ -114,40 +118,37 @@ class BookRepositoryImpl @Inject constructor(
                 "proposedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
             )
 
-            val documentRef = booksCollection // Utilise le raccourci
+            val documentRef = booksCollection
                 .add(bookData)
-                .await() // Attend la fin de l'opération
-            Log.d("BookRepositoryImpl", "Book added successfully with ID: ${documentRef.id}")
-            Resource.Success(documentRef.id) // Retourne l'ID
+                .await()
+            Log.d(TAG, "Book added successfully with ID: ${documentRef.id}")
+            Resource.Success(documentRef.id)
         } catch (e: Exception) {
-            Log.e("BookRepositoryImpl", "Error adding book: ${book.title}", e)
-            // REVERTED: Revenir à la version sans 'throwable'
+            Log.e(TAG, "Error adding book: ${book.title}", e)
             Resource.Error("Erreur lors de l'ajout du livre: ${e.localizedMessage}")
         }
     }
 
-    // NOUVEAU : Méthode pour mettre à jour un livre
     override suspend fun updateBook(book: Book): Resource<Unit> {
         if (book.id.isBlank()) {
             return Resource.Error("L'ID du livre est requis pour la mise à jour.")
         }
         return try {
-            val bookData = mapOf( // Utilise mapOf pour les champs à mettre à jour
+            val bookData = mapOf(
                 "title" to book.title,
                 "author" to book.author,
                 "synopsis" to book.synopsis,
                 "coverImageUrl" to book.coverImageUrl,
-                "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp() // Ajoute un timestamp de mise à jour
+                "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
             )
 
-            booksCollection.document(book.id) // Utilise le raccourci
+            booksCollection.document(book.id)
                 .update(bookData)
                 .await()
-            Log.d("BookRepositoryImpl", "Book ID ${book.id} updated successfully: ${book.title}")
+            Log.d(TAG, "Book ID ${book.id} updated successfully: ${book.title}")
             Resource.Success(Unit)
         } catch (e: Exception) {
-            Log.e("BookRepositoryImpl", "Error updating book ${book.id}: $e", e)
-            // REVERTED: Revenir à la version sans 'throwable'
+            Log.e(TAG, "Error updating book ${book.id}: $e", e)
             Resource.Error("Erreur lors de la mise à jour du livre: ${e.localizedMessage}")
         }
     }

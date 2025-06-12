@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    tools:context=".ui.readings.EditCurrentReadingFragment">
+
+    <!-- Toolbar en haut de l'écran -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_edit_reading"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:title="@string/edit_reading_title"
+        app:titleTextColor="?attr/colorOnSurface" />
+
+    <!-- Conteneur principal scrollable pour le contenu du formulaire -->
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/toolbar_edit_reading"
+        android:fillViewport="true"
+        android:scrollbars="vertical"
+        android:scrollbarThumbVertical="@drawable/custom_scrollbar_thumb"
+        android:scrollbarSize="4dp"
+        android:fadeScrollbars="true"
+        android:scrollbarFadeDuration="1000">
+
+        <!-- Conteneur linéaire pour organiser les sections de contenu -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Section de sélection du livre -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_select_book"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardBackgroundColor="?attr/colorSurface">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- En-tête de la section de sélection du livre -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="24dp">
+
+                        <!-- Icône pour la section de sélection du livre (taille ajustée à 24dp) -->
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_book_search_outline"
+                            android:layout_marginEnd="12dp"
+                            app:tint="?attr/colorPrimary"
+                            android:contentDescription="@string/select_book_icon_description" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/select_book_title"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Affichage du livre sélectionné / Placeholder pour sélectionner -->
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="8dp">
+
+                        <!-- Carte pour la couverture du livre -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_selected_book_cover"
+                            android:layout_width="90dp"
+                            android:layout_height="135dp"
+                            app:cardCornerRadius="8dp"
+                            app:cardElevation="2dp"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent">
+
+                            <ImageView
+                                android:id="@+id/iv_selected_book_cover"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:src="@drawable/ic_book_placeholder"
+                                android:scaleType="centerCrop"
+                                android:contentDescription="@string/book_cover_description" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- Titre du livre sélectionné -->
+                        <TextView
+                            android:id="@+id/tv_selected_book_title"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="16dp"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textColor="?attr/colorOnSurface"
+                            android:maxLines="2"
+                            android:ellipsize="end"
+                            app:layout_constraintStart_toEndOf="@id/card_selected_book_cover"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toTopOf="@id/card_selected_book_cover"
+                            tools:text="Titre du livre sélectionné" />
+
+                        <!-- Auteur du livre sélectionné -->
+                        <TextView
+                            android:id="@+id/tv_selected_book_author"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="16dp"
+                            android:layout_marginTop="4dp"
+                            android:textAppearance="?attr/textAppearanceBody1"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            app:layout_constraintStart_toEndOf="@id/card_selected_book_cover"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toBottomOf="@id/tv_selected_book_title"
+                            tools:text="Auteur du livre" />
+
+                        <!-- Bouton pour sélectionner un livre -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_select_book"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="@string/select_book_button"
+                            app:icon="@drawable/ic_search"
+                            app:iconGravity="textStart"
+                            app:cornerRadius="8dp"
+                            app:layout_constraintStart_toEndOf="@id/card_selected_book_cover"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toBottomOf="@id/tv_selected_book_author"
+                            app:layout_constraintHorizontal_bias="0"
+                            android:layout_marginStart="16dp" />
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Section Progression -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardBackgroundColor="?attr/colorSurface">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- En-tête de la section Progression -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="24dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/progress_title"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Champ de saisie pour la page actuelle -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_current_page"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:hint="@string/current_page_hint"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:startIconDrawable="@drawable/ic_numeric"
+                        app:startIconTint="?attr/colorOutline"
+                        app:startIconContentDescription="@string/icon_current_page_description">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_current_page_input"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:textSize="16sp"
+                            android:textColor="?attr/colorOnSurface"
+                            android:minHeight="48dp"
+                            tools:text="150" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Champ de saisie pour le total de pages -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_total_pages"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/total_pages_hint"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:startIconDrawable="@drawable/ic_numeric"
+                        app:startIconTint="?attr/colorOutline"
+                        app:startIconContentDescription="@string/icon_total_pages_description">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_total_pages_input"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:textSize="16sp"
+                            android:textColor="?attr/colorOnSurface"
+                            android:minHeight="48dp"
+                            tools:text="300" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Section Citation et Réflexion -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardBackgroundColor="?attr/colorSurface">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- En-tête de la section Citation et Réflexion -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="24dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/personal_notes_title"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Champ de saisie pour la citation favorite -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_favorite_quote"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:hint="@string/favorite_quote_hint"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:startIconDrawable="@drawable/ic_quote_start"
+                        app:startIconTint="?attr/colorOutline"
+                        app:startIconContentDescription="@string/icon_quote_description">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_favorite_quote_input"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textMultiLine|textCapSentences"
+                            android:minLines="2"
+                            android:gravity="top|start"
+                            android:maxLines="5"
+                            android:textSize="16sp"
+                            android:textColor="?attr/colorOnSurface"
+                            android:minHeight="48dp"
+                            tools:text="La lecture est un voyage sans bagages." />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Champ de saisie pour la réflexion personnelle -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_personal_reflection"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/personal_reflection_hint"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:startIconDrawable="@drawable/ic_edit_note"
+                        app:startIconTint="?attr/colorOutline"
+                        app:startIconContentDescription="@string/icon_reflection_description">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_personal_reflection_input"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textMultiLine|textCapSentences"
+                            android:minLines="3"
+                            android:gravity="top|start"
+                            android:maxLines="8"
+                            android:textSize="16sp"
+                            android:textColor="?attr/colorOnSurface"
+                            android:minHeight="48dp"
+                            tools:text="Ce livre m'a beaucoup appris sur l'histoire de la lecture..." />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Boutons d'action -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_save_reading"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="@string/save_reading_button"
+                app:icon="@drawable/ic_save"
+                app:iconGravity="textStart"
+                app:cornerRadius="12dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_remove_reading"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/remove_reading_button"
+                app:icon="@drawable/ic_delete"
+                app:iconGravity="textStart"
+                app:cornerRadius="12dp"
+                app:strokeColor="?attr/colorError"
+                android:textColor="?attr/colorError" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- ProgressBar pour les indicateurs de chargement -->
+    <ProgressBar
+        android:id="@+id/progress_bar_edit_reading"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

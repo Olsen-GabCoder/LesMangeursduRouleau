@@ -7,13 +7,16 @@ coreKtx = "1.16.0"
 appcompat = "1.7.0"
 material = "1.12.0"
 activityKtx = "1.10.1"
-constraintlayout = "2.2.1"
+constraintlayout = "2.1.4" # CORRIGÉ : Version stable
 fragmentKtx = "1.8.7"
 glide = "4.16.0"
+recyclerview = "1.3.2" # NOUVELLE LIGNE : Ajout de la version pour RecyclerView
+lifecycleRuntimeKtx = "2.7.0" # NOUVELLE LIGNE : Ajout de la version pour lifecycle-runtime-ktx
+lifecycleViewModelKtx = "2.7.0" # NOUVELLE LIGNE : Ajout de la version pour lifecycle-viewmodel-ktx
 
 # Firebase
 googleGmsServicesPlugin = "4.4.1"
-firebaseBom = "33.0.0" #
+firebaseBom = "33.0.0"
 
 # Navigation
 navigation = "2.7.7"
@@ -33,15 +36,18 @@ playServicesFido = "20.0.1"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" } # Utilisé ici
+androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" }
+androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" } # NOUVELLE LIGNE : Ajout de la bibliothèque RecyclerView
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" } # NOUVELLE LIGNE
+androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewModelKtx" } # NOUVELLE LIGNE
 
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
-firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" } # Version gérée par le BOM
-firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx" } # Version gérée par le BOM
-firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage-ktx" } # Version gérée par le BOM
+firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" }
+firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
+firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage-ktx" }
 firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
 
 # Navigation
@@ -66,6 +72,6 @@ play-services-fido = { group = "com.google.android.gms", name = "play-services-f
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 googleGmsServices = { id = "com.google.gms.google-services", version.ref = "googleGmsServicesPlugin" }
-navigationSafeArgs = { id = "androidx.navigation.safeargs.kotlin", version.ref = "navigation" } # Assurez-vous que c'est la version Kotlin
+navigationSafeArgs = { id = "androidx.navigation.safeargs.kotlin", version.ref = "navigation" }
 kotlinKapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
 hiltAndroid = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
