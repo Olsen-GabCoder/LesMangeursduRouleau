@@ -510,6 +510,35 @@
                             tools:text="“La lecture est un voyage sans bagages.” - Anonyme. J'adore ce livre, l'intrigue est captivante et les personnages sont très bien développés." />
                     </LinearLayout>
 
+                    <!-- NOUVELLE SECTION : Bouton J'aime et Compteur -->
+                    <LinearLayout
+                        android:id="@+id/ll_like_section"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="end|center_vertical"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"
+                        android:visibility="gone"
+                        tools:visibility="visible">
+
+                        <!-- Bouton J'aime -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_toggle_like"
+                            style="@style/Widget.Material3.Button.TextButton.Icon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/likes_count_format"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            app:icon="@drawable/ic_heart_outline"
+                            app:iconTint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@string/like_button_description"
+                            android:gravity="center_vertical"
+                            app:iconGravity="textStart"
+                            app:iconPadding="4dp"
+                            tools:text="123" />
+                    </LinearLayout>
+
                     <!-- Bouton d'action pour le propriétaire du profil -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_edit_current_reading"
@@ -525,6 +554,122 @@
                         app:rippleColor="?attr/colorPrimary"
                         app:iconTint="?attr/colorPrimary"
                         app:cornerRadius="8dp"/>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- NOUVELLE SECTION : Commentaires sur la lecture actuelle -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_comments_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardBackgroundColor="?attr/colorSurface">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- En-tête de section "Commentaires" -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="24dp">
+
+                        <ImageView
+                            android:id="@+id/iv_comments_icon"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_comment_outline"
+                            android:layout_marginEnd="12dp"
+                            app:tint="?attr/colorPrimary"
+                            android:contentDescription="@string/comments_icon_description" />
+
+                        <TextView
+                            android:id="@+id/tv_comments_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/comments_section_title"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- TextView pour "Aucun commentaire pour l'instant" -->
+                    <TextView
+                        android:id="@+id/tv_no_comments_yet"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/no_comments_yet"
+                        android:textAppearance="?attr/textAppearanceBody2"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:gravity="center"
+                        android:paddingVertical="16dp"
+                        android:visibility="gone"
+                        tools:visibility="visible"/>
+
+                    <!-- RecyclerView pour les commentaires -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_comments"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        android:overScrollMode="never"
+                        android:layout_marginBottom="16dp"
+                        tools:listitem="@layout/item_comment"
+                        tools:itemCount="3" />
+
+                    <!-- Section pour la saisie de commentaire -->
+                    <LinearLayout
+                        android:id="@+id/ll_comment_input_section"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/til_comment_input"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp"
+                            android:hint="@string/comment_input_hint"
+                            app:boxCornerRadiusTopStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusBottomEnd="12dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/et_comment_input"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textCapSentences|textMultiLine"
+                                android:maxLines="4"
+                                android:textSize="16sp"
+                                android:textColor="?attr/colorOnSurface" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_send_comment"
+                            style="@style/Widget.Material3.Button.IconButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/send_comment_button_description"
+                            app:icon="@drawable/ic_send"
+                            app:iconTint="?attr/colorPrimary"
+                            app:backgroundTint="@android:color/transparent"
+                            app:rippleColor="?attr/colorPrimaryVariant" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

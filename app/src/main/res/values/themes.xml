@@ -52,4 +52,7 @@
         <item name="cornerSize">50%</item>
     </style>
 
+    <!-- NOUVEAU STYLE : Pour les ShapeableImageViews rondes -->
+    <style name="ShapeAppearance.App.CircleImageView" parent="ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
 </resources>

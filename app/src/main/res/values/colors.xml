@@ -20,6 +20,7 @@
 
     <color name="chat_timestamp_dark">#8696A0</color>
     <color name="chat_sender_name_dark">#8696A0</color>
+    <color name="red_love">#FF4081</color>
 
     <color name="reaction_background">#2C3E50</color>
     <color name="reaction_text_color">#E0E0E0</color>

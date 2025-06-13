@@ -304,4 +304,19 @@
     <string name="add_reading_button">Ajouter une lecture</string>
     <string name="no_current_reading_title">Aucune lecture en cours</string>
     <string name="tap_to_add_reading">Appuyez pour en ajouter une</string>
+
+    <!-- Pour la section commentaires -->
+    <string name="comments_section_title">Commentaires</string>
+    <string name="comments_icon_description">Icône de commentaires</string>
+    <string name="comment_input_hint">Ajouter un commentaire…</string>
+    <string name="send_comment_button_description">Envoyer le commentaire</string>
+    <string name="no_comments_yet">Aucun commentaire pour l\'instant. Soyez le premier !</string>
+    <string name="error_loading_comments">Erreur lors du chargement des commentaires : %1$s</string>
+
+    <!-- Pour la section likes -->
+    <string name="likes_count_format">%d</string>
+    <string name="like_button_description">Bouton J\'aime</string>
+    <string name="loading_likes_count">Chargement…</string>
+    <string name="error_loading_likes_count">Erreur de chargement</string>
+    <string name="error_liking_reading">Erreur lors de l\'opération J\'aime : %1$s</string>
 </resources>

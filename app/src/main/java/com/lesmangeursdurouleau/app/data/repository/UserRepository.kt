@@ -1,7 +1,10 @@
+// app/src/main/java/com/lesmangeursdurouleau.app/data/repository/UserRepository.kt
 package com.lesmangeursdurouleau.app.data.repository
 
 import com.lesmangeursdurouleau.app.data.model.User
-import com.lesmangeursdurouleau.app.data.model.UserBookReading // Import ajouté
+import com.lesmangeursdurouleau.app.data.model.UserBookReading
+import com.lesmangeursdurouleau.app.data.model.Comment
+import com.lesmangeursdurouleau.app.data.model.Like // NOUVEAU : Import pour Like
 import com.lesmangeursdurouleau.app.utils.Resource
 import kotlinx.coroutines.flow.Flow
 
@@ -70,4 +73,44 @@ interface UserRepository {
      * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
      */
     suspend fun updateCurrentReading(userId: String, userBookReading: UserBookReading?): Resource<Unit>
+
+    /**
+     * Ajoute un commentaire sur la lecture active d'un utilisateur cible.
+     * @param targetUserId L'ID de l'utilisateur dont la lecture active est commentée.
+     * @param comment L'objet Comment à ajouter.
+     * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
+     */
+    suspend fun addCommentOnActiveReading(targetUserId: String, comment: Comment): Resource<Unit>
+
+    /**
+     * Récupère un flux de commentaires pour la lecture active d'un utilisateur cible.
+     * Les commentaires sont triés par horodatage (les plus récents en premier).
+     * @param targetUserId L'ID de l'utilisateur dont les commentaires de la lecture active sont à récupérer.
+     * @return Un Flow de Resource<List<Comment>>.
+     */
+    fun getCommentsOnActiveReading(targetUserId: String): Flow<Resource<List<Comment>>>
+
+    /**
+     * Bascule le statut de "like" pour la lecture active d'un utilisateur cible par l'utilisateur courant.
+     * Si un like existe, il est supprimé ; sinon, un nouveau like est créé.
+     * @param targetUserId L'ID de l'utilisateur dont la lecture est likée.
+     * @param currentUserId L'ID de l'utilisateur qui effectue l'action de "like".
+     * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
+     */
+    suspend fun toggleLikeOnActiveReading(targetUserId: String, currentUserId: String): Resource<Unit>
+
+    /**
+     * Vérifie si la lecture active d'un utilisateur cible a été "likée" par l'utilisateur courant.
+     * @param targetUserId L'ID de l'utilisateur dont la lecture est vérifiée.
+     * @param currentUserId L'ID de l'utilisateur dont on veut savoir s'il a liké.
+     * @return Un Flow de Resource<Boolean> indiquant si la lecture est likée par l'utilisateur courant.
+     */
+    fun isLikedByCurrentUser(targetUserId: String, currentUserId: String): Flow<Resource<Boolean>>
+
+    /**
+     * Récupère le nombre total de "likes" pour la lecture active d'un utilisateur cible.
+     * @param targetUserId L'ID de l'utilisateur dont la lecture active est concernée.
+     * @return Un Flow de Resource<Int> contenant le nombre de likes.
+     */
+    fun getActiveReadingLikesCount(targetUserId: String): Flow<Resource<Int>>
 }

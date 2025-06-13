@@ -29,9 +29,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navController: NavController
 
     @Inject
-    lateinit var userRepository: UserRepository // Injection du UserRepository
+    lateinit var userRepository: UserRepository
     @Inject
-    lateinit var firebaseAuth: FirebaseAuth // Injection de FirebaseAuth
+    lateinit var firebaseAuth: FirebaseAuth
 
     // Pour demander la permission de notification sur Android 13+
     private val requestPermissionLauncher = registerForActivityResult(
@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity() {
         // setupActionBarWithNavController(navController, appBarConfiguration)
     }
 
-    // Correction de la signature de la méthode onNewIntent pour qu'elle corresponde à l'override
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         // Gérer les nouvelles intentions si l'activité est déjà en cours et une nouvelle notification est reçue
