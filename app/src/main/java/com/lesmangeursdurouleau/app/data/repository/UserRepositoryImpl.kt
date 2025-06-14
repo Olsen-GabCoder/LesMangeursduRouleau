@@ -9,7 +9,8 @@ import com.google.firebase.firestore.SetOptions
 import com.lesmangeursdurouleau.app.data.model.User
 import com.lesmangeursdurouleau.app.data.model.UserBookReading
 import com.lesmangeursdurouleau.app.data.model.Comment
-import com.lesmangeursdurouleau.app.data.model.Like // NOUVEAU : Import pour Like
+import com.lesmangeursdurouleau.app.data.model.Like
+import com.lesmangeursdurouleau.app.data.model.CompletedReading // NOUVEAU : Import pour CompletedReading
 import com.lesmangeursdurouleau.app.data.remote.FirebaseStorageService
 import com.lesmangeursdurouleau.app.remote.FirebaseConstants
 import com.lesmangeursdurouleau.app.utils.Resource
@@ -23,7 +24,8 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.Query
-import com.google.firebase.Timestamp // NOUVEAU : Import pour Timestamp Firebase
+import com.google.firebase.Timestamp // Import pour Timestamp Firebase
+import java.util.Date // Pour l'utilisation de Date avec @ServerTimestamp
 
 class UserRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
@@ -50,7 +52,8 @@ class UserRepositoryImpl @Inject constructor(
             canEditReadings = document.getBoolean("canEditReadings") ?: false,
             lastPermissionGrantedTimestamp = document.getLong("lastPermissionGrantedTimestamp"),
             followersCount = document.getLong("followersCount")?.toInt() ?: 0,
-            followingCount = document.getLong("followingCount")?.toInt() ?: 0
+            followingCount = document.getLong("followingCount")?.toInt() ?: 0,
+            booksReadCount = document.getLong("booksReadCount")?.toInt() ?: 0 // NOUVEAU : Récupération du booksReadCount
         )
     }
 
@@ -325,21 +328,21 @@ class UserRepositoryImpl @Inject constructor(
 
             firestore.runTransaction { transaction ->
                 val targetUserDocRef = usersCollection.document(targetUserId)
-                val targetUserDoc = transaction.get(targetUserDocRef)
-
                 val followingDocRef = usersCollection.document(currentUserId).collection("following").document(targetUserId)
-                val followingDoc = transaction.get(followingDocRef)
+                val followingDoc = transaction.get(followingDocRef) // Lit pour vérifier l'existence
 
                 val currentUserDocRef = usersCollection.document(currentUserId)
-                val currentUserDoc = transaction.get(currentUserDocRef)
 
-                if (!targetUserDoc.exists()) {
-                    Log.e(TAG, "followUser: Transaction: L'utilisateur cible $targetUserId n'existe pas dans Firestore.")
-                    throw FirebaseFirestoreException("L'utilisateur à suivre n'existe pas.", FirebaseFirestoreException.Code.NOT_FOUND)
-                }
                 if (followingDoc.exists()) {
                     Log.w(TAG, "followUser: Transaction: Utilisateur $currentUserId suit déjà $targetUserId. Opération ignorée.")
                     throw FirebaseFirestoreException("Vous suivez déjà cet utilisateur.", FirebaseFirestoreException.Code.ALREADY_EXISTS)
+                }
+
+                // Vérification de l'existence de l'utilisateur cible pour une meilleure gestion des erreurs client.
+                val targetUserDoc = transaction.get(targetUserDocRef)
+                if (!targetUserDoc.exists()) {
+                    Log.e(TAG, "followUser: Transaction: L'utilisateur cible $targetUserId n'existe pas dans Firestore.")
+                    throw FirebaseFirestoreException("L'utilisateur à suivre n'existe pas.", FirebaseFirestoreException.Code.NOT_FOUND)
                 }
 
                 Log.d(TAG, "followUser: Transaction: Ajout du document de suivi: $followingDocRef")
@@ -378,21 +381,21 @@ class UserRepositoryImpl @Inject constructor(
         return try {
             firestore.runTransaction { transaction ->
                 val targetUserDocRef = usersCollection.document(targetUserId)
-                val targetUserDoc = transaction.get(targetUserDocRef)
-
                 val followingDocRef = usersCollection.document(currentUserId).collection("following").document(targetUserId)
-                val followingDoc = transaction.get(followingDocRef)
+                val followingDoc = transaction.get(followingDocRef) // Lit pour vérifier l'existence
 
                 val currentUserDocRef = usersCollection.document(currentUserId)
-                val currentUserDoc = transaction.get(currentUserDocRef)
 
-                if (!targetUserDoc.exists()) {
-                    Log.e(TAG, "unfollowUser: Transaction: L'utilisateur cible $targetUserId n'existe pas dans Firestore.")
-                    throw FirebaseFirestoreException("L'utilisateur à désabonner n'existe pas.", FirebaseFirestoreException.Code.NOT_FOUND)
-                }
                 if (!followingDoc.exists()) {
                     Log.w(TAG, "unfollowUser: Transaction: Utilisateur $currentUserId ne suit pas $targetUserId. Opération ignorée.")
                     throw FirebaseFirestoreException("Vous ne suivez pas cet utilisateur.", FirebaseFirestoreException.Code.NOT_FOUND)
+                }
+
+                // Vérification de l'existence de l'utilisateur cible pour une meilleure gestion des erreurs client.
+                val targetUserDoc = transaction.get(targetUserDocRef)
+                if (!targetUserDoc.exists()) {
+                    Log.e(TAG, "unfollowUser: Transaction: L'utilisateur cible $targetUserId n'existe pas dans Firestore.")
+                    throw FirebaseFirestoreException("L'utilisateur à désabonner n'existe pas.", FirebaseFirestoreException.Code.NOT_FOUND)
                 }
 
                 Log.d(TAG, "unfollowUser: Transaction: Suppression du document de suivi: $followingDocRef")
@@ -402,21 +405,12 @@ class UserRepositoryImpl @Inject constructor(
                 Log.d(TAG, "unfollowUser: Transaction: Suppression du document de follower: $followersDocRef")
                 transaction.delete(followersDocRef)
 
-                val currentFollowingCount = currentUserDoc.getLong("followingCount")?.toInt() ?: 0
-                if (currentFollowingCount > 0) {
-                    Log.d(TAG, "unfollowUser: Transaction: Décrémentation de followingCount pour $currentUserId.")
-                    transaction.update(currentUserDocRef, "followingCount", FieldValue.increment(-1))
-                } else {
-                    Log.w(TAG, "unfollowUser: Transaction: followingCount de $currentUserId est déjà à 0 ou négatif. Pas de décrémentation.")
-                }
+                // Les règles Firestore gèrent déjà la non-négativité des compteurs.
+                Log.d(TAG, "unfollowUser: Transaction: Décrémentation de followingCount pour $currentUserId.")
+                transaction.update(currentUserDocRef, "followingCount", FieldValue.increment(-1))
 
-                val targetFollowersCount = targetUserDoc.getLong("followersCount")?.toInt() ?: 0
-                if (targetFollowersCount > 0) {
-                    Log.d(TAG, "unfollowUser: Transaction: Décrémentation de followersCount pour $targetUserId.")
-                    transaction.update(targetUserDocRef, "followersCount", FieldValue.increment(-1))
-                } else {
-                    Log.w(TAG, "unfollowUser: Transaction: followersCount de $targetUserId est déjà à 0 ou négatif. Pas de décrémentation.")
-                }
+                Log.d(TAG, "unfollowUser: Transaction: Décrémentation de followersCount pour $targetUserId.")
+                transaction.update(targetUserDocRef, "followersCount", FieldValue.increment(-1))
 
                 Log.i(TAG, "unfollowUser: Transaction complétée pour $currentUserId arrêtant de suivre $targetUserId.")
                 null
@@ -483,32 +477,32 @@ class UserRepositoryImpl @Inject constructor(
                 if (followedUserIds.isNotEmpty()) {
                     val chunks = followedUserIds.chunked(10)
                     val allFollowedUsers = mutableListOf<User>()
-                    var fetchErrors = false
+                    // Utilisation d'un AtomicInteger pour suivre les tâches asynchrones en toute sécurité
+                    val completedTasks = java.util.concurrent.atomic.AtomicInteger(0)
 
-                    chunks.forEachIndexed { index, chunk ->
+                    chunks.forEach { chunk ->
                         usersCollection.whereIn(FieldPath.documentId(), chunk)
                             .get()
                             .addOnSuccessListener { usersSnapshot ->
                                 val chunkUsers = usersSnapshot.documents.mapNotNull { userDoc ->
                                     try {
-                                        createUserFromSnapshot(userDoc).apply {
-                                            this.followersCount = userDoc.getLong("followersCount")?.toInt() ?: 0
-                                            this.followingCount = userDoc.getLong("followingCount")?.toInt() ?: 0
-                                        }
+                                        createUserFromSnapshot(userDoc)
                                     } catch (e: Exception) {
                                         Log.e(TAG, "getFollowingUsers: Erreur de conversion du document utilisateur ${userDoc.id}: ${e.message}", e)
                                         null
                                     }
                                 }
-                                allFollowedUsers.addAll(chunkUsers)
+                                synchronized(allFollowedUsers) { // Synchronisation pour l'ajout concurrent
+                                    allFollowedUsers.addAll(chunkUsers)
+                                }
 
-                                if (index == chunks.lastIndex && !fetchErrors) {
+                                if (completedTasks.incrementAndGet() == chunks.size) {
+                                    // Quand toutes les chunks sont traitées
                                     Log.i(TAG, "getFollowingUsers: ${allFollowedUsers.size} utilisateurs suivis récupérés pour $userId (après traitement des chunks).")
                                     trySend(Resource.Success(allFollowedUsers.distinctBy { it.uid }))
                                 }
                             }
                             .addOnFailureListener { e ->
-                                fetchErrors = true
                                 Log.e(TAG, "getFollowingUsers: Erreur lors de la récupération des détails des utilisateurs suivis (chunk) pour $userId: ${e.message}", e)
                                 trySend(Resource.Error("Erreur lors de la récupération des détails des utilisateurs suivis: ${e.localizedMessage}"))
                                 close(e)
@@ -551,32 +545,32 @@ class UserRepositoryImpl @Inject constructor(
                 if (followerUserIds.isNotEmpty()) {
                     val chunks = followerUserIds.chunked(10)
                     val allFollowerUsers = mutableListOf<User>()
-                    var fetchErrors = false
+                    // Utilisation d'un AtomicInteger pour suivre les tâches asynchrones en toute sécurité
+                    val completedTasks = java.util.concurrent.atomic.AtomicInteger(0)
 
-                    chunks.forEachIndexed { index, chunk ->
+                    chunks.forEach { chunk ->
                         usersCollection.whereIn(FieldPath.documentId(), chunk)
                             .get()
                             .addOnSuccessListener { usersSnapshot ->
                                 val chunkUsers = usersSnapshot.documents.mapNotNull { userDoc ->
                                     try {
-                                        createUserFromSnapshot(userDoc).apply {
-                                            this.followersCount = userDoc.getLong("followersCount")?.toInt() ?: 0
-                                            this.followingCount = userDoc.getLong("followingCount")?.toInt() ?: 0
-                                        }
+                                        createUserFromSnapshot(userDoc)
                                     } catch (e: Exception) {
                                         Log.e(TAG, "getFollowersUsers: Erreur de conversion du document utilisateur ${userDoc.id}: ${e.message}", e)
                                         null
                                     }
                                 }
-                                allFollowerUsers.addAll(chunkUsers)
+                                synchronized(allFollowerUsers) { // Synchronisation pour l'ajout concurrent
+                                    allFollowerUsers.addAll(chunkUsers)
+                                }
 
-                                if (index == chunks.lastIndex && !fetchErrors) {
+                                if (completedTasks.incrementAndGet() == chunks.size) {
+                                    // Quand toutes les chunks sont traitées
                                     Log.i(TAG, "getFollowersUsers: ${allFollowerUsers.size} followers récupérés pour $userId (après traitement des chunks).")
                                     trySend(Resource.Success(allFollowerUsers.distinctBy { it.uid }))
                                 }
                             }
                             .addOnFailureListener { e ->
-                                fetchErrors = true
                                 Log.e(TAG, "getFollowersUsers: Erreur lors de la récupération des détails des followers (chunk) pour $userId: ${e.message}", e)
                                 trySend(Resource.Error("Erreur lors de la récupération des détails des followers: ${e.localizedMessage}"))
                                 close(e)
@@ -749,7 +743,6 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    // NOUVELLE FONCTION : Bascule le statut de like sur une lecture active
     override suspend fun toggleLikeOnActiveReading(targetUserId: String, currentUserId: String): Resource<Unit> {
         if (targetUserId.isBlank() || currentUserId.isBlank()) {
             Log.w(TAG, "toggleLikeOnActiveReading: targetUserId ou currentUserId est vide.")
@@ -766,11 +759,11 @@ class UserRepositoryImpl @Inject constructor(
             firestore.runTransaction { transaction ->
                 val snapshot = transaction.get(likeDocRef)
                 if (snapshot.exists()) {
-                    // Le like existe, on le supprime (unfollow)
+                    // Le like existe, on le supprime
                     transaction.delete(likeDocRef)
                     Log.i(TAG, "toggleLikeOnActiveReading: Like de '$currentUserId' sur '$targetUserId' supprimé.")
                 } else {
-                    // Le like n'existe pas, on l'ajoute (follow)
+                    // Le like n'existe pas, on l'ajoute
                     val newLike = Like(
                         likeId = currentUserId,
                         userId = currentUserId,
@@ -790,7 +783,6 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    // NOUVELLE FONCTION : Vérifie si la lecture est likée par l'utilisateur courant
     override fun isLikedByCurrentUser(targetUserId: String, currentUserId: String): Flow<Resource<Boolean>> = callbackFlow {
         if (targetUserId.isBlank() || currentUserId.isBlank()) {
             Log.w(TAG, "isLikedByCurrentUser: targetUserId ou currentUserId est vide.")
@@ -827,7 +819,6 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    // NOUVELLE FONCTION : Récupère le nombre de likes sur une lecture active
     override fun getActiveReadingLikesCount(targetUserId: String): Flow<Resource<Int>> = callbackFlow {
         if (targetUserId.isBlank()) {
             Log.w(TAG, "getActiveReadingLikesCount: targetUserId est vide.")
@@ -859,6 +850,180 @@ class UserRepositoryImpl @Inject constructor(
 
         awaitClose {
             Log.d(TAG, "getActiveReadingLikesCount: Fermeture du listener du nombre de likes pour ID '$targetUserId'.")
+            listenerRegistration.remove()
+        }
+    }
+
+    // =====================================================================================
+    // IMPLÉMENTATIONS DES NOUVELLES MÉTHODES POUR LA GESTION DES LECTURES TERMINÉES
+    // =====================================================================================
+
+    override suspend fun markActiveReadingAsCompleted(userId: String, activeReadingDetails: UserBookReading): Resource<Unit> {
+        if (userId.isBlank()) {
+            Log.w(TAG, "markActiveReadingAsCompleted: userId est vide.")
+            return Resource.Error("L'ID utilisateur ne peut pas être vide.")
+        }
+        if (activeReadingDetails.bookId.isBlank()) {
+            Log.w(TAG, "markActiveReadingAsCompleted: L'ID du livre dans activeReadingDetails est vide.")
+            return Resource.Error("Les détails de la lecture active sont incomplets (ID du livre manquant).")
+        }
+
+        val activeReadingDocRef = usersCollection.document(userId)
+            .collection(FirebaseConstants.SUBCOLLECTION_USER_READINGS)
+            .document(FirebaseConstants.DOCUMENT_ACTIVE_READING)
+
+        val completedReadingDocRef = usersCollection.document(userId)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+            .document(activeReadingDetails.bookId) // Utilise l'ID du livre comme ID du document pour la lecture terminée
+
+        val userDocRef = usersCollection.document(userId)
+
+        Log.d(TAG, "markActiveReadingAsCompleted: Début de la transaction pour marquer la lecture comme terminée pour l'utilisateur '$userId'.")
+
+        return try {
+            firestore.runTransaction { transaction ->
+                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Started] Checking active reading existence.")
+                // 1. Vérifier si la lecture active existe avant de tenter de la supprimer
+                val activeReadingSnapshot = transaction.get(activeReadingDocRef)
+                if (!activeReadingSnapshot.exists()) {
+                    Log.e(TAG, "markActiveReadingAsCompleted: [Transaction Fail] Aucune lecture active trouvée pour l'utilisateur '$userId'. Impossible de marquer comme terminée. Rolling back.")
+                    throw FirebaseFirestoreException("Aucune lecture en cours à marquer comme terminée.", FirebaseFirestoreException.Code.NOT_FOUND)
+                }
+                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Active reading found: ${activeReadingSnapshot.id}.")
+
+                // 2. Préparer l'objet CompletedReading
+                val completedReading = CompletedReading(
+                    bookId = activeReadingDetails.bookId,
+                    userId = userId,
+                    title = activeReadingDetails.title,
+                    author = activeReadingDetails.author,
+                    coverImageUrl = activeReadingDetails.coverImageUrl,
+                    totalPages = activeReadingDetails.totalPages,
+                    completionDate = Date()
+                )
+
+                // 3. Ajouter la lecture aux completed_readings
+                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Attempting to set completed reading for bookId: '${activeReadingDetails.bookId}'.")
+                transaction.set(completedReadingDocRef, completedReading)
+                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Set on completed_readings document done.")
+
+                // 4. Supprimer la lecture active
+                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Attempting to delete active reading document.")
+                transaction.delete(activeReadingDocRef)
+                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Delete on activeReading document done.")
+
+                // 5. Incrémenter booksReadCount sur le document utilisateur
+                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Attempting to increment booksReadCount for user: '$userId'.")
+                transaction.update(userDocRef, "booksReadCount", FieldValue.increment(1))
+                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Update on booksReadCount done.")
+
+                Log.i(TAG, "markActiveReadingAsCompleted: [Transaction Success] All operations registered. Committing transaction for user '$userId'.")
+                null // La transaction a réussi
+            }.await()
+            Log.i(TAG, "markActiveReadingAsCompleted: [Repository Success] Firestore transaction completed successfully for user '$userId'.")
+            Resource.Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Log.e(TAG, "markActiveReadingAsCompleted: [Repository Error] Firestore transaction failed for '$userId'. Code=${e.code}, Message=${e.message}, Cause=${e.cause?.message}", e)
+            Resource.Error("Erreur Firestore: ${e.localizedMessage}")
+        } catch (e: Exception) {
+            Log.e(TAG, "markActiveReadingAsCompleted: [Repository Error] Unexpected error during transaction for '$userId': ${e.message}", e)
+            Resource.Error("Erreur inattendue: ${e.localizedMessage}")
+        }
+    }
+
+    override suspend fun removeCompletedReading(userId: String, bookId: String): Resource<Unit> {
+        if (userId.isBlank() || bookId.isBlank()) {
+            Log.w(TAG, "removeCompletedReading: userId ou bookId est vide.")
+            return Resource.Error("L'ID utilisateur ou l'ID du livre ne peut pas être vide.")
+        }
+
+        val completedReadingDocRef = usersCollection.document(userId)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+            .document(bookId)
+
+        val userDocRef = usersCollection.document(userId)
+
+        Log.d(TAG, "removeCompletedReading: Début de la transaction pour supprimer la lecture terminée '$bookId' pour l'utilisateur '$userId'.")
+
+        return try {
+            firestore.runTransaction { transaction ->
+                Log.d(TAG, "removeCompletedReading: [Transaction Started] Checking completed reading existence for bookId: '$bookId'.")
+                // 1. Vérifier si la lecture terminée existe avant de tenter de la supprimer
+                val completedReadingSnapshot = transaction.get(completedReadingDocRef)
+                if (!completedReadingSnapshot.exists()) {
+                    Log.w(TAG, "removeCompletedReading: [Transaction Fail] La lecture terminée '$bookId' n'existe pas pour l'utilisateur '$userId'. Pas de suppression. Rolling back.")
+                    throw FirebaseFirestoreException("La lecture terminée n'a pas été trouvée.", FirebaseFirestoreException.Code.NOT_FOUND)
+                }
+                Log.d(TAG, "removeCompletedReading: [Transaction Progress] Completed reading found: ${completedReadingSnapshot.id}.")
+
+                // 2. Supprimer la lecture terminée
+                Log.d(TAG, "removeCompletedReading: [Transaction Progress] Attempting to delete completed reading for bookId: '$bookId'.")
+                transaction.delete(completedReadingDocRef)
+                Log.d(TAG, "removeCompletedReading: [Transaction Progress] Delete on completed_readings done.")
+
+                // 3. Décrémenter booksReadCount sur le document utilisateur
+                Log.d(TAG, "removeCompletedReading: [Transaction Progress] Attempting to decrement 'booksReadCount' for user: '$userId'.")
+                transaction.update(userDocRef, "booksReadCount", FieldValue.increment(-1))
+                Log.d(TAG, "removeCompletedReading: [Transaction Progress] Update on booksReadCount done.")
+
+                Log.i(TAG, "removeCompletedReading: [Transaction Success] All operations registered. Committing transaction for user '$userId'.")
+                null // La transaction a réussi
+            }.await()
+            Log.i(TAG, "removeCompletedReading: [Repository Success] Firestore transaction completed successfully for user '$userId'.")
+            Resource.Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Log.e(TAG, "removeCompletedReading: [Repository Error] Firestore transaction failed for '$userId'. Code=${e.code}, Message=${e.message}, Cause=${e.cause?.message}", e)
+            Resource.Error("Erreur Firestore: ${e.localizedMessage}")
+        } catch (e: Exception) {
+            Log.e(TAG, "removeCompletedReading: [Repository Error] Unexpected error during transaction for '$userId': ${e.message}", e)
+            Resource.Error("Erreur inattendue: ${e.localizedMessage}")
+        }
+    }
+
+    override fun getCompletedReadings(userId: String): Flow<Resource<List<CompletedReading>>> = callbackFlow {
+        if (userId.isBlank()) {
+            Log.w(TAG, "getCompletedReadings: userId est vide.")
+            trySend(Resource.Error("L'ID utilisateur ne peut pas être vide."))
+            close()
+            return@callbackFlow
+        }
+
+        trySend(Resource.Loading())
+        Log.i(TAG, "getCompletedReadings: Tentative de récupération des lectures terminées pour l'utilisateur ID: '$userId'.")
+
+        val completedReadingsCollectionRef = usersCollection.document(userId)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+
+        val listenerRegistration = completedReadingsCollectionRef
+            .orderBy("completionDate", Query.Direction.DESCENDING) // Tri par date de complétion
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "getCompletedReadings: Erreur Firestore lors de l'écoute des lectures terminées pour ID '$userId': ${error.message}", error)
+                    trySend(Resource.Error("Erreur Firestore: ${error.localizedMessage ?: "Erreur inconnue"}"))
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val completedReadingsList = mutableListOf<CompletedReading>()
+                    for (document in snapshot.documents) {
+                        try {
+                            val completedReading = document.toObject(CompletedReading::class.java)
+                            completedReading?.let { completedReadingsList.add(it) }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "getCompletedReadings: Erreur de conversion du document de lecture terminée ${document.id} pour ID '$userId': ${e.message}", e)
+                        }
+                    }
+                    Log.d(TAG, "getCompletedReadings: ${completedReadingsList.size} lectures terminées récupérées pour ID '$userId'.")
+                    trySend(Resource.Success(completedReadingsList))
+                } else {
+                    Log.d(TAG, "getCompletedReadings: Snapshot de lectures terminées est null pour ID '$userId'.")
+                    trySend(Resource.Success(emptyList()))
+                }
+            }
+
+        awaitClose {
+            Log.d(TAG, "getCompletedReadings: Fermeture du listener de lectures terminées pour ID '$userId'.")
             listenerRegistration.remove()
         }
     }

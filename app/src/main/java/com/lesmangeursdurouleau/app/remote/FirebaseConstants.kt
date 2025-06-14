@@ -1,4 +1,3 @@
-// app/src/main/java/com/lesmangeursdurouleau.app/remote/FirebaseConstants.kt
 package com.lesmangeursdurouleau.app.remote
 
 object FirebaseConstants {
@@ -18,4 +17,7 @@ object FirebaseConstants {
 
     const val SUBCOLLECTION_COMMENTS = "comments"
     const val SUBCOLLECTION_LIKES = "likes"
+
+
+    const val SUBCOLLECTION_COMPLETED_READINGS = "completed_readings" // NOUVEAU
 }

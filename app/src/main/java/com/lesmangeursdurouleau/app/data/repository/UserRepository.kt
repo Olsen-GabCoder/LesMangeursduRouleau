@@ -4,7 +4,8 @@ package com.lesmangeursdurouleau.app.data.repository
 import com.lesmangeursdurouleau.app.data.model.User
 import com.lesmangeursdurouleau.app.data.model.UserBookReading
 import com.lesmangeursdurouleau.app.data.model.Comment
-import com.lesmangeursdurouleau.app.data.model.Like // NOUVEAU : Import pour Like
+import com.lesmangeursdurouleau.app.data.model.Like
+import com.lesmangeursdurouleau.app.data.model.CompletedReading // NOUVEAU : Import pour CompletedReading
 import com.lesmangeursdurouleau.app.utils.Resource
 import kotlinx.coroutines.flow.Flow
 
@@ -113,4 +114,34 @@ interface UserRepository {
      * @return Un Flow de Resource<Int> contenant le nombre de likes.
      */
     fun getActiveReadingLikesCount(targetUserId: String): Flow<Resource<Int>>
+
+    // =====================================================================================
+    // NOUVELLES MÉTHODES POUR LA GESTION DES LECTURES TERMINÉES (Phase 3.2)
+    // =====================================================================================
+
+    /**
+     * Marque la lecture en cours d'un utilisateur comme terminée.
+     * Cette opération est atomique : elle supprime la lecture active, ajoute le livre aux lectures terminées
+     * et incrémente le compteur `booksReadCount` de l'utilisateur, le tout via une transaction Firestore.
+     * @param userId L'ID de l'utilisateur concerné.
+     * @param activeReadingDetails Les détails de la lecture active qui va être marquée comme terminée.
+     * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
+     */
+    suspend fun markActiveReadingAsCompleted(userId: String, activeReadingDetails: UserBookReading): Resource<Unit>
+
+    /**
+     * Supprime une lecture terminée de la liste d'un utilisateur et décrémente `booksReadCount`.
+     * @param userId L'ID de l'utilisateur concerné.
+     * @param bookId L'ID du livre terminé à supprimer.
+     * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
+     */
+    suspend fun removeCompletedReading(userId: String, bookId: String): Resource<Unit>
+
+    /**
+     * Récupère un flux de lectures terminées pour un utilisateur donné.
+     * Les lectures sont triées par date de complétion (les plus récentes en premier).
+     * @param userId L'ID de l'utilisateur dont les lectures terminées sont à récupérer.
+     * @return Un Flow de Resource<List<CompletedReading>>.
+     */
+    fun getCompletedReadings(userId: String): Flow<Resource<List<CompletedReading>>>
 }

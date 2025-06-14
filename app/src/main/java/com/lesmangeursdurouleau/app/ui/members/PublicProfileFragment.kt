@@ -1,4 +1,3 @@
-// app/src/main/java/com/lesmangeursdurouleau.app/ui/members/PublicProfileFragment.kt
 package com.lesmangeursdurouleau.app.ui.members
 
 import android.graphics.PorterDuff
@@ -30,8 +29,8 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import android.content.res.ColorStateList // NOUVEAU : Import pour ColorStateList
-import com.google.android.material.color.MaterialColors // NOUVEAU : Import pour MaterialColors
+import android.content.res.ColorStateList
+import com.google.android.material.color.MaterialColors
 
 @AndroidEntryPoint
 class PublicProfileFragment : Fragment() {
@@ -82,6 +81,7 @@ class PublicProfileFragment : Fragment() {
         setupCurrentReadingButton()
         setupCommentInputListeners()
         setupLikeButton()
+        setupBooksReadClickListener() // NOUVEAU : Appel du listener pour les livres lus
     }
 
     private fun setupObservers() {
@@ -471,6 +471,19 @@ class PublicProfileFragment : Fragment() {
         }
     }
 
+    // NOUVEAU : Clic sur la section des livres lus (future navigation vers la liste des lectures terminées)
+    private fun setupBooksReadClickListener() {
+        binding.llBooksReadClickableArea.setOnClickListener {
+            val targetUsername = args.username ?: getString(R.string.profile_title_default)
+            // Pour l'instant, juste un Toast ou un log, car l'écran de liste des lectures terminées n'existe pas encore.
+            Toast.makeText(context, getString(R.string.books_read_clicked_message, targetUsername), Toast.LENGTH_SHORT).show()
+            Log.d(TAG, "Clic sur 'Livres lus'. Fonctionnalité à implémenter pour afficher la liste pour ${args.userId}")
+            // Future navigation (exemple si un fragment de lectures terminées existait) :
+            // val action = PublicProfileFragmentDirections.actionPublicProfileFragmentDestinationToCompletedReadingsFragment(userId = args.userId)
+            // findNavController().navigate(action)
+        }
+    }
+
     private fun updateActionBarTitle(username: String?) {
         val title = username?.takeIf { it.isNotBlank() } ?: getString(R.string.profile_title_default)
         (activity as? AppCompatActivity)?.supportActionBar?.title = title
@@ -492,7 +505,9 @@ class PublicProfileFragment : Fragment() {
 
         binding.tvFollowersCount.text = user.followersCount.toString()
         binding.tvFollowingCount.text = user.followingCount.toString()
-        Log.d(TAG, "Compteurs mis à jour: Followers=${user.followersCount}, Following=${user.followingCount}")
+        // NOUVEAU : Afficher le nombre de livres lus
+        binding.tvBooksReadCount.text = user.booksReadCount.toString()
+        Log.d(TAG, "Compteurs mis à jour: Followers=${user.followersCount}, Following=${user.followingCount}, BooksRead=${user.booksReadCount}")
 
         binding.tvPublicProfileEmail.text = user.email.ifEmpty { getString(R.string.na) }
         Log.d(TAG, "Email: ${binding.tvPublicProfileEmail.text}")

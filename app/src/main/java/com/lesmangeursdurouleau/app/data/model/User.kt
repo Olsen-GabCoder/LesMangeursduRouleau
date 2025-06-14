@@ -11,5 +11,6 @@ data class User(
     val canEditReadings: Boolean = false,
     val lastPermissionGrantedTimestamp: Long? = null,
     var followersCount: Int = 0,
-    var followingCount: Int = 0
+    var followingCount: Int = 0,
+    var booksReadCount: Int = 0
 )

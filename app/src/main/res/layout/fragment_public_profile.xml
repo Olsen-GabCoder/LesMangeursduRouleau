@@ -184,6 +184,7 @@
                             tools:text="01 Janvier 2024" />
                     </LinearLayout>
 
+                    <!-- MISE À JOUR : Ajout de la section Livres lus -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -224,6 +225,7 @@
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
                             android:gravity="center_horizontal"
+                            android:layout_marginEnd="32dp"
                             android:clickable="true"
                             android:focusable="true"
                             android:background="?attr/selectableItemBackgroundBorderless">
@@ -239,6 +241,32 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/following_label"
+                                android:textSize="14sp"
+                                android:textColor="?attr/colorOnSurfaceVariant"/>
+                        </LinearLayout>
+
+                        <!-- NOUVEAU : Books Read Count -->
+                        <LinearLayout
+                            android:id="@+id/ll_books_read_clickable_area"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackgroundBorderless">
+                            <TextView
+                                android:id="@+id/tv_books_read_count"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textSize="20sp"
+                                android:textStyle="bold"
+                                android:textColor="?attr/colorPrimary"/>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/books_read_label"
                                 android:textSize="14sp"
                                 android:textColor="?attr/colorOnSurfaceVariant"/>
                         </LinearLayout>

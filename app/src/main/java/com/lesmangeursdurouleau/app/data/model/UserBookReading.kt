@@ -1,3 +1,4 @@
+// app/src/main/java/com/lesmangeursdurouleau.app/data/model/UserBookReading.kt
 package com.lesmangeursdurouleau.app.data.model
 
 import com.google.firebase.firestore.IgnoreExtraProperties
@@ -5,6 +6,9 @@ import com.google.firebase.firestore.IgnoreExtraProperties
 @IgnoreExtraProperties
 data class UserBookReading(
     val bookId: String = "",
+    val title: String = "",
+    val author: String = "",
+    val coverImageUrl: String? = null,
     val status: String = "in_progress",
     val currentPage: Int = 0,
     val totalPages: Int = 0,

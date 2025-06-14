@@ -312,6 +312,8 @@
     <string name="send_comment_button_description">Envoyer le commentaire</string>
     <string name="no_comments_yet">Aucun commentaire pour l\'instant. Soyez le premier !</string>
     <string name="error_loading_comments">Erreur lors du chargement des commentaires : %1$s</string>
+    <string name="books_read_label">Livres lus</string>
+    <string name="books_read_clicked_message">Affichage des livres lus pour %1$s (à implémenter)</string>
 
     <!-- Pour la section likes -->
     <string name="likes_count_format">%d</string>
