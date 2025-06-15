@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.lesmangeursdurouleau.app.R
+import com.lesmangeursdurouleau.app.data.model.Comment
 import com.lesmangeursdurouleau.app.data.model.User
 import com.lesmangeursdurouleau.app.databinding.FragmentPublicProfileBinding
 import com.lesmangeursdurouleau.app.utils.Resource
@@ -31,6 +32,7 @@ import java.util.Date
 import java.util.Locale
 import android.content.res.ColorStateList
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 @AndroidEntryPoint
 class PublicProfileFragment : Fragment() {
@@ -66,7 +68,21 @@ class PublicProfileFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
-        commentsAdapter = CommentsAdapter()
+        commentsAdapter = CommentsAdapter(
+            currentUserId = viewModel.currentUserId.value,
+            onDeleteClickListener = { commentToDelete ->
+                Log.d(TAG, "Clic sur bouton de suppression pour le commentaire ID: ${commentToDelete.commentId}")
+                showDeleteConfirmationDialog(commentToDelete)
+            },
+            onLikeClickListener = { commentToLike ->
+                Log.d(TAG, "Clic sur bouton de like pour le commentaire ID: ${commentToLike.commentId}")
+                viewModel.toggleLikeOnComment(commentToLike)
+            },
+            getCommentLikeStatus = { commentId ->
+                viewModel.getCommentLikeStatus(commentId)
+            },
+            lifecycleOwner = viewLifecycleOwner // NOUVEAU : Passer le LifecycleOwner du Fragment
+        )
         binding.rvComments.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = commentsAdapter
@@ -81,7 +97,7 @@ class PublicProfileFragment : Fragment() {
         setupCurrentReadingButton()
         setupCommentInputListeners()
         setupLikeButton()
-        setupBooksReadClickListener() // NOUVEAU : Appel du listener pour les livres lus
+        setupBooksReadClickListener()
     }
 
     private fun setupObservers() {
@@ -317,84 +333,104 @@ class PublicProfileFragment : Fragment() {
                                 binding.etCommentInput.setText("")
                                 Log.d(TAG, "Événement ClearCommentInput: Champ de saisie effacé.")
                             }
+                            is CommentEvent.CommentDeletedSuccess -> {
+                                Toast.makeText(context, getString(R.string.comment_deleted_success), Toast.LENGTH_SHORT).show()
+                                Log.i(TAG, "Commentaire ${event.commentId} supprimé avec succès.")
+                            }
+                            is CommentEvent.ShowCommentLikeError -> {
+                                Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                                Log.e(TAG, "Événement CommentLikeError: ${event.message}")
+                            }
                         }
                     }
                 }
 
-                // NOUVEL OBSERVATEUR : Pour le statut de like de l'utilisateur courant
+                // Observateur : Pour le statut de like de l'utilisateur courant sur la LECTURE
                 launch {
                     viewModel.isLikedByCurrentUser.collectLatest { resource ->
                         when (resource) {
                             is Resource.Loading -> {
-                                binding.btnToggleLike.isEnabled = false // Désactiver pendant le chargement
-                                Log.d(TAG, "Chargement du statut de like de l'utilisateur courant...")
+                                binding.btnToggleLike.isEnabled = false
+                                Log.d(TAG, "Chargement du statut de like de l'utilisateur courant (lecture)...")
                             }
                             is Resource.Success -> {
-                                binding.btnToggleLike.isEnabled = true // Activer après chargement
+                                binding.btnToggleLike.isEnabled = true
                                 val isLiked = resource.data ?: false
                                 val iconRes = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
 
                                 binding.btnToggleLike.setIconResource(iconRes)
 
-                                // Résoudre la couleur de l'icône dynamiquement
                                 val resolvedIconColor: Int
                                 if (isLiked) {
                                     resolvedIconColor = ContextCompat.getColor(requireContext(), R.color.red_love)
                                 } else {
-                                    // Utiliser MaterialColors pour obtenir la couleur de l'attribut du thème
                                     resolvedIconColor = MaterialColors.getColor(binding.btnToggleLike, com.google.android.material.R.attr.colorOnSurfaceVariant)
                                 }
-                                // Appliquer la couleur résolue au tint de l'icône
                                 binding.btnToggleLike.iconTint = ColorStateList.valueOf(resolvedIconColor)
 
-                                Log.d(TAG, "Statut de like de l'utilisateur courant: $isLiked. Icône mise à jour.")
+                                Log.d(TAG, "Statut de like de l'utilisateur courant (lecture): $isLiked. Icône mise à jour.")
                             }
                             is Resource.Error -> {
-                                binding.btnToggleLike.isEnabled = false // Désactiver en cas d'erreur
-                                // Retour à l'icône et couleur par défaut en cas d'erreur
+                                binding.btnToggleLike.isEnabled = false
                                 binding.btnToggleLike.setIconResource(R.drawable.ic_heart_outline)
                                 val defaultColor = MaterialColors.getColor(binding.btnToggleLike, com.google.android.material.R.attr.colorOnSurfaceVariant)
                                 binding.btnToggleLike.iconTint = ColorStateList.valueOf(defaultColor)
-                                Log.e(TAG, "Erreur lors du chargement du statut de like de l'utilisateur courant: ${resource.message}")
+                                Log.e(TAG, "Erreur lors du chargement du statut de like de l'utilisateur courant (lecture): ${resource.message}")
                             }
                         }
                     }
                 }
 
-                // NOUVEL OBSERVATEUR : Pour le nombre de likes
+                // Observateur : Pour le nombre de likes sur la LECTURE
                 launch {
                     viewModel.likesCount.collectLatest { resource ->
                         when (resource) {
                             is Resource.Loading -> {
                                 binding.btnToggleLike.text = getString(R.string.loading_likes_count)
-                                Log.d(TAG, "Chargement du nombre de likes...")
+                                Log.d(TAG, "Chargement du nombre de likes (lecture)...")
                             }
                             is Resource.Success -> {
                                 val count = resource.data ?: 0
                                 binding.btnToggleLike.text = count.toString()
-                                Log.d(TAG, "Nombre de likes mis à jour: $count.")
+                                Log.d(TAG, "Nombre de likes (lecture) mis à jour: $count.")
                             }
                             is Resource.Error -> {
                                 binding.btnToggleLike.text = getString(R.string.error_loading_likes_count)
-                                Log.e(TAG, "Erreur lors du chargement du nombre de likes: ${resource.message}")
+                                Log.e(TAG, "Erreur lors du chargement du nombre de likes (lecture): ${resource.message}")
                             }
                         }
                     }
                 }
 
-                // NOUVEL OBSERVATEUR : Pour les événements de like
+                // Observateur : Pour les événements de like sur la LECTURE
                 launch {
                     viewModel.likeEvents.collectLatest { event ->
                         when (event) {
                             is LikeEvent.ShowLikeError -> {
                                 Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
-                                Log.e(TAG, "Événement LikeError: ${event.message}")
+                                Log.e(TAG, "Événement LikeError (lecture): ${event.message}")
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    private fun showDeleteConfirmationDialog(comment: Comment) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.delete_comment_dialog_title))
+            .setMessage(getString(R.string.delete_comment_dialog_message))
+            .setNegativeButton(getString(R.string.cancel)) { dialog, _ ->
+                dialog.dismiss()
+                Log.d(TAG, "Suppression du commentaire annulée par l'utilisateur.")
+            }
+            .setPositiveButton(getString(R.string.delete)) { dialog, _ ->
+                viewModel.deleteComment(comment.commentId, comment.userId)
+                dialog.dismiss()
+                Log.d(TAG, "Suppression du commentaire confirmée par l'utilisateur pour l'ID: ${comment.commentId}.")
+            }
+            .show()
     }
 
     private fun setupFollowButton() {
@@ -452,13 +488,11 @@ class PublicProfileFragment : Fragment() {
         }
     }
 
-    // Configuration du bouton "J'aime"
     private fun setupLikeButton() {
         binding.btnToggleLike.setOnClickListener {
             val currentUserId = viewModel.currentUserId.value
             val targetUserId = args.userId
 
-            // Désactiver le bouton si l'utilisateur est sur son propre profil ou si non connecté
             if (currentUserId.isNullOrBlank() || targetUserId.isNullOrBlank() || currentUserId == targetUserId) {
                 val message = if (currentUserId.isNullOrBlank()) "Vous devez être connecté pour liker."
                 else "Vous ne pouvez pas liker votre propre lecture."
@@ -466,21 +500,16 @@ class PublicProfileFragment : Fragment() {
                 Log.w(TAG, "Tentative de like non autorisée. Message: $message")
                 return@setOnClickListener
             }
-            Log.d(TAG, "Bouton 'J'aime' cliqué. Bascule du statut de like.")
+            Log.d(TAG, "Bouton 'J'aime' (lecture) cliqué. Bascule du statut de like.")
             viewModel.toggleLike()
         }
     }
 
-    // NOUVEAU : Clic sur la section des livres lus (future navigation vers la liste des lectures terminées)
     private fun setupBooksReadClickListener() {
         binding.llBooksReadClickableArea.setOnClickListener {
             val targetUsername = args.username ?: getString(R.string.profile_title_default)
-            // Pour l'instant, juste un Toast ou un log, car l'écran de liste des lectures terminées n'existe pas encore.
             Toast.makeText(context, getString(R.string.books_read_clicked_message, targetUsername), Toast.LENGTH_SHORT).show()
             Log.d(TAG, "Clic sur 'Livres lus'. Fonctionnalité à implémenter pour afficher la liste pour ${args.userId}")
-            // Future navigation (exemple si un fragment de lectures terminées existait) :
-            // val action = PublicProfileFragmentDirections.actionPublicProfileFragmentDestinationToCompletedReadingsFragment(userId = args.userId)
-            // findNavController().navigate(action)
         }
     }
 
@@ -505,7 +534,6 @@ class PublicProfileFragment : Fragment() {
 
         binding.tvFollowersCount.text = user.followersCount.toString()
         binding.tvFollowingCount.text = user.followingCount.toString()
-        // NOUVEAU : Afficher le nombre de livres lus
         binding.tvBooksReadCount.text = user.booksReadCount.toString()
         Log.d(TAG, "Compteurs mis à jour: Followers=${user.followersCount}, Following=${user.followingCount}, BooksRead=${user.booksReadCount}")
 

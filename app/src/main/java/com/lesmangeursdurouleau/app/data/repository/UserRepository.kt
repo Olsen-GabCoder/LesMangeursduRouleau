@@ -1,11 +1,10 @@
-// app/src/main/java/com/lesmangeursdurouleau.app/data/repository/UserRepository.kt
 package com.lesmangeursdurouleau.app.data.repository
 
 import com.lesmangeursdurouleau.app.data.model.User
 import com.lesmangeursdurouleau.app.data.model.UserBookReading
 import com.lesmangeursdurouleau.app.data.model.Comment
 import com.lesmangeursdurouleau.app.data.model.Like
-import com.lesmangeursdurouleau.app.data.model.CompletedReading // NOUVEAU : Import pour CompletedReading
+import com.lesmangeursdurouleau.app.data.model.CompletedReading
 import com.lesmangeursdurouleau.app.utils.Resource
 import kotlinx.coroutines.flow.Flow
 
@@ -92,6 +91,15 @@ interface UserRepository {
     fun getCommentsOnActiveReading(targetUserId: String): Flow<Resource<List<Comment>>>
 
     /**
+     * Permet de supprimer un commentaire sur la lecture active d'un utilisateur cible.
+     * Cette action n'est permise que si l'utilisateur courant est l'auteur du commentaire.
+     * @param targetUserId L'ID de l'utilisateur dont la lecture active contient le commentaire.
+     * @param commentId L'ID unique du commentaire à supprimer.
+     * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
+     */
+    suspend fun deleteCommentOnActiveReading(targetUserId: String, commentId: String): Resource<Unit>
+
+    /**
      * Bascule le statut de "like" pour la lecture active d'un utilisateur cible par l'utilisateur courant.
      * Si un like existe, il est supprimé ; sinon, un nouveau like est créé.
      * @param targetUserId L'ID de l'utilisateur dont la lecture est likée.
@@ -114,6 +122,32 @@ interface UserRepository {
      * @return Un Flow de Resource<Int> contenant le nombre de likes.
      */
     fun getActiveReadingLikesCount(targetUserId: String): Flow<Resource<Int>>
+
+    // =====================================================================================
+    // NOUVELLES MÉTHODES POUR LA GESTION DES LIKES SUR LES COMMENTAIRES
+    // =====================================================================================
+
+    /**
+     * Bascule le statut de "like" pour un commentaire spécifique.
+     * Si un like existe pour ce commentaire par l'utilisateur courant, il est supprimé ;
+     * sinon, un nouveau like est créé.
+     * Met également à jour le compteur de likes du commentaire.
+     * @param targetUserId L'ID de l'utilisateur dont le profil contient la lecture et le commentaire.
+     * @param commentId L'ID du commentaire concerné.
+     * @param currentUserId L'ID de l'utilisateur qui effectue l'action de "like".
+     * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
+     */
+    suspend fun toggleLikeOnComment(targetUserId: String, commentId: String, currentUserId: String): Resource<Unit>
+
+    /**
+     * Vérifie si un commentaire spécifique a été "liké" par l'utilisateur courant.
+     * @param targetUserId L'ID de l'utilisateur dont le profil contient le commentaire.
+     * @param commentId L'ID du commentaire concerné.
+     * @param currentUserId L'ID de l'utilisateur dont on veut savoir s'il a liké.
+     * @return Un Flow de Resource<Boolean> indiquant si le commentaire est liké par l'utilisateur courant.
+     */
+    fun isCommentLikedByCurrentUser(targetUserId: String, commentId: String, currentUserId: String): Flow<Resource<Boolean>>
+
 
     // =====================================================================================
     // NOUVELLES MÉTHODES POUR LA GESTION DES LECTURES TERMINÉES (Phase 3.2)

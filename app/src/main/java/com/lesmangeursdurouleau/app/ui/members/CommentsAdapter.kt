@@ -1,55 +1,143 @@
-// app/src/main/java/com/lesmangeursdurouleau/app/ui/members/CommentsAdapter.kt
 package com.lesmangeursdurouleau.app.ui.members
 
+import android.content.res.ColorStateList
+import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import com.google.android.material.color.MaterialColors
 import com.lesmangeursdurouleau.app.R
 import com.lesmangeursdurouleau.app.data.model.Comment
 import com.lesmangeursdurouleau.app.databinding.ItemCommentBinding
+import com.lesmangeursdurouleau.app.utils.Resource
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-class CommentsAdapter : ListAdapter<Comment, CommentsAdapter.CommentViewHolder>(CommentDiffCallback()) {
+class CommentsAdapter(
+    private val currentUserId: String?,
+    private val onDeleteClickListener: ((comment: Comment) -> Unit)? = null,
+    private val onLikeClickListener: ((comment: Comment) -> Unit)? = null,
+    private val getCommentLikeStatus: (commentId: String) -> Flow<Resource<Boolean>>,
+    private val lifecycleOwner: LifecycleOwner // NOUVEAU PARAMÈTRE DANS LE CONSTRUCTEUR
+) : ListAdapter<Comment, CommentsAdapter.CommentViewHolder>(CommentDiffCallback()) {
 
-    // Inner class pour le ViewHolder
     inner class CommentViewHolder(private val binding: ItemCommentBinding) : RecyclerView.ViewHolder(binding.root) {
+        private var likeStatusJob: Job? = null // Job pour gérer l'observation du statut de like
+
         fun bind(comment: Comment) {
-            // Charger la photo de profil de l'auteur du commentaire
             Glide.with(binding.root.context)
                 .load(comment.userPhotoUrl)
-                .placeholder(R.drawable.ic_profile_placeholder) // Placeholder si l'image charge ou est nulle
-                .error(R.drawable.ic_profile_placeholder)       // Image d'erreur si le chargement échoue
+                .placeholder(R.drawable.ic_profile_placeholder)
+                .error(R.drawable.ic_profile_placeholder)
                 .transition(DrawableTransitionOptions.withCrossFade())
-                .circleCrop() // Pour une image de profil ronde
+                .circleCrop()
                 .into(binding.ivCommentAuthorPicture)
 
-            // Afficher le nom d'utilisateur de l'auteur
-            binding.tvCommentAuthorUsername.text = comment.userName.takeIf { it.isNotBlank() }
+            val authorUsername = comment.userName.takeIf { it.isNotBlank() }
                 ?: binding.root.context.getString(R.string.username_not_defined)
 
-            // Afficher le texte du commentaire
-            binding.tvCommentText.text = comment.commentText
+            binding.tvCommentAuthorUsername.text = authorUsername
+            binding.ivCommentAuthorPicture.contentDescription =
+                binding.root.context.getString(R.string.profile_picture_of_user_description, authorUsername)
 
-            // Afficher l'horodatage formaté (ex: "il y a 5 min", "1 jour", "22 mars")
+            binding.tvCommentText.text = comment.commentText
             binding.tvCommentTimestamp.text = formatTimestamp(comment.timestamp.toDate())
+
+            // Gérer la visibilité et le clic du bouton de suppression
+            if (currentUserId != null && comment.userId == currentUserId) {
+                binding.btnDeleteComment.visibility = View.VISIBLE
+                binding.btnDeleteComment.setOnClickListener {
+                    onDeleteClickListener?.invoke(comment)
+                }
+            } else {
+                binding.btnDeleteComment.visibility = View.GONE
+                binding.btnDeleteComment.setOnClickListener(null)
+            }
+
+            // AJOUTS POUR LE DIAGNOSTIC (maintenus temporairement)
+            Log.d("CommentsAdapterDebug", "Binding commentaire ID: ${comment.commentId}")
+            Log.d("CommentsAdapterDebug", "Current User ID: $currentUserId")
+            Log.d("CommentsAdapterDebug", "Comment Author ID: ${comment.userId}")
+            Log.d("CommentsAdapterDebug", "Condition (currentUserId != null && comment.userId != currentUserId): ${currentUserId != null && comment.userId != currentUserId}")
+
+
+            // Gérer la visibilité et le clic du bouton de like, et afficher le compteur
+            if (currentUserId != null && comment.userId != currentUserId) { // Visible si connecté ET pas son propre commentaire
+                binding.btnLikeComment.visibility = View.VISIBLE
+                binding.btnLikeComment.setOnClickListener {
+                    onLikeClickListener?.invoke(comment)
+                }
+
+                // Afficher le nombre de likes
+                binding.btnLikeComment.text = comment.likesCount.toString()
+
+                // Annuler le job précédent pour éviter les fuites de mémoire lors du recyclage
+                likeStatusJob?.cancel()
+
+                // Lancer une nouvelle coroutine pour observer le statut de like de ce commentaire
+                // IMPORTANT : Utiliser le lifecycleScope du LifecycleOwner fourni
+                likeStatusJob = lifecycleOwner.lifecycleScope.launch { // UTILISE MAINTENANT le lifecycleOwner passé
+                    getCommentLikeStatus(comment.commentId).collectLatest { resource ->
+                        when (resource) {
+                            is Resource.Success -> {
+                                val isLiked = resource.data ?: false
+                                val iconRes = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
+                                binding.btnLikeComment.setIconResource(iconRes)
+
+                                val resolvedIconColor = if (isLiked) {
+                                    ContextCompat.getColor(binding.root.context, R.color.red_love)
+                                } else {
+                                    MaterialColors.getColor(binding.btnLikeComment, com.google.android.material.R.attr.colorOnSurfaceVariant)
+                                }
+                                binding.btnLikeComment.iconTint = ColorStateList.valueOf(resolvedIconColor)
+                            }
+                            is Resource.Error -> {
+                                Log.e("CommentsAdapter", "Erreur lors du chargement du statut de like du commentaire ${comment.commentId}: ${resource.message}")
+                                binding.btnLikeComment.setIconResource(R.drawable.ic_heart_outline)
+                                binding.btnLikeComment.iconTint = ColorStateList.valueOf(MaterialColors.getColor(binding.btnLikeComment, com.google.android.material.R.attr.colorOnSurfaceVariant))
+                            }
+                            is Resource.Loading -> {
+                                // Peut afficher un indicateur de chargement si nécessaire
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Si l'utilisateur est l'auteur du commentaire ou n'est pas connecté, le bouton de like est masqué.
+                binding.btnLikeComment.visibility = View.GONE
+                binding.btnLikeComment.setOnClickListener(null)
+                likeStatusJob?.cancel() // Annule le job si le bouton est masqué
+            }
         }
     }
 
-    // Callback pour la comparaison des éléments dans ListAdapter (efficacité des mises à jour)
     class CommentDiffCallback : DiffUtil.ItemCallback<Comment>() {
         override fun areItemsTheSame(oldItem: Comment, newItem: Comment): Boolean {
             return oldItem.commentId == newItem.commentId
         }
 
         override fun areContentsTheSame(oldItem: Comment, newItem: Comment): Boolean {
-            return oldItem == newItem
+            return oldItem.commentText == newItem.commentText &&
+                    oldItem.timestamp == newItem.timestamp &&
+                    oldItem.userId == newItem.userId &&
+                    oldItem.userName == newItem.userName &&
+                    oldItem.userPhotoUrl == newItem.userPhotoUrl &&
+                    oldItem.likesCount == newItem.likesCount &&
+                    oldItem.lastLikeTimestamp == newItem.lastLikeTimestamp
         }
     }
 
@@ -62,21 +150,16 @@ class CommentsAdapter : ListAdapter<Comment, CommentsAdapter.CommentViewHolder>(
         holder.bind(getItem(position))
     }
 
-    /**
-     * Formate un horodatage en une chaîne lisible (ex: "il y a 5 min", "1 jour", "12 mars 2024").
-     * @param date L'objet Date à formater.
-     * @return La chaîne formatée.
-     */
     private fun formatTimestamp(date: Date): String {
         val now = System.currentTimeMillis()
         val diff = now - date.time
 
         return when {
-            diff < TimeUnit.MINUTES.toMillis(1) -> "il y a qlq s." // Quelques secondes
-            diff < TimeUnit.HOURS.toMillis(1) -> "il y a ${TimeUnit.MILLISECONDS.toMinutes(diff)} min" // Moins d'une heure
-            diff < TimeUnit.DAYS.toMillis(1) -> "il y a ${TimeUnit.MILLISECONDS.toHours(diff)} h" // Moins d'un jour
-            diff < TimeUnit.DAYS.toMillis(7) -> "il y a ${TimeUnit.MILLISECONDS.toDays(diff)} j" // Moins d'une semaine
-            else -> SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(date) // Plus d'une semaine, format complet
+            diff < TimeUnit.MINUTES.toMillis(1) -> "il y a qlq s."
+            diff < TimeUnit.HOURS.toMillis(1) -> "il y a ${TimeUnit.MILLISECONDS.toHours(diff)} h"
+            diff < TimeUnit.DAYS.toMillis(1) -> "il y a ${TimeUnit.MILLISECONDS.toDays(diff)} j"
+            diff < TimeUnit.DAYS.toMillis(7) -> "il y a ${TimeUnit.MILLISECONDS.toDays(diff)} j" // Correction ici, il y avait deux fois la même condition. Doit être 'jours'
+            else -> SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(date)
         }
     }
 }

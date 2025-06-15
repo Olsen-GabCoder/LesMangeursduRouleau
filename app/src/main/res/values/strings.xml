@@ -9,6 +9,8 @@
     <string name="error_opening_link">Impossible d\'ouvrir le lien.</string>
     <string name="default_username">Utilisateur</string>
     <string name="error_generic_with_message">Erreur : %1$s</string>
+    <string name="comment_like_button_description">Aimer ce commentaire</string>
+    <string name="likes_count_default">0</string>
 
     <string name="login_title">Connexion</string>
     <string name="reset_password_title">Réinitialiser le mot de passe</string>
@@ -176,9 +178,7 @@
     <string name="status_unknown">Inconnu</string>
     <string name="date_not_available">Date non disponible</string>
     <string name="meeting_link">Lien de réunion</string>
-    <!-- Pour la section "Lecture en cours" sur le profil privé -->
     <string name="manage_reading_button">Gérer la lecture</string>
-
 
     <string name="no_meetings_scheduled">Aucune réunion programmée pour le moment.</string>
 
@@ -238,6 +238,8 @@
     <string name="joined_date_label">Membre depuis</string>
     <string name="profile_picture_content_description">Photo de profil de l\'utilisateur</string>
 
+    <string name="profile_picture_of_user_description">Photo de profil de %1$s</string>
+
     <string name="register_button_text">S\'inscrire</string>
     <string name="already_have_account_login">Déjà un compte ? Se connecter</string>
     <string name="email_not_available">E-mail non disponible</string>
@@ -252,18 +254,14 @@
     <string name="loading_follow_status">Chargement...</string>
     <string name="follow_error">Erreur de suivi</string>
     <string name="my_profile_title">Mon Profil</string>
-    <!-- Pour les titres des listes de suivi dans MembersFragment -->
     <string name="title_followers_of">Followers de %s</string>
     <string name="title_following_by">Abonnements de %s</string>
-    <!-- Pour MembersFragment (lors de l'affichage des listes de suivi) -->
     <string name="no_followers_found">Aucun follower trouvé.</string>
     <string name="no_following_found">Aucun abonnement trouvé.</string>
     <string name="mutual_follow_badge_description">Indicateur de suivi réciproque</string>
-    <!-- Pour la section "Lecture en cours" -->
     <string name="current_reading_title">Lecture en cours</string>
     <string name="personal_note_title">Note personnelle</string>
     <string name="update_reading_button">Mettre à jour la lecture</string>
-    <!-- Pour la section "Lecture en cours" dans le Fragment -->
     <string name="page_progress_format">Page %1$d / %2$d</string>
     <string name="page_progress_unknown">Progression inconnue</string>
     <string name="icon_reflection_description">Icône de note ou de crayon, indiquant le champ de réflexion personnelle.</string>
@@ -271,7 +269,6 @@
     <string name="icon_total_pages_description">Icône numérique, indiquant le champ du nombre total de pages.</string>
     <string name="icon_current_page_description">Icône numérique, indiquant le champ de la page actuelle.</string>
 
-    <!-- Pour l'écran "Gérer la lecture en cours" (EditCurrentReadingFragment) - compléments -->
     <string name="change_book_button">Changer de livre</string>
     <string name="title_not_available">Titre non disponible</string>
     <string name="author_not_available">Auteur non disponible</string>
@@ -284,7 +281,6 @@
     <string name="select_book_icon_description">Icône représentant un livre avec une loupe, indiquant la section de sélection de livre.</string>
     <string name="error_loading_data">Erreur de chargement des données</string>
 
-    <!-- Pour l'écran "Gérer la lecture en cours" (EditCurrentReadingFragment) -->
     <string name="edit_reading_title">Gérer ma lecture</string>
     <string name="select_book_title">Livre actuel</string>
     <string name="select_book_button">Sélectionner un livre</string>
@@ -299,13 +295,10 @@
     <string name="error_invalid_page_numbers">La page actuelle doit être inférieure ou égale au total des pages.</string>
     <string name="error_book_not_selected">Veuillez sélectionner un livre.</string>
 
-    <!-- Pour la section "Lecture en cours" sur le profil privé (Fragment_profile.xml) -->
-
     <string name="add_reading_button">Ajouter une lecture</string>
     <string name="no_current_reading_title">Aucune lecture en cours</string>
     <string name="tap_to_add_reading">Appuyez pour en ajouter une</string>
 
-    <!-- Pour la section commentaires -->
     <string name="comments_section_title">Commentaires</string>
     <string name="comments_icon_description">Icône de commentaires</string>
     <string name="comment_input_hint">Ajouter un commentaire…</string>
@@ -315,10 +308,17 @@
     <string name="books_read_label">Livres lus</string>
     <string name="books_read_clicked_message">Affichage des livres lus pour %1$s (à implémenter)</string>
 
-    <!-- Pour la section likes -->
     <string name="likes_count_format">%d</string>
     <string name="like_button_description">Bouton J\'aime</string>
     <string name="loading_likes_count">Chargement…</string>
     <string name="error_loading_likes_count">Erreur de chargement</string>
     <string name="error_liking_reading">Erreur lors de l\'opération J\'aime : %1$s</string>
+    <string name="delete_comment_button_description">Supprimer le commentaire</string>
+    <string name="book_cover_of_title_description">Couverture du livre %1$s</string>
+    <string name="book_selected_indicator_description">Livre sélectionné</string>
+    <string name="delete_comment_dialog_title">Supprimer ce commentaire ?</string>
+    <string name="delete_comment_dialog_message">Cette action est irréversible. Êtes-vous sûr de vouloir supprimer ce commentaire ?</string>
+    <string name="delete">Supprimer</string>
+    <string name="comment_deleted_success">Commentaire supprimé avec succès !</string>
+
 </resources>

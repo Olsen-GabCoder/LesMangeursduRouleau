@@ -57,9 +57,10 @@ class ProfileFragment : Fragment() {
                     .circleCrop()
                     .into(binding.ivProfilePicture)
 
-                val inputStream = requireContext().contentResolver.openInputStream(uri)
-                val imageData = inputStream?.readBytes()
-                inputStream?.close()
+                val imageData: ByteArray? = requireContext().contentResolver.openInputStream(uri)?.use { inputStream ->
+                    inputStream.readBytes()
+                }
+
                 imageData?.let { data ->
                     authViewModel.currentUser.value?.uid?.let { userId ->
                         binding.fabSelectPicture.isEnabled = false
@@ -89,69 +90,78 @@ class ProfileFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        profileViewModel.email.observe(viewLifecycleOwner) { email ->
-            binding.tvProfileEmail.text = email ?: getString(R.string.email_not_available)
-        }
-
-        profileViewModel.displayName.observe(viewLifecycleOwner) { displayName ->
-            binding.etProfileUsername.setText(displayName ?: getString(R.string.username_not_defined))
-        }
-
-        profileViewModel.bio.observe(viewLifecycleOwner) { bio ->
-            binding.etProfileBio.setText(bio ?: "")
-        }
-
-        profileViewModel.city.observe(viewLifecycleOwner) { city ->
-            binding.etProfileCity.setText(city ?: "")
-        }
-
-        profileViewModel.profilePictureUrl.observe(viewLifecycleOwner) { photoUrl ->
-            Log.d(TAG, "Observateur profilePictureUrl Reçu: '$photoUrl'")
-            Glide.with(this)
-                .load(photoUrl)
-                .placeholder(R.drawable.ic_profile_placeholder)
-                .error(R.drawable.ic_profile_placeholder)
-                .listener(object : RequestListener<Drawable> {
-                    override fun onLoadFailed(
-                        e: GlideException?,
-                        model: Any?,
-                        target: Target<Drawable>,
-                        isFirstResource: Boolean
-                    ): Boolean {
-                        Log.e(TAG, "Glide onLoadFailed pour URL: $model", e)
-                        return false
-                    }
-                    override fun onResourceReady(
-                        resource: Drawable,
-                        model: Any,
-                        target: Target<Drawable>?,
-                        dataSource: DataSource,
-                        isFirstResource: Boolean
-                    ): Boolean {
-                        Log.d(TAG, "Glide onResourceReady pour URL: $model")
-                        return false
-                    }
-                })
-                .circleCrop()
-                .transition(DrawableTransitionOptions.withCrossFade())
-                .into(binding.ivProfilePicture)
-        }
-
+        // MODIFICATION : Les observateurs individuels pour email, displayName, bio, city, profilePictureUrl sont supprimés.
+        // Toutes ces informations sont maintenant observées via userProfileData.
         profileViewModel.userProfileData.observe(viewLifecycleOwner) { resource ->
             val isLoadingProfile = resource is Resource.Loading
             val isUpdatingUsername = profileViewModel.usernameUpdateResult.value is Resource.Loading
             val isUpdatingBio = profileViewModel.bioUpdateResult.value is Resource.Loading
             val isUpdatingCity = profileViewModel.cityUpdateResult.value is Resource.Loading
-            binding.buttonSaveProfile.isEnabled = !isLoadingProfile && !isUpdatingUsername && !isUpdatingBio && !isUpdatingCity
 
+            // Mise à jour de l'état des boutons
+            binding.buttonSaveProfile.isEnabled = !isLoadingProfile && !isUpdatingUsername && !isUpdatingBio && !isUpdatingCity
             binding.fabSelectPicture.isEnabled = !isLoadingProfile && (authViewModel.profilePictureUpdateResult.value !is Resource.Loading)
 
             when (resource) {
-                is Resource.Loading -> Log.d(TAG, "Chargement des données du profil...")
-                is Resource.Success -> Log.d(TAG, "Données du profil chargées/mises à jour.")
+                is Resource.Loading -> {
+                    Log.d(TAG, "Chargement des données du profil...")
+                    // Vous pouvez ajouter ici un indicateur de chargement si nécessaire
+                }
+                is Resource.Success -> {
+                    Log.d(TAG, "Données du profil chargées/mises à jour.")
+                    resource.data?.let { user ->
+                        // Remplir les champs de l'UI directement à partir de l'objet User
+                        binding.tvProfileEmail.text = user.email ?: getString(R.string.email_not_available)
+                        binding.etProfileUsername.setText(user.username ?: getString(R.string.username_not_defined))
+                        binding.etProfileBio.setText(user.bio ?: "")
+                        binding.etProfileCity.setText(user.city ?: "")
+
+                        // Charger l'image de profil
+                        val photoUrl = user.profilePictureUrl
+                        Log.d(TAG, "Chargement de l'image de profil pour '${user.username}'. URL: '$photoUrl'")
+                        Glide.with(this)
+                            .load(photoUrl)
+                            .placeholder(R.drawable.ic_profile_placeholder)
+                            .error(R.drawable.ic_profile_placeholder)
+                            .listener(object : RequestListener<Drawable> {
+                                override fun onLoadFailed(
+                                    e: GlideException?,
+                                    model: Any?,
+                                    target: Target<Drawable>,
+                                    isFirstResource: Boolean
+                                ): Boolean {
+                                    Log.e(TAG, "Glide onLoadFailed pour URL: $model", e)
+                                    return false
+                                }
+                                override fun onResourceReady(
+                                    resource: Drawable,
+                                    model: Any,
+                                    target: Target<Drawable>?,
+                                    dataSource: DataSource,
+                                    isFirstResource: Boolean
+                                ): Boolean {
+                                    Log.d(TAG, "Glide onResourceReady pour URL: $model")
+                                    return false
+                                }
+                            })
+                            .circleCrop()
+                            .transition(DrawableTransitionOptions.withCrossFade())
+                            .into(binding.ivProfilePicture)
+                    } ?: run {
+                        // Cas où data est null dans Resource.Success (improbable si le repository est correct)
+                        Log.e(TAG, "User data is null in Resource.Success for profile.")
+                        Snackbar.make(binding.root, getString(R.string.error_loading_profile), Snackbar.LENGTH_LONG).show()
+                    }
+                }
                 is Resource.Error -> {
                     Log.e(TAG, "Erreur de chargement du profil: ${resource.message}")
                     Snackbar.make(binding.root, resource.message ?: getString(R.string.error_loading_profile), Snackbar.LENGTH_LONG).show()
+                    // Optionnel: Réinitialiser l'UI en cas d'erreur grave
+                    binding.tvProfileEmail.text = getString(R.string.email_not_available)
+                    binding.etProfileUsername.setText(getString(R.string.username_not_defined))
+                    binding.etProfileBio.setText("")
+                    binding.etProfileCity.setText("")
+                    binding.ivProfilePicture.setImageResource(R.drawable.ic_profile_placeholder) // Retour au placeholder
                 }
             }
         }
@@ -220,13 +230,11 @@ class ProfileFragment : Fragment() {
                 is Resource.Success -> {
                     val newImageUrl = result.data
                     Snackbar.make(binding.root, getString(R.string.profile_picture_updated_success), Snackbar.LENGTH_SHORT).show()
-                    if (!newImageUrl.isNullOrBlank()) {
-                        Log.d(TAG, "Mise à jour photo réussie (AuthViewModel). Nouvelle URL: '$newImageUrl'. Appel de profileViewModel.setCurrentProfilePictureUrl().")
-                        profileViewModel.setCurrentProfilePictureUrl(newImageUrl)
-                    } else {
-                        Log.w(TAG, "Mise à jour photo réussie (AuthViewModel) mais URL retournée est vide/null. Rechargement via profileViewModel.loadCurrentUserProfile().")
-                        profileViewModel.loadCurrentUserProfile()
-                    }
+                    // Suppression de l'appel direct à profileViewModel.setCurrentProfilePictureUrl()
+                    // car userProfileData.observe va se mettre à jour automatiquement via Firestore listener
+                    // ou bien un reload explicite du profil est nécessaire si le flow n'est pas réactif aux mises à jour externes.
+                    // Pour le moment, profileViewModel.loadCurrentUserProfile() est plus sûr si l'AuthViewModel met à jour Auth seulement.
+                    profileViewModel.loadCurrentUserProfile()
                 }
                 is Resource.Error -> {
                     Snackbar.make(binding.root, result.message ?: getString(R.string.error_updating_profile_picture), Snackbar.LENGTH_LONG).show()

@@ -2,7 +2,6 @@ package com.lesmangeursdurouleau.app.ui.readings.selection
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-// import androidx.core.content.ContextCompat // RETIRÉ : Cet import n'est plus nécessaire et n'est plus utilisé.
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -62,16 +61,23 @@ class BookSelectionAdapter : ListAdapter<Book, BookSelectionAdapter.BookViewHold
                 .error(R.drawable.ic_book_placeholder)
                 .into(binding.imageViewBookCover)
 
+            // MODIFICATION ICI : Définir la contentDescription dynamique pour la couverture du livre
+            binding.imageViewBookCover.contentDescription = binding.root.context.getString(
+                R.string.book_cover_of_title_description,
+                book.title.takeIf { it.isNotBlank() } ?: binding.root.context.getString(R.string.unknown_book_title)
+            )
+
             val isSelected = book.id == selectedBookId
             binding.imageViewSelectedIndicator.visibility = if (isSelected) android.view.View.VISIBLE else android.view.View.GONE
 
+            // La contentDescription pour imageViewSelectedIndicator est statique dans le XML,
+            // donc elle est déjà correcte lorsque la visibilité est gérée.
+
             if (isSelected) {
-                // CORRECTION FINALE : Passer la View (binding.root) à MaterialColors.getColor()
                 val primaryColor = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorPrimary)
                 binding.cardView.strokeColor = primaryColor
                 binding.cardView.strokeWidth = 2
             } else {
-                // CORRECTION FINALE : Passer la View (binding.root) à MaterialColors.getColor()
                 val colorOnSurfaceVariant = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOnSurfaceVariant)
                 binding.cardView.strokeColor = colorOnSurfaceVariant
                 binding.cardView.strokeWidth = 1

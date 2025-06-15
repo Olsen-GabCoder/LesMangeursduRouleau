@@ -110,7 +110,8 @@
                             android:layout_height="28dp"
                             android:src="@drawable/ic_info_outline"
                             android:layout_marginEnd="12dp"
-                            app:tint="?attr/colorPrimary" />
+                            app:tint="?attr/colorPrimary"
+                            android:importantForAccessibility="no" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -184,25 +185,26 @@
                             tools:text="01 Janvier 2024" />
                     </LinearLayout>
 
-                    <!-- MISE À JOUR : Ajout de la section Livres lus -->
+                    <!-- Ajustement des LinearLayouts des compteurs avec weights et ajout de maxLines/ellipsize -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center"
+                        android:gravity="center_vertical"
                         android:layout_marginTop="16dp"
                         android:layout_marginBottom="24dp">
 
                         <LinearLayout
                             android:id="@+id/ll_followers_clickable_area"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
                             android:gravity="center_horizontal"
-                            android:layout_marginEnd="32dp"
                             android:clickable="true"
                             android:focusable="true"
-                            android:background="?attr/selectableItemBackgroundBorderless">
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:paddingHorizontal="4dp">
                             <TextView
                                 android:id="@+id/tv_followers_count"
                                 android:layout_width="wrap_content"
@@ -216,19 +218,22 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/followers_label"
                                 android:textSize="14sp"
-                                android:textColor="?attr/colorOnSurfaceVariant"/>
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:maxLines="1"
+                            android:ellipsize="end"/>
                         </LinearLayout>
 
                         <LinearLayout
                             android:id="@+id/ll_following_clickable_area"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
                             android:gravity="center_horizontal"
-                            android:layout_marginEnd="32dp"
                             android:clickable="true"
                             android:focusable="true"
-                            android:background="?attr/selectableItemBackgroundBorderless">
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:paddingHorizontal="4dp">
                             <TextView
                                 android:id="@+id/tv_following_count"
                                 android:layout_width="wrap_content"
@@ -242,19 +247,22 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/following_label"
                                 android:textSize="14sp"
-                                android:textColor="?attr/colorOnSurfaceVariant"/>
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:maxLines="1"
+                            android:ellipsize="end"/>
                         </LinearLayout>
 
-                        <!-- NOUVEAU : Books Read Count -->
                         <LinearLayout
                             android:id="@+id/ll_books_read_clickable_area"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
                             android:gravity="center_horizontal"
                             android:clickable="true"
                             android:focusable="true"
-                            android:background="?attr/selectableItemBackgroundBorderless">
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:paddingHorizontal="4dp">
                             <TextView
                                 android:id="@+id/tv_books_read_count"
                                 android:layout_width="wrap_content"
@@ -264,13 +272,17 @@
                                 android:textStyle="bold"
                                 android:textColor="?attr/colorPrimary"/>
                             <TextView
+                                android:id="@+id/tv_books_read_label"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/books_read_label"
                                 android:textSize="14sp"
-                                android:textColor="?attr/colorOnSurfaceVariant"/>
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:maxLines="1"
+                            android:ellipsize="end"/>
                         </LinearLayout>
                     </LinearLayout>
+                    <!-- FIN DE LA MODIFICATION des compteurs -->
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_toggle_follow"
@@ -319,7 +331,8 @@
                             android:layout_height="28dp"
                             android:src="@drawable/ic_description_outline"
                             android:layout_marginEnd="12dp"
-                            app:tint="?attr/colorPrimary" />
+                            app:tint="?attr/colorPrimary"
+                            android:importantForAccessibility="no" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -370,7 +383,8 @@
                             android:layout_height="28dp"
                             android:src="@drawable/ic_location_outline"
                             android:layout_marginEnd="12dp"
-                            app:tint="?attr/colorPrimary" />
+                            app:tint="?attr/colorPrimary"
+                            android:importantForAccessibility="no" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -423,7 +437,8 @@
                             android:layout_height="28dp"
                             android:src="@drawable/ic_book_open_outline"
                             android:layout_marginEnd="12dp"
-                            app:tint="?attr/colorPrimary" />
+                            app:tint="?attr/colorPrimary"
+                            android:importantForAccessibility="no" />
 
                         <TextView
                             android:layout_width="wrap_content"

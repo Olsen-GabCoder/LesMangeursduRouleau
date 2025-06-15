@@ -76,7 +76,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="0dp"
                     android:layout_marginBottom="0dp"
-                    android:contentDescription="fab_select_picture_description"
+                    android:contentDescription="@string/fab_select_picture_description"
                     android:src="@drawable/ic_camera"
                     app:fabSize="mini"
                     app:tint="?attr/colorOnPrimary"
@@ -140,7 +140,8 @@
                             android:layout_height="28dp"
                             android:src="@drawable/ic_person_outline"
                             android:layout_marginEnd="12dp"
-                            app:tint="?attr/colorPrimary" />
+                            app:tint="?attr/colorPrimary"
+                            android:importantForAccessibility="no" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -160,6 +161,7 @@
                         android:hint="@string/username_hint"
                         app:startIconDrawable="@drawable/ic_person"
                         app:startIconTint="?attr/colorOutline"
+                        app:startIconContentDescription="@null"
                         app:boxCornerRadiusTopStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
@@ -190,7 +192,8 @@
                             android:layout_height="20dp"
                             android:src="@drawable/ic_email"
                             android:layout_marginEnd="12dp"
-                            app:tint="?attr/colorOutline" />
+                            app:tint="?attr/colorOutline"
+                            android:importantForAccessibility="no" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -229,6 +232,7 @@
                         android:hint="@string/city_hint"
                         app:startIconDrawable="@drawable/ic_location"
                         app:startIconTint="?attr/colorOutline"
+                        app:startIconContentDescription="@null"
                         app:boxCornerRadiusTopStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
@@ -253,6 +257,7 @@
                         android:hint="@string/bio_hint"
                         app:startIconDrawable="@drawable/ic_edit"
                         app:startIconTint="?attr/colorOutline"
+                        app:startIconContentDescription="@null"
                         app:boxCornerRadiusTopStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
@@ -274,7 +279,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- NOUVEAU: Section "Lecture en cours" pour le profil privé -->
+            <!-- Section "Lecture en cours" pour le profil privé -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_private_current_reading"
                 android:layout_width="match_parent"
@@ -306,7 +311,8 @@
                             android:layout_height="28dp"
                             android:src="@drawable/ic_book_open_outline"
                             android:layout_marginEnd="12dp"
-                            app:tint="?attr/colorPrimary" />
+                            app:tint="?attr/colorPrimary"
+                            android:importantForAccessibility="no" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -468,7 +474,8 @@
                             android:layout_height="28dp"
                             android:src="@drawable/ic_apps"
                             android:layout_marginEnd="12dp"
-                            app:tint="?attr/colorPrimary" />
+                            app:tint="?attr/colorPrimary"
+                            android:importantForAccessibility="no" />
 
                         <TextView
                             android:layout_width="wrap_content"

@@ -6,21 +6,21 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.lesmangeursdurouleau.app.data.model.Book // NOUVEL IMPORT
+import com.lesmangeursdurouleau.app.data.model.Book
 import com.lesmangeursdurouleau.app.data.model.User
-import com.lesmangeursdurouleau.app.data.model.UserBookReading // NOUVEL IMPORT
-import com.lesmangeursdurouleau.app.data.repository.BookRepository // NOUVEL IMPORT
+import com.lesmangeursdurouleau.app.data.model.UserBookReading
+import com.lesmangeursdurouleau.app.data.repository.BookRepository
 import com.lesmangeursdurouleau.app.data.repository.UserRepository
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow // NOUVEL IMPORT
-import kotlinx.coroutines.flow.StateFlow // NOUVEL IMPORT
-import kotlinx.coroutines.flow.asStateFlow // NOUVEL IMPORT
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.flatMapLatest // NOUVEL IMPORT
-import kotlinx.coroutines.flow.flowOf // NOUVEL IMPORT
-import kotlinx.coroutines.flow.map // NOUVEL IMPORT
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,39 +35,20 @@ data class PrivateCurrentReadingUiState(
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val bookRepository: BookRepository, // NOUVELLE INJECTION
+    private val bookRepository: BookRepository,
     internal val firebaseAuth: FirebaseAuth
 ) : ViewModel() {
 
     companion object {
-        private const val TAG = "ProfileViewModel" // Ajout de TAG pour la classe
+        private const val TAG = "ProfileViewModel"
     }
 
     // Ceci est la source de vérité principale pour le profil de l'utilisateur
     private val _userProfileData = MutableLiveData<Resource<User>>()
     val userProfileData: LiveData<Resource<User>> = _userProfileData
 
-    // LiveData individuels, ils seront mis à jour LORSQUE userProfileData change
-    // et aussi optimistically lors des mises à jour spécifiques.
-    // LE FRAGMENT NE DEVRAIT OBSERVER QUE userProfileData pour peupler l'UI.
-    // Ces LiveData individuels servent principalement pour les bindings bidirectionnels ou des cas très spécifiques.
-    // Sincèrement, je recommande de les supprimer et de ne travailler qu'avec userProfileData.
-    // Si vous les gardez, ils DOIVENT refléter ce qui est dans userProfileData.
-    // ATTENTION: Ces LiveData individuels ne sont pas mis à jour par la lecture en cours et peuvent être source de confusion.
-    private val _email = MutableLiveData<String?>()
-    val email: LiveData<String?> = _email
-
-    private val _displayName = MutableLiveData<String?>()
-    val displayName: LiveData<String?> = _displayName
-
-    private val _profilePictureUrl = MutableLiveData<String?>()
-    val profilePictureUrl: LiveData<String?> = _profilePictureUrl
-
-    private val _bio = MutableLiveData<String?>()
-    val bio: LiveData<String?> = _bio
-
-    private val _city = MutableLiveData<String?>()
-    val city: LiveData<String?> = _city
+    // Les LiveData individuels pour email, displayName, profilePictureUrl, bio, et city ont été supprimés.
+    // Le ProfileFragment devra désormais observer 'userProfileData' et extraire ces informations de l'objet User.
 
     // Les résultats des mises à jour, pour les SnackBar/Toast
     private val _cityUpdateResult = MutableLiveData<Resource<Unit>?>()
@@ -87,28 +68,9 @@ class ProfileViewModel @Inject constructor(
         Log.d(TAG, "ViewModel initialisé.")
         loadCurrentUserProfile()
 
-        // Important: Observer userProfileData et mettre à jour les LiveData individuels
-        _userProfileData.observeForever { resource ->
-            if (resource is Resource.Success && resource.data != null) {
-                val user = resource.data
-                _email.value = user.email
-                _displayName.value = user.username
-                _profilePictureUrl.value = user.profilePictureUrl
-                _bio.value = user.bio
-                _city.value = user.city
-                Log.d(TAG, "LiveData individuels mis à jour depuis userProfileData: ${user.username}")
-            } else if (resource is Resource.Error) {
-                // En cas d'erreur de chargement principal, réinitialiser les LiveData individuels
-                _email.value = null
-                _displayName.value = null
-                _profilePictureUrl.value = null
-                _bio.value = null
-                _city.value = null
-                Log.e(TAG, "LiveData individuels réinitialisés suite à une erreur userProfileData.")
-            }
-        }
+        // L'observateur 'userProfileData.observeForever' qui mettait à jour les LiveData individuels a été supprimé car ces LiveData n'existent plus.
 
-        // NOUVELLE LOGIQUE : Observer la lecture en cours de l'utilisateur connecté
+        // LOGIQUE EXISTANTE : Observer la lecture en cours de l'utilisateur connecté
         val currentUserUid = firebaseAuth.currentUser?.uid
         if (!currentUserUid.isNullOrBlank()) {
             viewModelScope.launch {
@@ -124,7 +86,6 @@ class ProfileViewModel @Inject constructor(
                             is Resource.Success -> {
                                 val userBookReading = readingResource.data
                                 if (userBookReading != null) {
-                                    // Si une lecture en cours est trouvée, récupérer les détails du livre
                                     Log.d(TAG, "Lecture en cours trouvée pour $currentUserUid, bookId: ${userBookReading.bookId}. Tentative de récupération des détails du livre.")
                                     bookRepository.getBookById(userBookReading.bookId)
                                         .map { bookResource ->
@@ -164,7 +125,6 @@ class ProfileViewModel @Inject constructor(
                                             ))
                                         }
                                 } else {
-                                    // Aucune lecture en cours pour cet utilisateur
                                     Log.d(TAG, "Aucune lecture en cours trouvée pour l'utilisateur $currentUserUid.")
                                     flowOf(PrivateCurrentReadingUiState(
                                         isLoading = false,
@@ -220,14 +180,16 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    // MODIFIÉ : Cette fonction met maintenant à jour directement 'userProfileData'
     fun setCurrentProfilePictureUrl(newUrl: String?) {
-        Log.d(TAG, "setCurrentProfilePictureUrl: Mise à jour directe de _profilePictureUrl avec: '$newUrl'")
-        _profilePictureUrl.value = newUrl
+        Log.d(TAG, "setCurrentProfilePictureUrl: Tentative de mise à jour de profilePictureUrl dans userProfileData avec: '$newUrl'")
         val currentResource = _userProfileData.value
         if (currentResource is Resource.Success && currentResource.data != null) {
             val updatedUser = currentResource.data.copy(profilePictureUrl = newUrl)
             _userProfileData.value = Resource.Success(updatedUser)
-            Log.d(TAG, "setCurrentProfilePictureUrl: _userProfileData également mis à jour avec la nouvelle URL.")
+            Log.d(TAG, "setCurrentProfilePictureUrl: _userProfileData mis à jour avec la nouvelle URL.")
+        } else {
+            Log.w(TAG, "setCurrentProfilePictureUrl: Impossible de mettre à jour _userProfileData, ressource actuelle non SUCCESS ou données null.")
         }
     }
 
@@ -253,7 +215,7 @@ class ProfileViewModel @Inject constructor(
                 val currentResource = _userProfileData.value
                 if (currentResource is Resource.Success && currentResource.data != null) {
                     val updatedUser = currentResource.data.copy(username = newUsername)
-                    _userProfileData.postValue(Resource.Success(updatedUser))
+                    _userProfileData.postValue(Resource.Success(updatedUser)) // Mise à jour de la source de vérité
                 }
             } else if (result is Resource.Error) {
                 Log.e(TAG, "updateUsername: Échec de la mise à jour du pseudo: ${result.message}")
@@ -278,7 +240,7 @@ class ProfileViewModel @Inject constructor(
                 val currentResource = _userProfileData.value
                 if (currentResource is Resource.Success && currentResource.data != null) {
                     val updatedUser = currentResource.data.copy(bio = newBio.trim())
-                    _userProfileData.postValue(Resource.Success(updatedUser))
+                    _userProfileData.postValue(Resource.Success(updatedUser)) // Mise à jour de la source de vérité
                 }
             } else if (result is Resource.Error) {
                 Log.e(TAG, "updateBio: Échec de la mise à jour de la bio: ${result.message}")
@@ -304,7 +266,7 @@ class ProfileViewModel @Inject constructor(
                 val currentResource = _userProfileData.value
                 if (currentResource is Resource.Success && currentResource.data != null) {
                     val updatedUser = currentResource.data.copy(city = newCity.trim())
-                    _userProfileData.postValue(Resource.Success(updatedUser))
+                    _userProfileData.postValue(Resource.Success(updatedUser)) // Mise à jour de la source de vérité
                 }
             } else if (result is Resource.Error<*>) {
                 Log.e(TAG, "updateCity: Échec de la mise à jour de la ville: ${result.message}")

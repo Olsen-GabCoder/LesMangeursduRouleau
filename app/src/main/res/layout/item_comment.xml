@@ -25,7 +25,8 @@
             app:shapeAppearanceOverlay="@style/ShapeAppearance.App.CircleImageView"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:src="@tools:sample/avatars"/>
+            tools:src="@tools:sample/avatars"
+            android:contentDescription="@string/profile_picture_of_user_description" />
 
         <!-- Nom d'utilisateur de l'auteur du commentaire -->
         <TextView
@@ -60,7 +61,6 @@
             app:layout_constraintStart_toEndOf="@id/iv_comment_author_picture"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tv_comment_author_username"
-            app:layout_constraintBottom_toBottomOf="parent"
             tools:text="Ceci est un exemple de commentaire sur la lecture en cours de l'utilisateur." />
 
         <!-- Horodatage du commentaire -->
@@ -70,11 +70,48 @@
             android:layout_height="wrap_content"
             android:textAppearance="?attr/textAppearanceCaption"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:layout_marginEnd="0dp"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginEnd="4dp"
+            app:layout_constraintEnd_toStartOf="@id/btn_delete_comment"
             app:layout_constraintTop_toTopOf="@id/tv_comment_author_username"
             app:layout_constraintBottom_toBottomOf="@id/tv_comment_author_username"
             tools:text="2 min ago" />
+
+        <!-- Bouton de suppression du commentaire -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_delete_comment"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            app:icon="@drawable/ic_delete_outline"
+            app:iconTint="?attr/colorError"
+            app:backgroundTint="@android:color/transparent"
+            app:rippleColor="?attr/colorErrorContainer"
+            android:contentDescription="@string/delete_comment_button_description"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tv_comment_author_username"
+            app:layout_constraintBottom_toBottomOf="@id/tv_comment_author_username"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- Bouton J'aime et compteur -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_like_comment"
+            style="@style/Widget.Material3.Button.TextButton.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/likes_count_default"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            app:icon="@drawable/ic_heart_outline"
+            app:iconTint="?attr/colorOnSurfaceVariant"
+            android:contentDescription="@string/comment_like_button_description"
+            android:gravity="center_vertical"
+            app:iconGravity="textStart"
+            app:iconPadding="4dp"
+            app:layout_constraintStart_toStartOf="@id/tv_comment_text"
+            app:layout_constraintTop_toBottomOf="@id/tv_comment_text"
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:text="123" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>
