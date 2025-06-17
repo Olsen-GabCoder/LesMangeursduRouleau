@@ -338,4 +338,8 @@
     <string name="comments_header">Commentaires</string>
     <string name="add_a_comment_hint">Ajouter un commentaire...</string>
     <string name="send_comment_description">Envoyer le commentaire</string>
+    <string name="delete_reading_dialog_title">Supprimer la lecture ?</string>
+    <string name="delete_reading_dialog_message">Êtes-vous sûr de vouloir supprimer \"%1$s\" de votre historique ? Cette action est irréversible.</string>
+    <string name="delete_reading_button_description">Supprimer cette lecture de l\'historique</string>
+    <string name="reading_deleted_successfully">Lecture supprimée avec succès.</string>
 </resources>

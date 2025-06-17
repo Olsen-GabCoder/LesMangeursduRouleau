@@ -1,6 +1,4 @@
-// Placez ce fichier dans le répertoire: app/src/main/java/com/lesmangeursdurouleau/app/ui/members/
-
-package com.lesmangeursdurouleau.app.ui.members // CHANGEMENT ICI: Utilisation du package spécifié
+package com.lesmangeursdurouleau.app.ui.members
 
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
@@ -10,11 +8,7 @@ import com.lesmangeursdurouleau.app.data.model.CompletedReading
 import com.lesmangeursdurouleau.app.data.repository.UserRepository
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,13 +22,15 @@ class CompletedReadingsViewModel @Inject constructor(
         private const val TAG = "CompletedReadingsViewModel"
     }
 
-    // L'ID de l'utilisateur dont nous voulons afficher l'historique de lecture
     private val userId: String = savedStateHandle.get<String>("userId")
         ?: throw IllegalArgumentException("userId est manquant pour CompletedReadingsViewModel")
 
-    // StateFlow pour exposer la liste des lectures terminées à l'UI
     private val _completedReadings = MutableStateFlow<Resource<List<CompletedReading>>>(Resource.Loading())
     val completedReadings: StateFlow<Resource<List<CompletedReading>>> = _completedReadings.asStateFlow()
+
+    // NOUVEAU: SharedFlow pour gérer les événements ponctuels comme un Toast de succès/erreur
+    private val _deleteStatus = MutableSharedFlow<Resource<Unit>>()
+    val deleteStatus: SharedFlow<Resource<Unit>> = _deleteStatus.asSharedFlow()
 
     init {
         Log.d(TAG, "CompletedReadingsViewModel initialisé pour userId: $userId")
@@ -54,6 +50,15 @@ class CompletedReadingsViewModel @Inject constructor(
                         Log.d(TAG, "Lectures terminées pour $userId chargées avec succès: ${resource.data?.size ?: 0} livres.")
                     }
                 }
+        }
+    }
+
+    // NOUVELLE FONCTION: Pour supprimer une lecture terminée
+    fun deleteCompletedReading(bookId: String) {
+        viewModelScope.launch {
+            Log.d(TAG, "Tentative de suppression de la lecture (bookId: $bookId) pour l'utilisateur $userId")
+            val result = userRepository.removeCompletedReading(userId, bookId)
+            _deleteStatus.emit(result) // Emet le résultat (succès ou erreur)
         }
     }
 }

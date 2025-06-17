@@ -1,9 +1,12 @@
 package com.lesmangeursdurouleau.app.ui.members
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -16,6 +19,7 @@ import com.lesmangeursdurouleau.app.data.model.CompletedReading
 import com.lesmangeursdurouleau.app.databinding.FragmentCompletedReadingDetailBinding
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -29,11 +33,7 @@ class CompletedReadingDetailFragment : Fragment() {
     private val viewModel: CompletedReadingDetailViewModel by viewModels()
     private val args: CompletedReadingDetailFragmentArgs by navArgs()
 
-    private lateinit var commentsAdapter: CommentsAdapter
-
-    // TODO: Remplacer par la véritable récupération de l'ID de l'utilisateur connecté
-    private val currentUserId: String = "TODO-REPLACE-WITH-ACTUAL-CURRENT-USER-ID"
-
+    private var commentsAdapter: CommentsAdapter? = null // Rendu nullable pour un nettoyage propre
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -45,37 +45,48 @@ class CompletedReadingDetailFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        setupRecyclerView()
         observeViewModel()
         setupClickListeners()
     }
 
-    private fun setupRecyclerView() {
-        commentsAdapter = CommentsAdapter(
-            currentUserId = currentUserId,
-            targetProfileOwnerId = args.userId,
-            onDeleteClickListener = { comment ->
-                viewModel.deleteComment(comment.commentId)
-            },
-            onLikeClickListener = { comment ->
-                viewModel.toggleLikeOnComment(comment.commentId)
-            },
-            getCommentLikeStatus = { commentId ->
-                viewModel.isCommentLikedByCurrentUser(commentId)
-            },
-            lifecycleOwner = viewLifecycleOwner
-        )
-        binding.rvComments.adapter = commentsAdapter
+    // Le setup du RecyclerView est maintenant appelé depuis l'observateur
+    // pour s'assurer que currentUserId est disponible.
+    private fun setupRecyclerView(currentUserId: String?) {
+        if (commentsAdapter == null) { // Initialise l'adaptateur une seule fois
+            commentsAdapter = CommentsAdapter(
+                currentUserId = currentUserId,
+                targetProfileOwnerId = args.userId,
+                onDeleteClickListener = { comment ->
+                    viewModel.deleteComment(comment.commentId)
+                },
+                onLikeClickListener = { comment ->
+                    viewModel.toggleLikeOnComment(comment.commentId)
+                },
+                getCommentLikeStatus = { commentId ->
+                    viewModel.isCommentLikedByCurrentUser(commentId)
+                },
+                lifecycleOwner = viewLifecycleOwner
+            )
+            binding.rvComments.adapter = commentsAdapter
+        }
     }
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Observer l'ID de l'utilisateur connecté pour initialiser l'adaptateur
+                // et gérer la visibilité des contrôles d'interaction.
+                launch {
+                    viewModel.currentUserId.collectLatest { uid ->
+                        setupRecyclerView(uid)
+                        binding.commentInputBar.isVisible = uid != null
+                    }
+                }
+
                 // Observer les détails de la lecture
                 launch {
                     viewModel.completedReading.collect { resource ->
-                        binding.progressBarDetails.visibility = if (resource is Resource.Loading) View.VISIBLE else View.GONE
+                        binding.progressBarDetails.isVisible = resource is Resource.Loading
                         if (resource is Resource.Success) {
                             resource.data?.let { updateReadingDetailsUI(it) }
                         }
@@ -85,12 +96,12 @@ class CompletedReadingDetailFragment : Fragment() {
                 // Observer les commentaires
                 launch {
                     viewModel.comments.collect { resource ->
-                        binding.progressBarComments.visibility = if (resource is Resource.Loading) View.VISIBLE else View.GONE
-                        binding.rvComments.visibility = if (resource is Resource.Success) View.VISIBLE else View.GONE
-                        binding.tvNoComments.visibility = if (resource is Resource.Success && resource.data.isNullOrEmpty()) View.VISIBLE else View.GONE
+                        binding.progressBarComments.isVisible = resource is Resource.Loading
+                        binding.rvComments.isVisible = resource is Resource.Success
+                        binding.tvNoComments.isVisible = resource is Resource.Success && resource.data.isNullOrEmpty()
 
                         if (resource is Resource.Success) {
-                            commentsAdapter.submitList(resource.data)
+                            commentsAdapter?.submitList(resource.data)
                         }
                     }
                 }
@@ -145,7 +156,10 @@ class CompletedReadingDetailFragment : Fragment() {
             if (commentText.isNotEmpty()) {
                 viewModel.addComment(commentText)
                 binding.etComment.text?.clear()
-                // TODO: Gérer le focus et le clavier
+                // Cacher le clavier
+                val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.hideSoftInputFromWindow(view?.windowToken, 0)
+                binding.etComment.clearFocus()
             }
         }
     }
@@ -153,6 +167,7 @@ class CompletedReadingDetailFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         binding.rvComments.adapter = null
+        commentsAdapter = null // Nettoyage de l'adaptateur
         _binding = null
     }
 }
