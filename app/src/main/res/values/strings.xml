@@ -319,8 +319,15 @@
     <string name="delete_comment_dialog_title">Supprimer ce commentaire ?</string>
     <string name="delete_comment_dialog_message">Cette action est irréversible. Êtes-vous sûr de vouloir supprimer ce commentaire ?</string>
     <string name="delete">Supprimer</string>
+    <string name="title_completed_readings">Lectures terminées</string>
     <string name="comment_deleted_success">Commentaire supprimé avec succès !</string>
     <string name="completed_readings_info_format">Historique des lectures terminées pour %1$s (ID: %2$s)</string>
     <string name="completed_readings_default_text">Historique des lectures terminées</string>
     <string name="navigated_to_completed_readings">Navigation vers l\'historique de %1$s</string>
+    <string name="completed_readings_title_format">Historique de %1$s</string>
+    <string name="no_completed_readings_yet">Aucune lecture terminée n\'a été enregistrée pour %1$s.</string>
+    <string name="no_completed_readings_yet_default">Aucune lecture terminée pour le moment.</string>
+    <string name="error_loading_completed_readings">Erreur de chargement de l\'historique: %1$s</string>
+    <string name="error_loading_completed_readings_default">Une erreur est survenue lors du chargement de l\'historique.</string>
+    <string name="date_completion_unknown">Date de complétion inconnue</string>
 </resources>

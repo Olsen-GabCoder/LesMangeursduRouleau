@@ -1,21 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".ui.members.CompletedReadingsFragment">
 
-    <!-- Un simple TextView pour afficher les informations, à remplacer par une RecyclerView et du contenu réel -->
+    <!-- RecyclerView pour afficher la liste des lectures terminées -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_completed_readings"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:listitem="@layout/item_completed_reading"
+        android:visibility="gone" /> <!-- Commence masqué -->
+
+    <!-- Barre de progression pour l'état de chargement -->
+    <ProgressBar
+        android:id="@+id/progress_bar_completed_readings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Message en cas d'absence de lectures terminées -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/tv_no_completed_readings"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:gravity="center"
+        android:text="@string/no_completed_readings_yet_default"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Message en cas d'erreur -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/tv_completed_readings_error"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:gravity="center"
+        android:text="@string/error_loading_completed_readings_default"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        android:textColor="?attr/colorError"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Le TextView tv_completed_readings_info existant, désormais inutile avec la liste, peut être supprimé ou masqué par défaut -->
+    <!-- Ou renommé et utilisé pour le titre de l'écran si l'action bar n'est pas suffisante -->
+    <!-- Si vous le supprimez, retirez la ligne 'binding.tvCompletedReadingsInfo.text = ...' du fragment -->
     <TextView
         android:id="@+id/tv_completed_readings_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:padding="16dp"
-        android:text="@string/completed_readings_default_text"
-        android:textAppearance="?attr/textAppearanceHeadline6"
-        android:textAlignment="center"
-        tools:text="Historique des lectures terminées pour [Nom d'utilisateur] (ID: [ID Utilisateur])" />
+        android:text="@string/completed_readings_info_format"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-</FrameLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
