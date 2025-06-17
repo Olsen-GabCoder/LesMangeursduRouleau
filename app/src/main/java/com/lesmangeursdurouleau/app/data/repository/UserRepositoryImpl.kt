@@ -660,15 +660,6 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    // =====================================================================================
-    // REFONTE MAJEURE: Les méthodes de commentaires/likes ciblent désormais directement
-    // la collection 'completed_readings/{bookId}' pour assurer la persistance
-    // des interactions même si la lecture est "active" ou "terminée".
-    // Le nom des méthodes reste 'OnActiveReading' comme demandé, bien que leur comportement
-    // soit maintenant plus générique pour les interactions sur un 'bookId' donné.
-    // Cela résout la "disparition des likes" après la complétion d'une lecture.
-    // =====================================================================================
-
     override suspend fun addCommentOnActiveReading(targetUserId: String, bookId: String, comment: Comment): Resource<Unit> {
         if (targetUserId.isBlank() || bookId.isBlank()) {
             Log.w(TAG, "addCommentOnActiveReading: targetUserId ou bookId est vide.")
@@ -683,7 +674,6 @@ class UserRepositoryImpl @Inject constructor(
             return Resource.Error("L'ID de l'auteur du commentaire est manquant.")
         }
 
-        // Cible la collection de lectures terminées avec le bookId spécifié
         val commentsCollectionRef = usersCollection.document(targetUserId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
             .document(bookId)
@@ -710,7 +700,6 @@ class UserRepositoryImpl @Inject constructor(
         trySend(Resource.Loading())
         Log.i(TAG, "getCommentsOnActiveReading: Tentative de récupération des commentaires pour la lecture (bookId: $bookId) de l'utilisateur ID: '$targetUserId'. Cible: completed_readings.")
 
-        // Cible la collection de lectures terminées avec le bookId spécifié
         val commentsCollectionRef = usersCollection.document(targetUserId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
             .document(bookId)
@@ -756,7 +745,6 @@ class UserRepositoryImpl @Inject constructor(
             return Resource.Error("L'ID de l'utilisateur cible, l'ID du livre ou l'ID du commentaire ne peut pas être vide.")
         }
 
-        // Cible la collection de lectures terminées avec le bookId spécifié
         val commentDocRef = usersCollection.document(targetUserId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
             .document(bookId)
@@ -780,7 +768,6 @@ class UserRepositoryImpl @Inject constructor(
             return Resource.Error("L'ID de l'utilisateur cible, l'ID du livre ou l'ID courant ne peut pas être vide.")
         }
 
-        // Cible la collection de lectures terminées avec le bookId spécifié
         val likeDocRef = usersCollection.document(targetUserId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
             .document(bookId)
@@ -825,7 +812,6 @@ class UserRepositoryImpl @Inject constructor(
         trySend(Resource.Loading())
         Log.i(TAG, "isLikedByCurrentUser: Vérification si '$currentUserId' a liké la lecture (bookId: $bookId) de '$targetUserId'. Cible: completed_readings.")
 
-        // Cible la collection de lectures terminées avec le bookId spécifié
         val likeDocRef = usersCollection.document(targetUserId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
             .document(bookId)
@@ -862,7 +848,6 @@ class UserRepositoryImpl @Inject constructor(
         trySend(Resource.Loading())
         Log.i(TAG, "getActiveReadingLikesCount: Tentative de récupération du nombre de likes pour la lecture (bookId: $bookId) de l'utilisateur ID: '$targetUserId'. Cible: completed_readings.")
 
-        // Cible la collection de lectures terminées avec le bookId spécifié
         val likesCollectionRef = usersCollection.document(targetUserId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
             .document(bookId)
@@ -887,18 +872,12 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    // =====================================================================================
-    // IMPLÉMENTATIONS DES MÉTHODES POUR LA GESTION DES LIKES SUR LES COMMENTAIRES
-    // Ces méthodes ciblent également 'completed_readings'
-    // =====================================================================================
-
     override suspend fun toggleLikeOnComment(targetUserId: String, bookId: String, commentId: String, currentUserId: String): Resource<Unit> {
         if (targetUserId.isBlank() || bookId.isBlank() || commentId.isBlank() || currentUserId.isBlank()) {
             Log.w(TAG, "toggleLikeOnComment: IDs manquants. TargetUser: $targetUserId, BookID: $bookId, CommentID: $commentId, CurrentUser: $currentUserId")
             return Resource.Error("Informations manquantes pour liker/déliker le commentaire.")
         }
 
-        // Cible la collection de lectures terminées avec le bookId spécifié
         val likeDocRef = usersCollection.document(targetUserId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
             .document(bookId)
@@ -907,7 +886,6 @@ class UserRepositoryImpl @Inject constructor(
             .collection(FirebaseConstants.SUBCOLLECTION_LIKES)
             .document(currentUserId)
 
-        // Cible la collection de lectures terminées avec le bookId spécifié
         val commentDocRef = usersCollection.document(targetUserId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
             .document(bookId)
@@ -965,7 +943,6 @@ class UserRepositoryImpl @Inject constructor(
         trySend(Resource.Loading())
         Log.i(TAG, "isCommentLikedByCurrentUser: Vérification si '$currentUserId' a liké le commentaire '$commentId' (bookId: $bookId) de '$targetUserId'. Cible: completed_readings.")
 
-        // Cible la collection de lectures terminées avec le bookId spécifié
         val likeDocRef = usersCollection.document(targetUserId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
             .document(bookId)
@@ -993,11 +970,6 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    // =====================================================================================
-    // IMPLÉMENTATION MISE À JOUR DE markActiveReadingAsCompleted
-    // Simplifiée car les interactions sont désormais persistées directement dans completed_readings
-    // =====================================================================================
-
     override suspend fun markActiveReadingAsCompleted(userId: String, activeReadingDetails: UserBookReading): Resource<Unit> {
         if (userId.isBlank()) {
             Log.w(TAG, "markActiveReadingAsCompleted: userId est vide.")
@@ -1021,10 +993,6 @@ class UserRepositoryImpl @Inject constructor(
         Log.d(TAG, "markActiveReadingAsCompleted: Début de la finalisation pour l'utilisateur '$userId', livre '${activeReadingDetails.bookId}'.")
 
         return try {
-            // Dans cette nouvelle logique, les commentaires et likes sont DÉJÀ dans completed_readings (via les méthodes ci-dessus).
-            // Donc, il n'y a plus besoin de les copier ou de les supprimer de l'ancienne activeReading.
-            // La méthode se concentre sur les opérations sur les documents parent et le compteur de livres lus.
-
             firestore.runTransaction { transaction ->
                 val completedReading = CompletedReading(
                     bookId = activeReadingDetails.bookId,
@@ -1106,7 +1074,11 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getCompletedReadings(userId: String): Flow<Resource<List<CompletedReading>>> = callbackFlow {
+    override fun getCompletedReadings(
+        userId: String,
+        orderBy: String,
+        direction: Query.Direction
+    ): Flow<Resource<List<CompletedReading>>> = callbackFlow {
         if (userId.isBlank()) {
             Log.w(TAG, "getCompletedReadings: userId est vide.")
             trySend(Resource.Error("L'ID utilisateur ne peut pas être vide."))
@@ -1115,13 +1087,13 @@ class UserRepositoryImpl @Inject constructor(
         }
 
         trySend(Resource.Loading())
-        Log.i(TAG, "getCompletedReadings: Tentative de récupération des lectures terminées pour l'utilisateur ID: '$userId'.")
+        Log.i(TAG, "getCompletedReadings: Tentative de récupération des lectures terminées pour l'utilisateur ID: '$userId', trié par '$orderBy' $direction.")
 
         val completedReadingsCollectionRef = usersCollection.document(userId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
 
         val listenerRegistration = completedReadingsCollectionRef
-            .orderBy("completionDate", Query.Direction.DESCENDING)
+            .orderBy(orderBy, direction) // Utilisation des paramètres de tri
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e(TAG, "getCompletedReadings: Erreur Firestore lors de l'écoute des lectures terminées pour ID '$userId': ${error.message}", error)
@@ -1154,9 +1126,6 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    // =====================================================================================
-    // NOUVELLE IMPLÉMENTATION : getCompletedReadingDetail
-    // =====================================================================================
     override fun getCompletedReadingDetail(userId: String, bookId: String): Flow<Resource<CompletedReading?>> = callbackFlow {
         if (userId.isBlank() || bookId.isBlank()) {
             Log.w(TAG, "getCompletedReadingDetail: userId ou bookId est vide.")

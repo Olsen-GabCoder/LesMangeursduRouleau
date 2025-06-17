@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -17,6 +18,7 @@ import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.Query
 import com.lesmangeursdurouleau.app.R
 import com.lesmangeursdurouleau.app.data.model.CompletedReading
 import com.lesmangeursdurouleau.app.databinding.FragmentCompletedReadingsBinding
@@ -53,6 +55,7 @@ class CompletedReadingsFragment : Fragment() {
         Log.d(TAG, "CompletedReadingsFragment créé. UserID: ${args.userId}, Username: ${args.username}")
         updateActionBarTitle(args.username)
         setupRecyclerView()
+        setupSortChips() // NOUVEAU
         setupObservers()
     }
 
@@ -83,6 +86,18 @@ class CompletedReadingsFragment : Fragment() {
         }
     }
 
+    // NOUVELLE FONCTION pour gérer les chips de tri
+    private fun setupSortChips() {
+        binding.sortChipGroup.setOnCheckedChangeListener { group, checkedId ->
+            when (checkedId) {
+                R.id.chip_sort_date_desc -> viewModel.setSortOption("completionDate", Query.Direction.DESCENDING)
+                R.id.chip_sort_date_asc -> viewModel.setSortOption("completionDate", Query.Direction.ASCENDING)
+                R.id.chip_sort_title_asc -> viewModel.setSortOption("title", Query.Direction.ASCENDING)
+                R.id.chip_sort_author_asc -> viewModel.setSortOption("author", Query.Direction.ASCENDING)
+            }
+        }
+    }
+
     private fun showDeleteConfirmationDialog(reading: CompletedReading) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.delete_reading_dialog_title)
@@ -100,44 +115,34 @@ class CompletedReadingsFragment : Fragment() {
     private fun setupObservers() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // Observer la liste des lectures
                 launch {
                     viewModel.completedReadings.collectLatest { resource ->
+                        // La barre d'outils de tri doit être visible uniquement si le chargement a réussi et qu'il y a des items
+                        val showToolbar = resource is Resource.Success && !resource.data.isNullOrEmpty()
+                        binding.sortToolbar.isVisible = showToolbar
+                        binding.divider.isVisible = showToolbar
+
+                        binding.progressBarCompletedReadings.isVisible = resource is Resource.Loading
+                        binding.tvNoCompletedReadings.isVisible = resource is Resource.Success && resource.data.isNullOrEmpty()
+                        binding.tvCompletedReadingsError.isVisible = resource is Resource.Error
+
                         when (resource) {
-                            is Resource.Loading -> {
-                                binding.progressBarCompletedReadings.visibility = View.VISIBLE
-                                binding.rvCompletedReadings.visibility = View.GONE
-                                binding.tvNoCompletedReadings.visibility = View.GONE
-                                binding.tvCompletedReadingsError.visibility = View.GONE
-                            }
                             is Resource.Success -> {
-                                binding.progressBarCompletedReadings.visibility = View.GONE
-                                val readings = resource.data ?: emptyList()
-                                if (readings.isEmpty()) {
-                                    binding.rvCompletedReadings.visibility = View.GONE
-                                    binding.tvNoCompletedReadings.visibility = View.VISIBLE
-                                    binding.tvCompletedReadingsError.visibility = View.GONE
-                                    binding.tvNoCompletedReadings.text = getString(R.string.no_completed_readings_yet, args.username ?: "Cet utilisateur")
-                                } else {
-                                    completedReadingsAdapter.submitList(readings)
-                                    binding.rvCompletedReadings.visibility = View.VISIBLE
-                                    binding.tvNoCompletedReadings.visibility = View.GONE
-                                    binding.tvCompletedReadingsError.visibility = View.GONE
-                                }
+                                binding.rvCompletedReadings.isVisible = true
+                                completedReadingsAdapter.submitList(resource.data)
                             }
                             is Resource.Error -> {
-                                binding.progressBarCompletedReadings.visibility = View.GONE
-                                binding.rvCompletedReadings.visibility = View.GONE
-                                binding.tvNoCompletedReadings.visibility = View.GONE
-                                binding.tvCompletedReadingsError.visibility = View.VISIBLE
+                                binding.rvCompletedReadings.isVisible = false
                                 binding.tvCompletedReadingsError.text = resource.message ?: getString(R.string.error_unknown)
-                                Toast.makeText(requireContext(), getString(R.string.error_loading_completed_readings, resource.message), Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, getString(R.string.error_loading_completed_readings, resource.message), Toast.LENGTH_LONG).show()
+                            }
+                            is Resource.Loading -> {
+                                binding.rvCompletedReadings.isVisible = false
                             }
                         }
                     }
                 }
 
-                // NOUVEAU: Observer le statut de la suppression
                 launch {
                     viewModel.deleteStatus.collectLatest { resource ->
                         when(resource) {

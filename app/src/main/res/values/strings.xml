@@ -342,4 +342,12 @@
     <string name="delete_reading_dialog_message">Êtes-vous sûr de vouloir supprimer \"%1$s\" de votre historique ? Cette action est irréversible.</string>
     <string name="delete_reading_button_description">Supprimer cette lecture de l\'historique</string>
     <string name="reading_deleted_successfully">Lecture supprimée avec succès.</string>
+    <!-- Strings for Sorting History -->
+    <string name="sort_by_label">Trier par :</string>
+    <string name="sort_by_date_desc">Date (plus récentes)</string>
+    <string name="sort_by_date_asc">Date (plus anciennes)</string>
+    <string name="sort_by_title_asc">Titre (A-Z)</string>
+    <string name="sort_by_title_desc">Titre (Z-A)</string>
+    <string name="sort_by_author_asc">Auteur (A-Z)</string>
+    <string name="sort_by_author_desc">Auteur (Z-A)</string>
 </resources>
