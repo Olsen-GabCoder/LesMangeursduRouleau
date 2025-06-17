@@ -7,16 +7,20 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.doOnPreDraw
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.transition.MaterialElevationScale
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.Query
 import com.lesmangeursdurouleau.app.R
@@ -52,10 +56,15 @@ class CompletedReadingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // NOUVEAU: Préparer le fragment pour la transition de retour
+        postponeEnterTransition()
+        view.doOnPreDraw { startPostponedEnterTransition() }
+
         Log.d(TAG, "CompletedReadingsFragment créé. UserID: ${args.userId}, Username: ${args.username}")
         updateActionBarTitle(args.username)
         setupRecyclerView()
-        setupSortChips() // NOUVEAU
+        setupSortChips()
         setupObservers()
     }
 
@@ -64,15 +73,20 @@ class CompletedReadingsFragment : Fragment() {
         completedReadingsAdapter = CompletedReadingsAdapter(
             currentUserId = currentUserId,
             profileOwnerId = args.userId,
-            onItemClickListener = { completedReading ->
-                Log.d(TAG, "Clic sur la lecture terminée : ${completedReading.title}")
+            onItemClickListener = { completedReading, coverImageView ->
+                Log.d(TAG, "Clic sur la lecture terminée : ${completedReading.title}, transitionName: ${ViewCompat.getTransitionName(coverImageView)}")
+
+                // NOUVEAU: Création des extras pour la transition
+                val extras = FragmentNavigatorExtras(coverImageView to (ViewCompat.getTransitionName(coverImageView) ?: ""))
+
                 val action = CompletedReadingsFragmentDirections.actionCompletedReadingsFragmentToCompletedReadingDetailFragment(
                     userId = args.userId,
                     bookId = completedReading.bookId,
                     username = args.username,
                     bookTitle = completedReading.title
                 )
-                findNavController().navigate(action)
+                // MODIFIÉ: Navigation avec les extras
+                findNavController().navigate(action, extras)
             },
             onDeleteClickListener = { completedReading ->
                 showDeleteConfirmationDialog(completedReading)
@@ -86,7 +100,7 @@ class CompletedReadingsFragment : Fragment() {
         }
     }
 
-    // NOUVELLE FONCTION pour gérer les chips de tri
+    // ... le reste du fragment (setupSortChips, showDeleteConfirmationDialog, setupObservers, etc.) reste identique ...
     private fun setupSortChips() {
         binding.sortChipGroup.setOnCheckedChangeListener { group, checkedId ->
             when (checkedId) {
@@ -117,7 +131,6 @@ class CompletedReadingsFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.completedReadings.collectLatest { resource ->
-                        // La barre d'outils de tri doit être visible uniquement si le chargement a réussi et qu'il y a des items
                         val showToolbar = resource is Resource.Success && !resource.data.isNullOrEmpty()
                         binding.sortToolbar.isVisible = showToolbar
                         binding.divider.isVisible = showToolbar

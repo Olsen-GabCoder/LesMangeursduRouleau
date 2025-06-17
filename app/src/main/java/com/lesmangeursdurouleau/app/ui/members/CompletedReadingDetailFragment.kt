@@ -1,11 +1,13 @@
 package com.lesmangeursdurouleau.app.ui.members
 
 import android.content.Context
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -13,7 +15,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.navArgs
+import androidx.transition.Transition
+import androidx.transition.TransitionInflater
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import com.lesmangeursdurouleau.app.R
 import com.lesmangeursdurouleau.app.data.model.CompletedReading
 import com.lesmangeursdurouleau.app.databinding.FragmentCompletedReadingDetailBinding
@@ -23,6 +31,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 @AndroidEntryPoint
 class CompletedReadingDetailFragment : Fragment() {
@@ -33,26 +42,39 @@ class CompletedReadingDetailFragment : Fragment() {
     private val viewModel: CompletedReadingDetailViewModel by viewModels()
     private val args: CompletedReadingDetailFragmentArgs by navArgs()
 
-    private var commentsAdapter: CommentsAdapter? = null // Rendu nullable pour un nettoyage propre
+    private var commentsAdapter: CommentsAdapter? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // NOUVEAU: Définir l'animation de transition partagée
+        sharedElementEnterTransition = TransitionInflater.from(requireContext())
+            .inflateTransition(android.R.transition.move)
+        // Optionnel: Définir une durée
+        (sharedElementEnterTransition as Transition?)?.duration = 300
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentCompletedReadingDetailBinding.inflate(inflater, container, false)
+        // NOUVEAU: Assigner le nom de transition à la vue de destination
+        ViewCompat.setTransitionName(binding.ivBookCover, "cover_${args.bookId}")
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // NOUVEAU: Mettre en pause la transition pour attendre le chargement de l'image
+        postponeEnterTransition(250, TimeUnit.MILLISECONDS) // Timeout de sécurité
+
         observeViewModel()
         setupClickListeners()
     }
 
-    // Le setup du RecyclerView est maintenant appelé depuis l'observateur
-    // pour s'assurer que currentUserId est disponible.
+    // ... le reste du fragment (setupRecyclerView, setupClickListeners, etc.) ...
     private fun setupRecyclerView(currentUserId: String?) {
-        if (commentsAdapter == null) { // Initialise l'adaptateur une seule fois
+        if (commentsAdapter == null) {
             commentsAdapter = CommentsAdapter(
                 currentUserId = currentUserId,
                 targetProfileOwnerId = args.userId,
@@ -74,8 +96,6 @@ class CompletedReadingDetailFragment : Fragment() {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // Observer l'ID de l'utilisateur connecté pour initialiser l'adaptateur
-                // et gérer la visibilité des contrôles d'interaction.
                 launch {
                     viewModel.currentUserId.collectLatest { uid ->
                         setupRecyclerView(uid)
@@ -83,7 +103,6 @@ class CompletedReadingDetailFragment : Fragment() {
                     }
                 }
 
-                // Observer les détails de la lecture
                 launch {
                     viewModel.completedReading.collect { resource ->
                         binding.progressBarDetails.isVisible = resource is Resource.Loading
@@ -93,7 +112,6 @@ class CompletedReadingDetailFragment : Fragment() {
                     }
                 }
 
-                // Observer les commentaires
                 launch {
                     viewModel.comments.collect { resource ->
                         binding.progressBarComments.isVisible = resource is Resource.Loading
@@ -106,7 +124,6 @@ class CompletedReadingDetailFragment : Fragment() {
                     }
                 }
 
-                // Observer le statut de like de la lecture
                 launch {
                     viewModel.isReadingLikedByCurrentUser.collect { resource ->
                         if (resource is Resource.Success) {
@@ -117,7 +134,6 @@ class CompletedReadingDetailFragment : Fragment() {
                     }
                 }
 
-                // Observer le compteur de likes de la lecture
                 launch {
                     viewModel.readingLikesCount.collect { resource ->
                         if (resource is Resource.Success) {
@@ -130,9 +146,35 @@ class CompletedReadingDetailFragment : Fragment() {
     }
 
     private fun updateReadingDetailsUI(reading: CompletedReading) {
+        // MODIFIÉ: Utilisation d'un listener Glide pour démarrer la transition au bon moment
         Glide.with(this)
             .load(reading.coverImageUrl)
             .placeholder(R.drawable.ic_book_placeholder)
+            .dontAnimate() // Important pour que la transition soit fluide
+            .listener(object : RequestListener<Drawable> {
+                override fun onLoadFailed(
+                    e: GlideException?,
+                    model: Any?,
+                    target: Target<Drawable>,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    // Démarrer la transition même si l'image ne se charge pas
+                    startPostponedEnterTransition()
+                    return false
+                }
+
+                override fun onResourceReady(
+                    resource: Drawable,
+                    model: Any,
+                    target: Target<Drawable>?,
+                    dataSource: DataSource,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    // L'image est chargée, on peut démarrer la transition
+                    startPostponedEnterTransition()
+                    return false
+                }
+            })
             .into(binding.ivBookCover)
 
         binding.tvBookTitle.text = reading.title
@@ -156,7 +198,6 @@ class CompletedReadingDetailFragment : Fragment() {
             if (commentText.isNotEmpty()) {
                 viewModel.addComment(commentText)
                 binding.etComment.text?.clear()
-                // Cacher le clavier
                 val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                 imm?.hideSoftInputFromWindow(view?.windowToken, 0)
                 binding.etComment.clearFocus()
@@ -167,7 +208,7 @@ class CompletedReadingDetailFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         binding.rvComments.adapter = null
-        commentsAdapter = null // Nettoyage de l'adaptateur
+        commentsAdapter = null
         _binding = null
     }
 }

@@ -16,20 +16,21 @@
         android:layout_height="wrap_content"
         android:padding="12dp">
 
-        <!-- Book Cover Image -->
+        <!-- Book Cover Image - MODIFIED FOR TRANSITION -->
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/iv_book_cover"
             android:layout_width="80dp"
             android:layout_height="120dp"
             android:scaleType="centerCrop"
             android:src="@drawable/ic_book_placeholder"
+            android:transitionName="book_cover_transition"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium"
             tools:src="@tools:sample/avatars"
             android:contentDescription="@string/book_cover_description" />
 
-        <!-- NOUVEAU: Delete Button -->
+        <!-- Delete Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_delete_reading"
             style="@style/Widget.Material3.Button.IconButton"

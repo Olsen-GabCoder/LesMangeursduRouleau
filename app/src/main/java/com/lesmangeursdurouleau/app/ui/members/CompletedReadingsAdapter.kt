@@ -2,7 +2,9 @@ package com.lesmangeursdurouleau.app.ui.members
 
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -15,26 +17,29 @@ import com.lesmangeursdurouleau.app.databinding.ItemCompletedReadingBinding
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-// MODIFICATION: Ajout de 3 nouveaux paramètres pour la suppression
 class CompletedReadingsAdapter(
     private val currentUserId: String?,
     private val profileOwnerId: String,
-    private val onItemClickListener: (CompletedReading) -> Unit,
+    // MODIFIÉ: Le listener passe maintenant la vue cliquée (la couverture) pour la transition
+    private val onItemClickListener: (completedReading: CompletedReading, coverImageView: View) -> Unit,
     private val onDeleteClickListener: (CompletedReading) -> Unit
 ) : ListAdapter<CompletedReading, CompletedReadingsAdapter.CompletedReadingViewHolder>(CompletedReadingDiffCallback()) {
 
-    // MODIFICATION: Le ViewHolder prend maintenant tous les listeners
     inner class CompletedReadingViewHolder(
         private val binding: ItemCompletedReadingBinding,
-        private val onItemClickListener: (CompletedReading) -> Unit,
+        private val onItemClickListener: (completedReading: CompletedReading, coverImageView: View) -> Unit,
         private val onDeleteClickListener: (CompletedReading) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(completedReading: CompletedReading) {
             binding.apply {
-                // Gestion du clic sur l'item entier pour la navigation
+                // NOUVEAU: Assigner un nom de transition unique à l'image de couverture
+                val transitionName = "cover_${completedReading.bookId}"
+                ViewCompat.setTransitionName(ivBookCover, transitionName)
+
+                // MODIFIÉ: Le clic sur la racine passe l'objet et la vue de l'image
                 root.setOnClickListener {
-                    onItemClickListener(completedReading)
+                    onItemClickListener(completedReading, ivBookCover)
                 }
 
                 Glide.with(ivBookCover.context)
@@ -55,7 +60,6 @@ class CompletedReadingsAdapter(
                     Log.w("CompletedReadingsAdapter", "Date de complétion manquante pour le livre: ${completedReading.title}")
                 }
 
-                // NOUVEAU: Gérer la visibilité et le clic du bouton de suppression
                 val isOwner = currentUserId != null && currentUserId == profileOwnerId
                 btnDeleteReading.isVisible = isOwner
                 if (isOwner) {
@@ -63,7 +67,7 @@ class CompletedReadingsAdapter(
                         onDeleteClickListener(completedReading)
                     }
                 } else {
-                    btnDeleteReading.setOnClickListener(null) // Bonne pratique de nettoyer le listener
+                    btnDeleteReading.setOnClickListener(null)
                 }
             }
         }
