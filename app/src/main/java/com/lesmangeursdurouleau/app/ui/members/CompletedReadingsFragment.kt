@@ -8,33 +8,28 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.viewModels // Import ajouté pour viewModels
-import androidx.lifecycle.Lifecycle // Import ajouté
-import androidx.lifecycle.lifecycleScope // Import ajouté
-import androidx.lifecycle.repeatOnLifecycle // Import ajouté
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import androidx.recyclerview.widget.LinearLayoutManager // Import ajouté
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.lesmangeursdurouleau.app.R
 import com.lesmangeursdurouleau.app.databinding.FragmentCompletedReadingsBinding
-import com.lesmangeursdurouleau.app.utils.Resource // Import ajouté pour Resource
+import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collectLatest // Import ajouté
-import kotlinx.coroutines.launch // Import ajouté
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
-@AndroidEntryPoint // Indique que ce fragment peut avoir des dépendances injectées par Hilt
+@AndroidEntryPoint
 class CompletedReadingsFragment : Fragment() {
 
     private var _binding: FragmentCompletedReadingsBinding? = null
-    // Cette propriété est valide uniquement entre onCreateView et onDestroyView.
     private val binding get() = _binding!!
 
-    // Utilisation de Safe Args pour récupérer les arguments passés au fragment
     private val args: CompletedReadingsFragmentArgs by navArgs()
-
-    // Injection du ViewModel pour récupérer les données
     private val viewModel: CompletedReadingsViewModel by viewModels()
-
-    // Adaptateur pour le RecyclerView
     private lateinit var completedReadingsAdapter: CompletedReadingsAdapter
 
     companion object {
@@ -45,7 +40,6 @@ class CompletedReadingsFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        // Inflate le layout pour ce fragment en utilisant ViewBinding
         _binding = FragmentCompletedReadingsBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -58,31 +52,34 @@ class CompletedReadingsFragment : Fragment() {
 
         Log.d(TAG, "CompletedReadingsFragment créé. UserID: $userId, Username: $username")
 
-        // Mettre à jour le titre de l'ActionBar
         updateActionBarTitle(username)
-
-        // Initialisation du RecyclerView et de l'adaptateur
         setupRecyclerView()
-
-        // Observation des données du ViewModel
         setupObservers()
-
-        // Le Toast temporaire de navigation peut être retiré si désiré
-        Toast.makeText(requireContext(), getString(R.string.navigated_to_completed_readings, username), Toast.LENGTH_SHORT).show()
     }
 
     private fun setupRecyclerView() {
-        completedReadingsAdapter = CompletedReadingsAdapter()
+        // CORRECTION ICI: Instanciation de l'adaptateur avec le listener de clic
+        completedReadingsAdapter = CompletedReadingsAdapter { completedReading ->
+            // Logique de navigation au clic sur un item
+            Log.d(TAG, "Clic sur la lecture terminée : ${completedReading.title}")
+
+            val action = CompletedReadingsFragmentDirections.actionCompletedReadingsFragmentToCompletedReadingDetailFragment(
+                userId = args.userId, // Le propriétaire du profil
+                bookId = completedReading.bookId, // L'ID du livre cliqué
+                username = args.username, // On passe le nom d'utilisateur pour le titre de l'écran suivant
+                bookTitle = completedReading.title // On passe le titre du livre pour l'ActionBar
+            )
+            findNavController().navigate(action)
+        }
+
         binding.rvCompletedReadings.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = completedReadingsAdapter
-            // Permet au RecyclerView d'ajuster sa taille en fonction du contenu
             setHasFixedSize(false)
         }
     }
 
     private fun setupObservers() {
-        // Observer la liste des lectures terminées du ViewModel
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.completedReadings.collectLatest { resource ->
@@ -101,7 +98,7 @@ class CompletedReadingsFragment : Fragment() {
                                 binding.rvCompletedReadings.visibility = View.GONE
                                 binding.tvNoCompletedReadings.visibility = View.VISIBLE
                                 binding.tvCompletedReadingsError.visibility = View.GONE
-                                binding.tvNoCompletedReadings.text = getString(R.string.no_completed_readings_yet, args.username)
+                                binding.tvNoCompletedReadings.text = getString(R.string.no_completed_readings_yet, args.username ?: "Cet utilisateur")
                                 Log.d(TAG, "Aucune lecture terminée trouvée pour ${args.username}.")
                             } else {
                                 completedReadingsAdapter.submitList(readings)
@@ -127,17 +124,15 @@ class CompletedReadingsFragment : Fragment() {
     }
 
     private fun updateActionBarTitle(username: String?) {
-        // Définit le titre de l'ActionBar. Si le username est null ou vide, utilise une valeur par défaut.
         val title = username?.takeIf { it.isNotBlank() }?.let {
-            getString(R.string.completed_readings_title_format, it) // Format plus spécifique pour le titre
-        } ?: getString(R.string.title_completed_readings) // Titre par défaut du fragment (si username absent)
+            getString(R.string.completed_readings_title_format, it)
+        } ?: getString(R.string.title_completed_readings)
         (activity as? AppCompatActivity)?.supportActionBar?.title = title
         Log.i(TAG, "Titre ActionBar mis à jour avec: $title")
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Nulifie l'objet binding et l'adaptateur pour éviter les fuites de mémoire
         binding.rvCompletedReadings.adapter = null
         _binding = null
         Log.d(TAG, "onDestroyView: Binding nulifié.")

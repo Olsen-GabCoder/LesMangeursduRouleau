@@ -222,7 +222,7 @@
         android:label="Sélectionner un livre"
         tools:layout="@layout/fragment_book_selection" />
 
-    <!-- NOUVEAU FRAGMENT: Historique des lectures terminées -->
+    <!-- FRAGMENT: Historique des lectures terminées -->
     <fragment
         android:id="@+id/completedReadingsFragment"
         android:name="com.lesmangeursdurouleau.app.ui.members.CompletedReadingsFragment"
@@ -235,6 +235,37 @@
             android:name="username"
             app:argType="string"
             app:nullable="true" />
+        <!-- NOUVELLE ACTION: Naviguer vers le détail d'une lecture terminée -->
+        <action
+            android:id="@+id/action_completedReadingsFragment_to_completedReadingDetailFragment"
+            app:destination="@id/completedReadingDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <!-- NOUVEAU FRAGMENT: Détail d'une lecture terminée -->
+    <fragment
+        android:id="@+id/completedReadingDetailFragment"
+        android:name="com.lesmangeursdurouleau.app.ui.members.CompletedReadingDetailFragment"
+        android:label="{bookTitle}"
+        tools:layout="@layout/fragment_completed_reading_detail">
+        <argument
+            android:name="userId"
+            app:argType="string" />
+        <argument
+            android:name="bookId"
+            app:argType="string" />
+        <argument
+            android:name="username"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="bookTitle"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="Détails de la lecture" />
     </fragment>
 
 </navigation>

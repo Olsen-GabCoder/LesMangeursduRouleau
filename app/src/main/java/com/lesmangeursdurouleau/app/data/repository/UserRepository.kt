@@ -186,4 +186,12 @@ interface UserRepository {
      * @return Un Flow de Resource<List<CompletedReading>>.
      */
     fun getCompletedReadings(userId: String): Flow<Resource<List<CompletedReading>>>
+
+    /**
+     * NOUVELLE MÉTHODE : Récupère les détails d'une seule lecture terminée.
+     * @param userId L'ID de l'utilisateur propriétaire de la lecture.
+     * @param bookId L'ID du livre (et du document CompletedReading).
+     * @return Un Flow de Resource<CompletedReading?> contenant les détails de la lecture, ou null si elle n'existe pas.
+     */
+    fun getCompletedReadingDetail(userId: String, bookId: String): Flow<Resource<CompletedReading?>>
 }

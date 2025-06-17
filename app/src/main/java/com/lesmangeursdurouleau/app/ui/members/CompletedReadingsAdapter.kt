@@ -12,11 +12,28 @@ import com.lesmangeursdurouleau.app.data.model.CompletedReading
 import com.lesmangeursdurouleau.app.databinding.ItemCompletedReadingBinding
 import java.text.SimpleDateFormat
 import java.util.Locale
-import android.util.Log // Ajout de l'import pour Log, utile pour le débogage
+import android.util.Log
 
-class CompletedReadingsAdapter : ListAdapter<CompletedReading, CompletedReadingsAdapter.CompletedReadingViewHolder>(CompletedReadingDiffCallback()) {
+// MODIFICATION: Ajout d'un paramètre lambda pour gérer les clics
+class CompletedReadingsAdapter(
+    private val onItemClickListener: (CompletedReading) -> Unit
+) : ListAdapter<CompletedReading, CompletedReadingsAdapter.CompletedReadingViewHolder>(CompletedReadingDiffCallback()) {
 
-    inner class CompletedReadingViewHolder(private val binding: ItemCompletedReadingBinding) : RecyclerView.ViewHolder(binding.root) {
+    // MODIFICATION: Le ViewHolder prend maintenant le listener en paramètre pour l'attacher à l'item
+    inner class CompletedReadingViewHolder(
+        private val binding: ItemCompletedReadingBinding,
+        private val onItemClickListener: (CompletedReading) -> Unit
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        init {
+            binding.root.setOnClickListener {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onItemClickListener(getItem(position))
+                }
+            }
+        }
+
         fun bind(completedReading: CompletedReading) {
             binding.apply {
                 Glide.with(ivBookCover.context)
@@ -30,11 +47,9 @@ class CompletedReadingsAdapter : ListAdapter<CompletedReading, CompletedReadings
                 tvBookAuthor.text = completedReading.author
 
                 completedReading.completionDate?.let { date ->
-                    // CORRECTION ICI: Encadrer le texte littéral par des guillemets simples
                     val dateFormat = SimpleDateFormat("'Terminé le' dd MMMM yyyy", Locale.getDefault())
                     tvCompletionDate.text = dateFormat.format(date)
                 } ?: run {
-                    // CORRECTION ICI: Utilisation d'une ressource string pour le texte par défaut
                     tvCompletionDate.text = binding.root.context.getString(R.string.date_completion_unknown)
                     Log.w("CompletedReadingsAdapter", "Date de complétion manquante pour le livre: ${completedReading.title}")
                 }
@@ -44,7 +59,8 @@ class CompletedReadingsAdapter : ListAdapter<CompletedReading, CompletedReadings
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CompletedReadingViewHolder {
         val binding = ItemCompletedReadingBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return CompletedReadingViewHolder(binding)
+        // MODIFICATION: Passage du listener au ViewHolder
+        return CompletedReadingViewHolder(binding, onItemClickListener)
     }
 
     override fun onBindViewHolder(holder: CompletedReadingViewHolder, position: Int) {
@@ -56,7 +72,6 @@ class CompletedReadingsAdapter : ListAdapter<CompletedReading, CompletedReadings
             return oldItem.bookId == newItem.bookId
         }
 
-        // CORRECTION ICI: Renommer la méthode de areContentsAreTheSame à areContentsTheSame
         override fun areContentsTheSame(oldItem: CompletedReading, newItem: CompletedReading): Boolean {
             return oldItem == newItem
         }

@@ -1153,4 +1153,52 @@ class UserRepositoryImpl @Inject constructor(
             listenerRegistration.remove()
         }
     }
+
+    // =====================================================================================
+    // NOUVELLE IMPLÉMENTATION : getCompletedReadingDetail
+    // =====================================================================================
+    override fun getCompletedReadingDetail(userId: String, bookId: String): Flow<Resource<CompletedReading?>> = callbackFlow {
+        if (userId.isBlank() || bookId.isBlank()) {
+            Log.w(TAG, "getCompletedReadingDetail: userId ou bookId est vide.")
+            trySend(Resource.Error("L'ID utilisateur et l'ID du livre ne peuvent pas être vides."))
+            close()
+            return@callbackFlow
+        }
+
+        trySend(Resource.Loading())
+        Log.i(TAG, "getCompletedReadingDetail: Tentative de récupération des détails de la lecture (bookId: $bookId) pour l'utilisateur ID: '$userId'.")
+
+        val completedReadingDocRef = usersCollection.document(userId)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+            .document(bookId)
+
+        val listenerRegistration = completedReadingDocRef.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.e(TAG, "getCompletedReadingDetail: Erreur Firestore pour bookId '$bookId', userId '$userId': ${error.message}", error)
+                trySend(Resource.Error("Erreur Firestore: ${error.localizedMessage ?: "Erreur inconnue"}"))
+                close(error)
+                return@addSnapshotListener
+            }
+
+            if (snapshot != null && snapshot.exists()) {
+                Log.d(TAG, "getCompletedReadingDetail: Document de lecture terminée trouvé pour bookId '$bookId'. Tentative de conversion.")
+                try {
+                    val completedReading = snapshot.toObject(CompletedReading::class.java)
+                    Log.i(TAG, "getCompletedReadingDetail: Détails de la lecture convertis avec succès pour bookId '$bookId': $completedReading")
+                    trySend(Resource.Success(completedReading))
+                } catch (e: Exception) {
+                    Log.e(TAG, "getCompletedReadingDetail: Erreur de conversion du document pour bookId '$bookId': ${e.message}", e)
+                    trySend(Resource.Error("Erreur de conversion des données de la lecture."))
+                }
+            } else {
+                Log.w(TAG, "getCompletedReadingDetail: Aucun document de lecture terminée trouvé pour bookId '$bookId', userId '$userId'.")
+                trySend(Resource.Success(null)) // Retourne null si le document n'existe pas
+            }
+        }
+
+        awaitClose {
+            Log.d(TAG, "getCompletedReadingDetail: Fermeture du listener de détail de lecture terminée pour bookId '$bookId', userId '$userId'.")
+            listenerRegistration.remove()
+        }
+    }
 }
