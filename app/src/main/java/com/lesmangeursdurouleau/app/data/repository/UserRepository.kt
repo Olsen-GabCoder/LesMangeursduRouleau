@@ -77,51 +77,57 @@ interface UserRepository {
     /**
      * Ajoute un commentaire sur la lecture active d'un utilisateur cible.
      * @param targetUserId L'ID de l'utilisateur dont la lecture active est commentée.
+     * @param bookId L'ID du livre associé à la lecture.
      * @param comment L'objet Comment à ajouter.
      * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
      */
-    suspend fun addCommentOnActiveReading(targetUserId: String, comment: Comment): Resource<Unit>
+    suspend fun addCommentOnActiveReading(targetUserId: String, bookId: String, comment: Comment): Resource<Unit>
 
     /**
      * Récupère un flux de commentaires pour la lecture active d'un utilisateur cible.
      * Les commentaires sont triés par horodatage (les plus récents en premier).
      * @param targetUserId L'ID de l'utilisateur dont les commentaires de la lecture active sont à récupérer.
+     * @param bookId L'ID du livre associé à la lecture.
      * @return Un Flow de Resource<List<Comment>>.
      */
-    fun getCommentsOnActiveReading(targetUserId: String): Flow<Resource<List<Comment>>>
+    fun getCommentsOnActiveReading(targetUserId: String, bookId: String): Flow<Resource<List<Comment>>>
 
     /**
      * Permet de supprimer un commentaire sur la lecture active d'un utilisateur cible.
      * Cette action n'est permise que si l'utilisateur courant est l'auteur du commentaire.
      * @param targetUserId L'ID de l'utilisateur dont la lecture active contient le commentaire.
+     * @param bookId L'ID du livre associé à la lecture.
      * @param commentId L'ID unique du commentaire à supprimer.
      * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
      */
-    suspend fun deleteCommentOnActiveReading(targetUserId: String, commentId: String): Resource<Unit>
+    suspend fun deleteCommentOnActiveReading(targetUserId: String, bookId: String, commentId: String): Resource<Unit>
 
     /**
      * Bascule le statut de "like" pour la lecture active d'un utilisateur cible par l'utilisateur courant.
      * Si un like existe, il est supprimé ; sinon, un nouveau like est créé.
      * @param targetUserId L'ID de l'utilisateur dont la lecture est likée.
+     * @param bookId L'ID du livre associé à la lecture.
      * @param currentUserId L'ID de l'utilisateur qui effectue l'action de "like".
      * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
      */
-    suspend fun toggleLikeOnActiveReading(targetUserId: String, currentUserId: String): Resource<Unit>
+    suspend fun toggleLikeOnActiveReading(targetUserId: String, bookId: String, currentUserId: String): Resource<Unit>
 
     /**
      * Vérifie si la lecture active d'un utilisateur cible a été "likée" par l'utilisateur courant.
      * @param targetUserId L'ID de l'utilisateur dont la lecture est vérifiée.
+     * @param bookId L'ID du livre associé à la lecture.
      * @param currentUserId L'ID de l'utilisateur dont on veut savoir s'il a liké.
      * @return Un Flow de Resource<Boolean> indiquant si la lecture est likée par l'utilisateur courant.
      */
-    fun isLikedByCurrentUser(targetUserId: String, currentUserId: String): Flow<Resource<Boolean>>
+    fun isLikedByCurrentUser(targetUserId: String, bookId: String, currentUserId: String): Flow<Resource<Boolean>>
 
     /**
      * Récupère le nombre total de "likes" pour la lecture active d'un utilisateur cible.
      * @param targetUserId L'ID de l'utilisateur dont la lecture active est concernée.
+     * @param bookId L'ID du livre associé à la lecture.
      * @return Un Flow de Resource<Int> contenant le nombre de likes.
      */
-    fun getActiveReadingLikesCount(targetUserId: String): Flow<Resource<Int>>
+    fun getActiveReadingLikesCount(targetUserId: String, bookId: String): Flow<Resource<Int>>
 
     // =====================================================================================
     // NOUVELLES MÉTHODES POUR LA GESTION DES LIKES SUR LES COMMENTAIRES
@@ -133,20 +139,22 @@ interface UserRepository {
      * sinon, un nouveau like est créé.
      * Met également à jour le compteur de likes du commentaire.
      * @param targetUserId L'ID de l'utilisateur dont le profil contient la lecture et le commentaire.
+     * @param bookId L'ID du livre associé à la lecture.
      * @param commentId L'ID du commentaire concerné.
      * @param currentUserId L'ID de l'utilisateur qui effectue l'action de "like".
      * @return Un Resource.Success(Unit) en cas de succès, ou Resource.Error en cas d'échec.
      */
-    suspend fun toggleLikeOnComment(targetUserId: String, commentId: String, currentUserId: String): Resource<Unit>
+    suspend fun toggleLikeOnComment(targetUserId: String, bookId: String, commentId: String, currentUserId: String): Resource<Unit>
 
     /**
      * Vérifie si un commentaire spécifique a été "liké" par l'utilisateur courant.
      * @param targetUserId L'ID de l'utilisateur dont le profil contient le commentaire.
+     * @param bookId L'ID du livre associé à la lecture.
      * @param commentId L'ID du commentaire concerné.
      * @param currentUserId L'ID de l'utilisateur dont on veut savoir s'il a liké.
      * @return Un Flow de Resource<Boolean> indiquant si le commentaire est liké par l'utilisateur courant.
      */
-    fun isCommentLikedByCurrentUser(targetUserId: String, commentId: String, currentUserId: String): Flow<Resource<Boolean>>
+    fun isCommentLikedByCurrentUser(targetUserId: String, bookId: String, commentId: String, currentUserId: String): Flow<Resource<Boolean>>
 
 
     // =====================================================================================

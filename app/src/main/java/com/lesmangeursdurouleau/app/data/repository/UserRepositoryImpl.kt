@@ -417,10 +417,10 @@ class UserRepositoryImpl @Inject constructor(
 
             Resource.Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            Log.e(TAG, "unfollowUser: Erreur Firestore lors du désabonnement de l'utilisateur $targetUserId par $currentUserId: Code=${e.code}, Message=${e.message}", e)
+            Log.e(TAG, "unfollowUser: Erreur Firestore lors du désabonnement de l'utilisateur $targetUserId par $currentUserId: Code=${e.code}, Message=${e.message}, Cause=${e.cause?.message}", e)
             when (e.code) {
                 FirebaseFirestoreException.Code.NOT_FOUND -> Resource.Error("L'utilisateur à désabonner n'existe pas ou vous ne le suivez pas.")
-                else -> Resource.Error("Erreur Firestore lors du désabonnement: ${e.localizedMessage}")
+                else -> Resource.Error("Erreur Firestore: ${e.localizedMessage}")
             }
         } catch (e: Exception) {
             Log.e(TAG, "unfollowUser: Erreur générale lors du désabonnement de l'utilisateur $targetUserId par $currentUserId: ${e.message}", e)
@@ -534,7 +534,6 @@ class UserRepositoryImpl @Inject constructor(
                 Log.e(TAG, "getFollowersUsers: Erreur lors de l'écoute de la sous-collection 'followers' pour $userId: ${error.message}", error)
                 trySend(Resource.Error("Erreur lors de la récupération des followers: ${error.localizedMessage}"))
                 close(error)
-                return@addSnapshotListener
             }
 
             if (snapshot != null && !snapshot.isEmpty) {
@@ -544,7 +543,6 @@ class UserRepositoryImpl @Inject constructor(
                 if (followerUserIds.isNotEmpty()) {
                     val chunks = followerUserIds.chunked(10)
                     val allFollowerUsers = mutableListOf<User>()
-                    // Utilisation d'un AtomicInteger pour suivre les tâches asynchrones en toute sécurité
                     val completedTasks = java.util.concurrent.atomic.AtomicInteger(0)
 
                     chunks.forEach { chunk ->
@@ -559,12 +557,11 @@ class UserRepositoryImpl @Inject constructor(
                                         null
                                     }
                                 }
-                                synchronized(allFollowerUsers) { // Synchronisation pour l'ajout concurrent
+                                synchronized(allFollowerUsers) {
                                     allFollowerUsers.addAll(chunkUsers)
                                 }
 
                                 if (completedTasks.incrementAndGet() == chunks.size) {
-                                    // Quand toutes les chunks sont traitées
                                     Log.i(TAG, "getFollowersUsers: ${allFollowerUsers.size} followers récupérés pour $userId (après traitement des chunks).")
                                     trySend(Resource.Success(allFollowerUsers.distinctBy { it.uid }))
                                 }
@@ -663,10 +660,19 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun addCommentOnActiveReading(targetUserId: String, comment: Comment): Resource<Unit> {
-        if (targetUserId.isBlank()) {
-            Log.w(TAG, "addCommentOnActiveReading: targetUserId est vide.")
-            return Resource.Error("L'ID de l'utilisateur cible ne peut pas être vide.")
+    // =====================================================================================
+    // REFONTE MAJEURE: Les méthodes de commentaires/likes ciblent désormais directement
+    // la collection 'completed_readings/{bookId}' pour assurer la persistance
+    // des interactions même si la lecture est "active" ou "terminée".
+    // Le nom des méthodes reste 'OnActiveReading' comme demandé, bien que leur comportement
+    // soit maintenant plus générique pour les interactions sur un 'bookId' donné.
+    // Cela résout la "disparition des likes" après la complétion d'une lecture.
+    // =====================================================================================
+
+    override suspend fun addCommentOnActiveReading(targetUserId: String, bookId: String, comment: Comment): Resource<Unit> {
+        if (targetUserId.isBlank() || bookId.isBlank()) {
+            Log.w(TAG, "addCommentOnActiveReading: targetUserId ou bookId est vide.")
+            return Resource.Error("L'ID de l'utilisateur cible ou l'ID du livre ne peut pas être vide.")
         }
         if (comment.commentText.isBlank()) {
             Log.w(TAG, "addCommentOnActiveReading: Le commentaire est vide.")
@@ -677,42 +683,44 @@ class UserRepositoryImpl @Inject constructor(
             return Resource.Error("L'ID de l'auteur du commentaire est manquant.")
         }
 
+        // Cible la collection de lectures terminées avec le bookId spécifié
         val commentsCollectionRef = usersCollection.document(targetUserId)
-            .collection(FirebaseConstants.SUBCOLLECTION_USER_READINGS)
-            .document(FirebaseConstants.DOCUMENT_ACTIVE_READING)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+            .document(bookId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMMENTS)
 
         return try {
             commentsCollectionRef.add(comment).await()
-            Log.i(TAG, "addCommentOnActiveReading: Commentaire ajouté avec succès sur la lecture de '$targetUserId' par '${comment.userName}'.")
+            Log.i(TAG, "addCommentOnActiveReading: Commentaire ajouté avec succès sur la lecture (bookId: $bookId) de '$targetUserId' par '${comment.userName}'. Cible: completed_readings.")
             Resource.Success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "addCommentOnActiveReading: Erreur lors de l'ajout du commentaire sur la lecture de '$targetUserId': ${e.message}", e)
+            Log.e(TAG, "addCommentOnActiveReading: Erreur lors de l'ajout du commentaire sur la lecture (bookId: $bookId) de '$targetUserId': ${e.message}", e)
             Resource.Error("Erreur lors de l'ajout du commentaire: ${e.localizedMessage}")
         }
     }
 
-    override fun getCommentsOnActiveReading(targetUserId: String): Flow<Resource<List<Comment>>> = callbackFlow {
-        if (targetUserId.isBlank()) {
-            Log.w(TAG, "getCommentsOnActiveReading: targetUserId est vide.")
-            trySend(Resource.Error("L'ID de l'utilisateur cible ne peut pas être vide."))
+    override fun getCommentsOnActiveReading(targetUserId: String, bookId: String): Flow<Resource<List<Comment>>> = callbackFlow {
+        if (targetUserId.isBlank() || bookId.isBlank()) {
+            Log.w(TAG, "getCommentsOnActiveReading: targetUserId ou bookId est vide.")
+            trySend(Resource.Error("L'ID de l'utilisateur cible ou l'ID du livre ne peut pas être vide."))
             close()
             return@callbackFlow
         }
 
         trySend(Resource.Loading())
-        Log.i(TAG, "getCommentsOnActiveReading: Tentative de récupération des commentaires pour la lecture de l'utilisateur ID: '$targetUserId'.")
+        Log.i(TAG, "getCommentsOnActiveReading: Tentative de récupération des commentaires pour la lecture (bookId: $bookId) de l'utilisateur ID: '$targetUserId'. Cible: completed_readings.")
 
+        // Cible la collection de lectures terminées avec le bookId spécifié
         val commentsCollectionRef = usersCollection.document(targetUserId)
-            .collection(FirebaseConstants.SUBCOLLECTION_USER_READINGS)
-            .document(FirebaseConstants.DOCUMENT_ACTIVE_READING)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+            .document(bookId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMMENTS)
 
         val listenerRegistration = commentsCollectionRef
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.e(TAG, "getCommentsOnActiveReading: Erreur Firestore lors de l'écoute des commentaires pour ID '$targetUserId': ${error.message}", error)
+                    Log.e(TAG, "getCommentsOnActiveReading: Erreur Firestore lors de l'écoute des commentaires pour ID '$targetUserId' et bookId '$bookId': ${error.message}", error)
                     trySend(Resource.Error("Erreur Firestore: ${error.localizedMessage ?: "Erreur inconnue"}"))
                     close(error)
                     return@addSnapshotListener
@@ -725,185 +733,184 @@ class UserRepositoryImpl @Inject constructor(
                             val comment = document.toObject(Comment::class.java)?.copy(commentId = document.id)
                             comment?.let { commentsList.add(it) }
                         } catch (e: Exception) {
-                            Log.e(TAG, "getCommentsOnActiveReading: Erreur de conversion du document de commentaire ${document.id} pour ID '$targetUserId': ${e.message}", e)
+                            Log.e(TAG, "getCommentsOnActiveReading: Erreur de conversion du document de commentaire ${document.id} pour ID '$targetUserId' et bookId '$bookId': ${e.message}", e)
                         }
                     }
-                    Log.d(TAG, "getCommentsOnActiveReading: ${commentsList.size} commentaires récupérés pour ID '$targetUserId'.")
+                    Log.d(TAG, "getCommentsOnActiveReading: ${commentsList.size} commentaires récupérés pour ID '$targetUserId' et bookId '$bookId'. Cible: completed_readings.")
                     trySend(Resource.Success(commentsList))
                 } else {
-                    Log.d(TAG, "getCommentsOnActiveReading: Snapshot de commentaires est null pour ID '$targetUserId'.")
+                    Log.d(TAG, "getCommentsOnActiveReading: Snapshot de commentaires est null pour ID '$targetUserId' et bookId '$bookId'. Cible: completed_readings.")
                     trySend(Resource.Success(emptyList()))
                 }
             }
 
         awaitClose {
-            Log.d(TAG, "getCommentsOnActiveReading: Fermeture du listener de commentaires pour ID '$targetUserId'.")
+            Log.d(TAG, "getCommentsOnActiveReading: Fermeture du listener de commentaires pour ID '$targetUserId' et bookId '$bookId'. Cible: completed_readings.")
             listenerRegistration.remove()
         }
     }
 
-    override suspend fun deleteCommentOnActiveReading(targetUserId: String, commentId: String): Resource<Unit> {
-        if (targetUserId.isBlank()) {
-            Log.w(TAG, "deleteCommentOnActiveReading: targetUserId est vide.")
-            return Resource.Error("L'ID de l'utilisateur cible ne peut pas être vide.")
-        }
-        if (commentId.isBlank()) {
-            Log.w(TAG, "deleteCommentOnActiveReading: commentId est vide.")
-            return Resource.Error("L'ID du commentaire ne peut pas être vide.")
+    override suspend fun deleteCommentOnActiveReading(targetUserId: String, bookId: String, commentId: String): Resource<Unit> {
+        if (targetUserId.isBlank() || bookId.isBlank() || commentId.isBlank()) {
+            Log.w(TAG, "deleteCommentOnActiveReading: targetUserId, bookId ou commentId est vide.")
+            return Resource.Error("L'ID de l'utilisateur cible, l'ID du livre ou l'ID du commentaire ne peut pas être vide.")
         }
 
+        // Cible la collection de lectures terminées avec le bookId spécifié
         val commentDocRef = usersCollection.document(targetUserId)
-            .collection(FirebaseConstants.SUBCOLLECTION_USER_READINGS)
-            .document(FirebaseConstants.DOCUMENT_ACTIVE_READING)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+            .document(bookId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMMENTS)
             .document(commentId)
 
         return try {
-            Log.d(TAG, "deleteCommentOnActiveReading: Tentative de suppression du commentaire '$commentId' de la lecture de '$targetUserId'.")
+            Log.d(TAG, "deleteCommentOnActiveReading: Tentative de suppression du commentaire '$commentId' de la lecture (bookId: $bookId) de '$targetUserId'. Cible: completed_readings.")
             commentDocRef.delete().await()
-            Log.i(TAG, "deleteCommentOnActiveReading: Commentaire '$commentId' supprimé avec succès.")
+            Log.i(TAG, "deleteCommentOnActiveReading: Commentaire '$commentId' (bookId: $bookId) supprimé avec succès. Cible: completed_readings.")
             Resource.Success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "deleteCommentOnActiveReading: Erreur lors de la suppression du commentaire '$commentId' pour '$targetUserId': ${e.message}", e)
+            Log.e(TAG, "deleteCommentOnActiveReading: Erreur lors de la suppression du commentaire '$commentId' pour '$targetUserId' (bookId: $bookId): ${e.message}", e)
             Resource.Error("Erreur lors de la suppression du commentaire: ${e.localizedMessage}")
         }
     }
 
-    override suspend fun toggleLikeOnActiveReading(targetUserId: String, currentUserId: String): Resource<Unit> {
-        if (targetUserId.isBlank() || currentUserId.isBlank()) {
-            Log.w(TAG, "toggleLikeOnActiveReading: targetUserId ou currentUserId est vide.")
-            return Resource.Error("L'ID de l'utilisateur cible ou courant ne peut pas être vide.")
+    override suspend fun toggleLikeOnActiveReading(targetUserId: String, bookId: String, currentUserId: String): Resource<Unit> {
+        if (targetUserId.isBlank() || bookId.isBlank() || currentUserId.isBlank()) {
+            Log.w(TAG, "toggleLikeOnActiveReading: targetUserId, bookId ou currentUserId est vide.")
+            return Resource.Error("L'ID de l'utilisateur cible, l'ID du livre ou l'ID courant ne peut pas être vide.")
         }
 
+        // Cible la collection de lectures terminées avec le bookId spécifié
         val likeDocRef = usersCollection.document(targetUserId)
-            .collection(FirebaseConstants.SUBCOLLECTION_USER_READINGS)
-            .document(FirebaseConstants.DOCUMENT_ACTIVE_READING)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+            .document(bookId)
             .collection(FirebaseConstants.SUBCOLLECTION_LIKES)
-            .document(currentUserId) // L'ID du document like est l'UID de l'utilisateur qui like
+            .document(currentUserId)
 
         return try {
             firestore.runTransaction { transaction ->
                 val snapshot = transaction.get(likeDocRef)
                 if (snapshot.exists()) {
-                    // Le like existe, on le supprime
                     transaction.delete(likeDocRef)
-                    Log.i(TAG, "toggleLikeOnActiveReading: Like de '$currentUserId' sur '$targetUserId' supprimé.")
+                    Log.i(TAG, "toggleLikeOnActiveReading: Like de '$currentUserId' sur la lecture (bookId: $bookId) de '$targetUserId' supprimé. Cible: completed_readings.")
                 } else {
-                    // Le like n'existe pas, on l'ajoute
                     val newLike = Like(
                         likeId = currentUserId,
                         userId = currentUserId,
                         targetUserId = targetUserId,
-                        readingId = FirebaseConstants.DOCUMENT_ACTIVE_READING,
+                        bookId = bookId,
                         timestamp = Timestamp.now(),
                         commentId = null // Ce like concerne la lecture, pas un commentaire
                     )
                     transaction.set(likeDocRef, newLike)
-                    Log.i(TAG, "toggleLikeOnActiveReading: Like de '$currentUserId' sur '$targetUserId' ajouté.")
+                    Log.i(TAG, "toggleLikeOnActiveReading: Like de '$currentUserId' sur la lecture (bookId: $bookId) de '$targetUserId' ajouté. Cible: completed_readings.")
                 }
-                null // Transaction réussie
+                null
             }.await()
             Resource.Success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "toggleLikeOnActiveReading: Erreur lors de la bascule du like pour '$targetUserId' par '$currentUserId': ${e.message}", e)
+            Log.e(TAG, "toggleLikeOnActiveReading: Erreur lors de la bascule du like pour '$targetUserId' (bookId: $bookId) par '$currentUserId': ${e.message}", e)
             Resource.Error("Erreur lors de la bascule du like: ${e.localizedMessage}")
         }
     }
 
-    override fun isLikedByCurrentUser(targetUserId: String, currentUserId: String): Flow<Resource<Boolean>> = callbackFlow {
-        if (targetUserId.isBlank() || currentUserId.isBlank()) {
-            Log.w(TAG, "isLikedByCurrentUser: targetUserId ou currentUserId est vide.")
-            trySend(Resource.Error("L'ID utilisateur cible ou courant ne peut pas être vide."))
+    override fun isLikedByCurrentUser(targetUserId: String, bookId: String, currentUserId: String): Flow<Resource<Boolean>> = callbackFlow {
+        if (targetUserId.isBlank() || bookId.isBlank() || currentUserId.isBlank()) {
+            Log.w(TAG, "isLikedByCurrentUser: targetUserId, bookId ou currentUserId est vide.")
+            trySend(Resource.Error("L'ID utilisateur cible, l'ID du livre ou l'ID courant ne peut pas être vide."))
             close()
             return@callbackFlow
         }
 
         trySend(Resource.Loading())
-        Log.i(TAG, "isLikedByCurrentUser: Vérification si '$currentUserId' a liké la lecture de '$targetUserId'.")
+        Log.i(TAG, "isLikedByCurrentUser: Vérification si '$currentUserId' a liké la lecture (bookId: $bookId) de '$targetUserId'. Cible: completed_readings.")
 
+        // Cible la collection de lectures terminées avec le bookId spécifié
         val likeDocRef = usersCollection.document(targetUserId)
-            .collection(FirebaseConstants.SUBCOLLECTION_USER_READINGS)
-            .document(FirebaseConstants.DOCUMENT_ACTIVE_READING)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+            .document(bookId)
             .collection(FirebaseConstants.SUBCOLLECTION_LIKES)
             .document(currentUserId)
 
         val listenerRegistration = likeDocRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                Log.e(TAG, "isLikedByCurrentUser: Erreur Firestore lors de l'écoute du like pour '$currentUserId' sur '$targetUserId': ${error.message}", error)
+                Log.e(TAG, "isLikedByCurrentUser: Erreur Firestore lors de l'écoute du like pour '$currentUserId' sur '$targetUserId' (bookId: $bookId): ${error.message}", error)
                 trySend(Resource.Error("Erreur lors de la vérification du like: ${error.localizedMessage}"))
                 close(error)
                 return@addSnapshotListener
             }
 
             val isLiked = snapshot?.exists() == true
-            Log.d(TAG, "isLikedByCurrentUser: Statut de like pour '$currentUserId' sur '$targetUserId': $isLiked")
+            Log.d(TAG, "isLikedByCurrentUser: Statut de like pour '$currentUserId' sur '$targetUserId' (bookId: $bookId): $isLiked. Cible: completed_readings.")
             trySend(Resource.Success(isLiked))
         }
 
         awaitClose {
-            Log.d(TAG, "isLikedByCurrentUser: Fermeture du listener de like pour '$currentUserId' sur '$targetUserId'.")
+            Log.d(TAG, "isLikedByCurrentUser: Fermeture du listener de like pour '$currentUserId' sur '$targetUserId' (bookId: $bookId). Cible: completed_readings.")
             listenerRegistration.remove()
         }
     }
 
-    override fun getActiveReadingLikesCount(targetUserId: String): Flow<Resource<Int>> = callbackFlow {
-        if (targetUserId.isBlank()) {
-            Log.w(TAG, "getActiveReadingLikesCount: targetUserId est vide.")
-            trySend(Resource.Error("L'ID de l'utilisateur cible ne peut pas être vide."))
+    override fun getActiveReadingLikesCount(targetUserId: String, bookId: String): Flow<Resource<Int>> = callbackFlow {
+        if (targetUserId.isBlank() || bookId.isBlank()) {
+            Log.w(TAG, "getActiveReadingLikesCount: targetUserId ou bookId est vide.")
+            trySend(Resource.Error("L'ID de l'utilisateur cible ou l'ID du livre ne peut pas être vide."))
             close()
             return@callbackFlow
         }
 
         trySend(Resource.Loading())
-        Log.i(TAG, "getActiveReadingLikesCount: Tentative de récupération du nombre de likes pour la lecture de l'utilisateur ID: '$targetUserId'.")
+        Log.i(TAG, "getActiveReadingLikesCount: Tentative de récupération du nombre de likes pour la lecture (bookId: $bookId) de l'utilisateur ID: '$targetUserId'. Cible: completed_readings.")
 
+        // Cible la collection de lectures terminées avec le bookId spécifié
         val likesCollectionRef = usersCollection.document(targetUserId)
-            .collection(FirebaseConstants.SUBCOLLECTION_USER_READINGS)
-            .document(FirebaseConstants.DOCUMENT_ACTIVE_READING)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+            .document(bookId)
             .collection(FirebaseConstants.SUBCOLLECTION_LIKES)
 
         val listenerRegistration = likesCollectionRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                Log.e(TAG, "getActiveReadingLikesCount: Erreur Firestore lors de l'écoute du nombre de likes pour ID '$targetUserId': ${error.message}", error)
+                Log.e(TAG, "getActiveReadingLikesCount: Erreur Firestore lors de l'écoute du nombre de likes pour ID '$targetUserId' (bookId: $bookId): ${error.message}", error)
                 trySend(Resource.Error("Erreur Firestore: ${error.localizedMessage ?: "Erreur inconnue"}"))
                 close(error)
                 return@addSnapshotListener
             }
 
             val likesCount = snapshot?.size() ?: 0
-            Log.d(TAG, "getActiveReadingLikesCount: Nombre de likes pour ID '$targetUserId': $likesCount")
+            Log.d(TAG, "getActiveReadingLikesCount: Nombre de likes pour ID '$targetUserId' (bookId: $bookId): $likesCount. Cible: completed_readings.")
             trySend(Resource.Success(likesCount))
         }
 
         awaitClose {
-            Log.d(TAG, "getActiveReadingLikesCount: Fermeture du listener du nombre de likes pour ID '$targetUserId'.")
+            Log.d(TAG, "getActiveReadingLikesCount: Fermeture du listener du nombre de likes pour ID '$targetUserId' (bookId: $bookId). Cible: completed_readings.")
             listenerRegistration.remove()
         }
     }
 
     // =====================================================================================
-    // IMPLÉMENTATIONS DES NOUVELLES MÉTHODES POUR LA GESTION DES LIKES SUR LES COMMENTAIRES
+    // IMPLÉMENTATIONS DES MÉTHODES POUR LA GESTION DES LIKES SUR LES COMMENTAIRES
+    // Ces méthodes ciblent également 'completed_readings'
     // =====================================================================================
 
-    override suspend fun toggleLikeOnComment(targetUserId: String, commentId: String, currentUserId: String): Resource<Unit> {
-        if (targetUserId.isBlank() || commentId.isBlank() || currentUserId.isBlank()) {
-            Log.w(TAG, "toggleLikeOnComment: IDs manquants. TargetUser: $targetUserId, CommentID: $commentId, CurrentUser: $currentUserId")
+    override suspend fun toggleLikeOnComment(targetUserId: String, bookId: String, commentId: String, currentUserId: String): Resource<Unit> {
+        if (targetUserId.isBlank() || bookId.isBlank() || commentId.isBlank() || currentUserId.isBlank()) {
+            Log.w(TAG, "toggleLikeOnComment: IDs manquants. TargetUser: $targetUserId, BookID: $bookId, CommentID: $commentId, CurrentUser: $currentUserId")
             return Resource.Error("Informations manquantes pour liker/déliker le commentaire.")
         }
 
-        // Référence au document du like de l'utilisateur courant pour ce commentaire
+        // Cible la collection de lectures terminées avec le bookId spécifié
         val likeDocRef = usersCollection.document(targetUserId)
-            .collection(FirebaseConstants.SUBCOLLECTION_USER_READINGS)
-            .document(FirebaseConstants.DOCUMENT_ACTIVE_READING)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+            .document(bookId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMMENTS)
             .document(commentId)
             .collection(FirebaseConstants.SUBCOLLECTION_LIKES)
-            .document(currentUserId) // Le document du like est nommé d'après l'UID de l'utilisateur qui like
+            .document(currentUserId)
 
-        // Référence au document du commentaire lui-même (pour mettre à jour le compteur)
+        // Cible la collection de lectures terminées avec le bookId spécifié
         val commentDocRef = usersCollection.document(targetUserId)
-            .collection(FirebaseConstants.SUBCOLLECTION_USER_READINGS)
-            .document(FirebaseConstants.DOCUMENT_ACTIVE_READING)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+            .document(bookId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMMENTS)
             .document(commentId)
 
@@ -913,45 +920,42 @@ class UserRepositoryImpl @Inject constructor(
                 val commentSnapshot = transaction.get(commentDocRef)
 
                 if (!commentSnapshot.exists()) {
-                    Log.e(TAG, "toggleLikeOnComment: Le commentaire '$commentId' n'existe pas sur le profil de '$targetUserId'.")
+                    Log.e(TAG, "toggleLikeOnComment: Le commentaire '$commentId' (bookId: $bookId) n'existe pas sur le profil de '$targetUserId'. Cible: completed_readings.")
                     throw FirebaseFirestoreException("Le commentaire n'existe pas.", FirebaseFirestoreException.Code.NOT_FOUND)
                 }
 
                 if (likeSnapshot.exists()) {
-                    // Le like existe : on le supprime et on décrémente le compteur
                     transaction.delete(likeDocRef)
                     transaction.update(commentDocRef, "likesCount", FieldValue.increment(-1))
-                    // On ne touche pas à lastLikeTimestamp lors d'une décrémentation, car un like plus ancien pourrait être le dernier restant
-                    Log.i(TAG, "toggleLikeOnComment: Like de '$currentUserId' sur commentaire '$commentId' supprimé. Compteur décrémenté.")
+                    Log.i(TAG, "toggleLikeOnComment: Like de '$currentUserId' sur commentaire '$commentId' (bookId: $bookId) supprimé. Compteur décrémenté. Cible: completed_readings.")
                 } else {
-                    // Le like n'existe pas : on le crée et on incrémente le compteur
                     val newLike = Like(
                         likeId = currentUserId,
                         userId = currentUserId,
                         targetUserId = targetUserId,
-                        readingId = FirebaseConstants.DOCUMENT_ACTIVE_READING, // Toujours activeReading pour ce contexte
-                        commentId = commentId, // C'est un like de commentaire
+                        bookId = bookId,
+                        commentId = commentId,
                         timestamp = Timestamp.now()
                     )
                     transaction.set(likeDocRef, newLike)
                     transaction.update(commentDocRef, "likesCount", FieldValue.increment(1))
-                    transaction.update(commentDocRef, "lastLikeTimestamp", Timestamp.now()) // Met à jour le timestamp du dernier like
-                    Log.i(TAG, "toggleLikeOnComment: Like de '$currentUserId' sur commentaire '$commentId' ajouté. Compteur incrémenté.")
+                    transaction.update(commentDocRef, "lastLikeTimestamp", Timestamp.now())
+                    Log.i(TAG, "toggleLikeOnComment: Like de '$currentUserId' sur commentaire '$commentId' (bookId: $bookId) ajouté. Compteur incrémenté. Cible: completed_readings.")
                 }
-                null // Transaction réussie
+                null
             }.await()
             Resource.Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            Log.e(TAG, "toggleLikeOnComment: Erreur Firestore lors de la bascule du like sur commentaire '$commentId' par '$currentUserId': Code=${e.code}, Message=${e.message}", e)
+            Log.e(TAG, "toggleLikeOnComment: Erreur Firestore lors de la bascule du like sur commentaire '$commentId' (bookId: $bookId) par '$currentUserId': Code=${e.code}, Message=${e.message}, Cause=${e.cause?.message}", e)
             Resource.Error("Erreur Firestore: ${e.localizedMessage}")
         } catch (e: Exception) {
-            Log.e(TAG, "toggleLikeOnComment: Erreur inattendue lors de la bascule du like sur commentaire '$commentId' par '$currentUserId': ${e.message}", e)
+            Log.e(TAG, "toggleLikeOnComment: Erreur inattendue lors de la bascule du like sur commentaire '$commentId' (bookId: $bookId) par '$currentUserId': ${e.message}", e)
             Resource.Error("Erreur inattendue: ${e.localizedMessage}")
         }
     }
 
-    override fun isCommentLikedByCurrentUser(targetUserId: String, commentId: String, currentUserId: String): Flow<Resource<Boolean>> = callbackFlow {
-        if (targetUserId.isBlank() || commentId.isBlank() || currentUserId.isBlank()) {
+    override fun isCommentLikedByCurrentUser(targetUserId: String, bookId: String, commentId: String, currentUserId: String): Flow<Resource<Boolean>> = callbackFlow {
+        if (targetUserId.isBlank() || bookId.isBlank() || commentId.isBlank() || currentUserId.isBlank()) {
             Log.w(TAG, "isCommentLikedByCurrentUser: IDs manquants.")
             trySend(Resource.Error("Informations manquantes pour vérifier le statut de like du commentaire."))
             close()
@@ -959,11 +963,12 @@ class UserRepositoryImpl @Inject constructor(
         }
 
         trySend(Resource.Loading())
-        Log.i(TAG, "isCommentLikedByCurrentUser: Vérification si '$currentUserId' a liké le commentaire '$commentId' de '$targetUserId'.")
+        Log.i(TAG, "isCommentLikedByCurrentUser: Vérification si '$currentUserId' a liké le commentaire '$commentId' (bookId: $bookId) de '$targetUserId'. Cible: completed_readings.")
 
+        // Cible la collection de lectures terminées avec le bookId spécifié
         val likeDocRef = usersCollection.document(targetUserId)
-            .collection(FirebaseConstants.SUBCOLLECTION_USER_READINGS)
-            .document(FirebaseConstants.DOCUMENT_ACTIVE_READING)
+            .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
+            .document(bookId)
             .collection(FirebaseConstants.SUBCOLLECTION_COMMENTS)
             .document(commentId)
             .collection(FirebaseConstants.SUBCOLLECTION_LIKES)
@@ -971,25 +976,26 @@ class UserRepositoryImpl @Inject constructor(
 
         val listenerRegistration = likeDocRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                Log.e(TAG, "isCommentLikedByCurrentUser: Erreur Firestore lors de l'écoute du like pour '$currentUserId' sur commentaire '$commentId': ${error.message}", error)
+                Log.e(TAG, "isCommentLikedByCurrentUser: Erreur Firestore lors de l'écoute du like pour '$currentUserId' sur commentaire '$commentId' (bookId: $bookId): ${error.message}", error)
                 trySend(Resource.Error("Erreur lors de la vérification du like du commentaire: ${error.localizedMessage}"))
                 close(error)
                 return@addSnapshotListener
             }
 
             val isLiked = snapshot?.exists() == true
-            Log.d(TAG, "isCommentLikedByCurrentUser: Statut de like pour '$currentUserId' sur commentaire '$commentId': $isLiked")
+            Log.d(TAG, "isCommentLikedByCurrentUser: Statut de like pour '$currentUserId' sur commentaire '$commentId' (bookId: $bookId): $isLiked. Cible: completed_readings.")
             trySend(Resource.Success(isLiked))
         }
 
         awaitClose {
-            Log.d(TAG, "isCommentLikedByCurrentUser: Fermeture du listener de like pour commentaire '$commentId' par '$currentUserId'.")
+            Log.d(TAG, "isCommentLikedByCurrentUser: Fermeture du listener de like pour commentaire '$commentId' (bookId: $bookId) par '$currentUserId'. Cible: completed_readings.")
             listenerRegistration.remove()
         }
     }
 
     // =====================================================================================
-    // IMPLÉMENTATIONS DES NOUVELLES MÉTHODES POUR LA GESTION DES LECTURES TERMINÉES
+    // IMPLÉMENTATION MISE À JOUR DE markActiveReadingAsCompleted
+    // Simplifiée car les interactions sont désormais persistées directement dans completed_readings
     // =====================================================================================
 
     override suspend fun markActiveReadingAsCompleted(userId: String, activeReadingDetails: UserBookReading): Resource<Unit> {
@@ -1012,21 +1018,14 @@ class UserRepositoryImpl @Inject constructor(
 
         val userDocRef = usersCollection.document(userId)
 
-        Log.d(TAG, "markActiveReadingAsCompleted: Début de la transaction pour marquer la lecture comme terminée pour l'utilisateur '$userId'.")
+        Log.d(TAG, "markActiveReadingAsCompleted: Début de la finalisation pour l'utilisateur '$userId', livre '${activeReadingDetails.bookId}'.")
 
         return try {
-            firestore.runTransaction { transaction ->
-                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Started] Checking active reading existence.")
-                // 1. Vérifier si la lecture active existe avant de tenter de la supprimer
-                val activeReadingSnapshot = transaction.get(activeReadingDocRef)
-                if (!activeReadingSnapshot.exists()) {
-                    Log.e(TAG, "markActiveReadingAsCompleted: [Transaction Fail] Aucune lecture active trouvée pour l'utilisateur '$userId'. Impossible de marquer comme terminée. Rolling back.")
-                    // Le message d'erreur est déjà défini ici dans la transaction
-                    throw FirebaseFirestoreException("Aucune lecture en cours à marquer comme terminée.", FirebaseFirestoreException.Code.NOT_FOUND)
-                }
-                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Active reading found: ${activeReadingSnapshot.id}.")
+            // Dans cette nouvelle logique, les commentaires et likes sont DÉJÀ dans completed_readings (via les méthodes ci-dessus).
+            // Donc, il n'y a plus besoin de les copier ou de les supprimer de l'ancienne activeReading.
+            // La méthode se concentre sur les opérations sur les documents parent et le compteur de livres lus.
 
-                // 2. Préparer l'objet CompletedReading
+            firestore.runTransaction { transaction ->
                 val completedReading = CompletedReading(
                     bookId = activeReadingDetails.bookId,
                     userId = userId,
@@ -1034,39 +1033,27 @@ class UserRepositoryImpl @Inject constructor(
                     author = activeReadingDetails.author,
                     coverImageUrl = activeReadingDetails.coverImageUrl,
                     totalPages = activeReadingDetails.totalPages,
-                    completionDate = Date()
+                    completionDate = Date() // Date actuelle de complétion
                 )
 
-                // 3. Ajouter la lecture aux completed_readings
-                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Attempting to set completed reading for bookId: '${activeReadingDetails.bookId}'.")
+                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Création du document de lecture terminée: ${completedReadingDocRef.path}")
                 transaction.set(completedReadingDocRef, completedReading)
-                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Set on completed_readings document done.")
 
-                // 4. Supprimer la lecture active
-                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Attempting to delete active reading document.")
+                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Suppression du document activeReading: ${activeReadingDocRef.path}")
                 transaction.delete(activeReadingDocRef)
-                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Delete on activeReading document done.")
 
-                // 5. Incrémenter booksReadCount sur le document utilisateur
-                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Attempting to increment booksReadCount for user: '$userId'.")
+                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Incrémentation de booksReadCount pour l'utilisateur: '$userId'.")
                 transaction.update(userDocRef, "booksReadCount", FieldValue.increment(1))
-                Log.d(TAG, "markActiveReadingAsCompleted: [Transaction Progress] Update on booksReadCount done.")
 
-                Log.i(TAG, "markActiveReadingAsCompleted: [Transaction Success] All operations registered. Committing transaction for user '$userId'.")
+                Log.i(TAG, "markActiveReadingAsCompleted: [Transaction Success] Toutes les opérations de la transaction enregistrées. Committing.")
                 null // La transaction a réussi
             }.await()
-            Log.i(TAG, "markActiveReadingAsCompleted: [Repository Success] Firestore transaction completed successfully for user '$userId'.")
+
+            Log.i(TAG, "markActiveReadingAsCompleted: [Processus Terminé] Processus de finalisation complet terminé avec succès pour l'utilisateur '$userId'.")
             Resource.Success(Unit)
-        } catch (e: FirebaseFirestoreException) {
-            Log.e(TAG, "markActiveReadingAsCompleted: [Repository Error] Firestore transaction failed for '$userId'. Code=${e.code}, Message=${e.message}, Cause=${e.cause?.message}", e)
-            // MODIFICATION ICI : Gérer spécifiquement FirebaseFirestoreException.Code.NOT_FOUND
-            return when (e.code) {
-                FirebaseFirestoreException.Code.NOT_FOUND -> Resource.Error(e.message ?: "Lecture active non trouvée.")
-                else -> Resource.Error("Erreur Firestore: ${e.localizedMessage}")
-            }
         } catch (e: Exception) {
-            Log.e(TAG, "markActiveReadingAsCompleted: [Repository Error] Unexpected error during transaction for '$userId': ${e.message}", e)
-            Resource.Error("Erreur inattendue: ${e.localizedMessage}")
+            Log.e(TAG, "markActiveReadingAsCompleted: [Erreur Globale] Échec du processus de finalisation complet pour '$userId': ${e.message}", e)
+            return Resource.Error("Erreur lors de la finalisation de la lecture terminée: ${e.localizedMessage}")
         }
     }
 
@@ -1087,33 +1074,28 @@ class UserRepositoryImpl @Inject constructor(
         return try {
             firestore.runTransaction { transaction ->
                 Log.d(TAG, "removeCompletedReading: [Transaction Started] Checking completed reading existence for bookId: '$bookId'.")
-                // 1. Vérifier si la lecture terminée existe avant de tenter de la supprimer
                 val completedReadingSnapshot = transaction.get(completedReadingDocRef)
                 if (!completedReadingSnapshot.exists()) {
                     Log.w(TAG, "removeCompletedReading: [Transaction Fail] La lecture terminée '$bookId' n'existe pas pour l'utilisateur '$userId'. Pas de suppression. Rolling back.")
-                    // Le message d'erreur est déjà défini ici dans la transaction
                     throw FirebaseFirestoreException("La lecture terminée n'a pas été trouvée.", FirebaseFirestoreException.Code.NOT_FOUND)
                 }
                 Log.d(TAG, "removeCompletedReading: [Transaction Progress] Completed reading found: ${completedReadingSnapshot.id}.")
 
-                // 2. Supprimer la lecture terminée
                 Log.d(TAG, "removeCompletedReading: [Transaction Progress] Attempting to delete completed reading for bookId: '$bookId'.")
                 transaction.delete(completedReadingDocRef)
                 Log.d(TAG, "removeCompletedReading: [Transaction Progress] Delete on completed_readings done.")
 
-                // 3. Décrémenter booksReadCount sur le document utilisateur
                 Log.d(TAG, "removeCompletedReading: [Transaction Progress] Attempting to decrement 'booksReadCount' for user: '$userId'.")
                 transaction.update(userDocRef, "booksReadCount", FieldValue.increment(-1))
                 Log.d(TAG, "removeCompletedReading: [Transaction Progress] Update on booksReadCount done.")
 
                 Log.i(TAG, "removeCompletedReading: [Transaction Success] All operations registered. Committing transaction for user '$userId'.")
-                null // La transaction a réussi
+                null
             }.await()
             Log.i(TAG, "removeCompletedReading: [Repository Success] Firestore transaction completed successfully for user '$userId'.")
             Resource.Success(Unit)
         } catch (e: FirebaseFirestoreException) {
             Log.e(TAG, "removeCompletedReading: [Repository Error] Firestore transaction failed for '$userId'. Code=${e.code}, Message=${e.message}, Cause=${e.cause?.message}", e)
-            // MODIFICATION ICI : Gérer spécifiquement FirebaseFirestoreException.Code.NOT_FOUND
             return when (e.code) {
                 FirebaseFirestoreException.Code.NOT_FOUND -> Resource.Error(e.message ?: "Lecture terminée non trouvée.")
                 else -> Resource.Error("Erreur Firestore: ${e.localizedMessage}")
@@ -1139,7 +1121,7 @@ class UserRepositoryImpl @Inject constructor(
             .collection(FirebaseConstants.SUBCOLLECTION_COMPLETED_READINGS)
 
         val listenerRegistration = completedReadingsCollectionRef
-            .orderBy("completionDate", Query.Direction.DESCENDING) // Tri par date de complétion
+            .orderBy("completionDate", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e(TAG, "getCompletedReadings: Erreur Firestore lors de l'écoute des lectures terminées pour ID '$userId': ${error.message}", error)

@@ -29,10 +29,11 @@ import java.util.concurrent.TimeUnit
 
 class CommentsAdapter(
     private val currentUserId: String?,
+    private val targetProfileOwnerId: String?, // NOUVEAU: ID du propriétaire du profil affiché (qui est aussi propriétaire de la lecture)
     private val onDeleteClickListener: ((comment: Comment) -> Unit)? = null,
     private val onLikeClickListener: ((comment: Comment) -> Unit)? = null,
     private val getCommentLikeStatus: (commentId: String) -> Flow<Resource<Boolean>>,
-    private val lifecycleOwner: LifecycleOwner // NOUVEAU PARAMÈTRE DANS LE CONSTRUCTEUR
+    private val lifecycleOwner: LifecycleOwner
 ) : ListAdapter<Comment, CommentsAdapter.CommentViewHolder>(CommentDiffCallback()) {
 
     inner class CommentViewHolder(private val binding: ItemCommentBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -58,7 +59,9 @@ class CommentsAdapter(
             binding.tvCommentTimestamp.text = formatTimestamp(comment.timestamp.toDate())
 
             // Gérer la visibilité et le clic du bouton de suppression
-            if (currentUserId != null && comment.userId == currentUserId) {
+            // MODIFICATION: Autorise la suppression si l'utilisateur est l'auteur du commentaire OU le propriétaire du profil.
+            val canDelete = currentUserId != null && (comment.userId == currentUserId || currentUserId == targetProfileOwnerId)
+            if (canDelete) {
                 binding.btnDeleteComment.visibility = View.VISIBLE
                 binding.btnDeleteComment.setOnClickListener {
                     onDeleteClickListener?.invoke(comment)
@@ -68,15 +71,17 @@ class CommentsAdapter(
                 binding.btnDeleteComment.setOnClickListener(null)
             }
 
-            // AJOUTS POUR LE DIAGNOSTIC (maintenus temporairement)
+            // AJOUTS POUR LE DIAGNOSTIC (maintenus temporairement, peuvent être retirés après validation)
             Log.d("CommentsAdapterDebug", "Binding commentaire ID: ${comment.commentId}")
             Log.d("CommentsAdapterDebug", "Current User ID: $currentUserId")
             Log.d("CommentsAdapterDebug", "Comment Author ID: ${comment.userId}")
-            Log.d("CommentsAdapterDebug", "Condition (currentUserId != null && comment.userId != currentUserId): ${currentUserId != null && comment.userId != currentUserId}")
-
+            Log.d("CommentsAdapterDebug", "Target Profile Owner ID: $targetProfileOwnerId")
+            Log.d("CommentsAdapterDebug", "Condition suppression (canDelete): $canDelete")
 
             // Gérer la visibilité et le clic du bouton de like, et afficher le compteur
-            if (currentUserId != null && comment.userId != currentUserId) { // Visible si connecté ET pas son propre commentaire
+            // MODIFICATION: Le bouton de like est visible si l'utilisateur est connecté.
+            // L'API Firestore (via le Repository et ViewModel) gérera si le like est autorisé sur son propre commentaire.
+            if (currentUserId != null) { // Visible si connecté
                 binding.btnLikeComment.visibility = View.VISIBLE
                 binding.btnLikeComment.setOnClickListener {
                     onLikeClickListener?.invoke(comment)
@@ -89,8 +94,7 @@ class CommentsAdapter(
                 likeStatusJob?.cancel()
 
                 // Lancer une nouvelle coroutine pour observer le statut de like de ce commentaire
-                // IMPORTANT : Utiliser le lifecycleScope du LifecycleOwner fourni
-                likeStatusJob = lifecycleOwner.lifecycleScope.launch { // UTILISE MAINTENANT le lifecycleOwner passé
+                likeStatusJob = lifecycleOwner.lifecycleScope.launch {
                     getCommentLikeStatus(comment.commentId).collectLatest { resource ->
                         when (resource) {
                             is Resource.Success -> {
@@ -117,7 +121,7 @@ class CommentsAdapter(
                     }
                 }
             } else {
-                // Si l'utilisateur est l'auteur du commentaire ou n'est pas connecté, le bouton de like est masqué.
+                // Si l'utilisateur n'est pas connecté, le bouton de like est masqué.
                 binding.btnLikeComment.visibility = View.GONE
                 binding.btnLikeComment.setOnClickListener(null)
                 likeStatusJob?.cancel() // Annule le job si le bouton est masqué
@@ -150,15 +154,16 @@ class CommentsAdapter(
         holder.bind(getItem(position))
     }
 
+    // MODIFICATION DE LA LOGIQUE DU FORMATTAGE DU TIMESTAMP
     private fun formatTimestamp(date: Date): String {
         val now = System.currentTimeMillis()
         val diff = now - date.time
 
         return when {
-            diff < TimeUnit.MINUTES.toMillis(1) -> "il y a qlq s."
-            diff < TimeUnit.HOURS.toMillis(1) -> "il y a ${TimeUnit.MILLISECONDS.toHours(diff)} h"
-            diff < TimeUnit.DAYS.toMillis(1) -> "il y a ${TimeUnit.MILLISECONDS.toDays(diff)} j"
-            diff < TimeUnit.DAYS.toMillis(7) -> "il y a ${TimeUnit.MILLISECONDS.toDays(diff)} j" // Correction ici, il y avait deux fois la même condition. Doit être 'jours'
+            diff < TimeUnit.SECONDS.toMillis(60) -> "il y a qlq s."
+            diff < TimeUnit.MINUTES.toMillis(60) -> "il y a ${TimeUnit.MILLISECONDS.toMinutes(diff)} min"
+            diff < TimeUnit.HOURS.toMillis(24) -> "il y a ${TimeUnit.MILLISECONDS.toHours(diff)} h"
+            diff < TimeUnit.DAYS.toMillis(7) -> "il y a ${TimeUnit.MILLISECONDS.toDays(diff)} j"
             else -> SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(date)
         }
     }

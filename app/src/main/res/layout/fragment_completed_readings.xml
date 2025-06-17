@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.members.CompletedReadingsFragment">
+
+    <!-- Un simple TextView pour afficher les informations, à remplacer par une RecyclerView et du contenu réel -->
+    <TextView
+        android:id="@+id/tv_completed_readings_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:padding="16dp"
+        android:text="@string/completed_readings_default_text"
+        android:textAppearance="?attr/textAppearanceHeadline6"
+        android:textAlignment="center"
+        tools:text="Historique des lectures terminées pour [Nom d'utilisateur] (ID: [ID Utilisateur])" />
+
+</FrameLayout>

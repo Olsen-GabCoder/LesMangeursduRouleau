@@ -156,6 +156,19 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+
+        <!-- NOUVELLE ACTION POUR NAVIGUER VERS L'HISTORIQUE DE LECTURES TERMINÉES -->
+        <action
+            android:id="@+id/action_publicProfileFragmentDestination_to_completedReadingsFragment"
+            app:destination="@id/completedReadingsFragment">
+            <argument
+                android:name="userId"
+                app:argType="string" />
+            <argument
+                android:name="username"
+                app:argType="string"
+                app:nullable="true" />
+        </action>
     </fragment>
 
     <!-- Discussion générale -->
@@ -208,5 +221,20 @@
         android:name="com.lesmangeursdurouleau.app.ui.readings.selection.BookSelectionFragment"
         android:label="Sélectionner un livre"
         tools:layout="@layout/fragment_book_selection" />
+
+    <!-- NOUVEAU FRAGMENT: Historique des lectures terminées -->
+    <fragment
+        android:id="@+id/completedReadingsFragment"
+        android:name="com.lesmangeursdurouleau.app.ui.members.CompletedReadingsFragment"
+        android:label="{username}"
+        tools:layout="@layout/fragment_completed_readings">
+        <argument
+            android:name="userId"
+            app:argType="string" />
+        <argument
+            android:name="username"
+            app:argType="string"
+            app:nullable="true" />
+    </fragment>
 
 </navigation>

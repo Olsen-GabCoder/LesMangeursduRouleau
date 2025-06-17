@@ -1,6 +1,6 @@
 package com.lesmangeursdurouleau.app.ui.members
 
-import android.graphics.PorterDuff
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -19,6 +19,8 @@ import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import com.google.android.material.color.MaterialColors
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lesmangeursdurouleau.app.R
 import com.lesmangeursdurouleau.app.data.model.Comment
 import com.lesmangeursdurouleau.app.data.model.User
@@ -30,9 +32,6 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import android.content.res.ColorStateList
-import com.google.android.material.color.MaterialColors
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 @AndroidEntryPoint
 class PublicProfileFragment : Fragment() {
@@ -68,8 +67,10 @@ class PublicProfileFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
+        // MODIFICATION ICI : Passage du nouveau paramètre targetProfileOwnerId au CommentsAdapter
         commentsAdapter = CommentsAdapter(
             currentUserId = viewModel.currentUserId.value,
+            targetProfileOwnerId = args.userId, // Le propriétaire du profil est l'userId passé en argument
             onDeleteClickListener = { commentToDelete ->
                 Log.d(TAG, "Clic sur bouton de suppression pour le commentaire ID: ${commentToDelete.commentId}")
                 showDeleteConfirmationDialog(commentToDelete)
@@ -81,7 +82,7 @@ class PublicProfileFragment : Fragment() {
             getCommentLikeStatus = { commentId ->
                 viewModel.getCommentLikeStatus(commentId)
             },
-            lifecycleOwner = viewLifecycleOwner // NOUVEAU : Passer le LifecycleOwner du Fragment
+            lifecycleOwner = viewLifecycleOwner
         )
         binding.rvComments.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -493,23 +494,34 @@ class PublicProfileFragment : Fragment() {
             val currentUserId = viewModel.currentUserId.value
             val targetUserId = args.userId
 
-            if (currentUserId.isNullOrBlank() || targetUserId.isNullOrBlank() || currentUserId == targetUserId) {
-                val message = if (currentUserId.isNullOrBlank()) "Vous devez être connecté pour liker."
-                else "Vous ne pouvez pas liker votre propre lecture."
+            // MODIFICATION ICI: Suppression de la restriction côté client pour permettre de liker sa propre lecture.
+            // La validation des permissions est désormais entièrement gérée par le ViewModel et les règles Firestore.
+            if (currentUserId.isNullOrBlank() || targetUserId.isNullOrBlank()) {
+                val message = "Vous devez être connecté pour liker."
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                Log.w(TAG, "Tentative de like non autorisée. Message: $message")
+                Log.w(TAG, "Tentative de like non autorisée: utilisateur non connecté ou IDs manquants. Message: $message")
                 return@setOnClickListener
             }
+
             Log.d(TAG, "Bouton 'J'aime' (lecture) cliqué. Bascule du statut de like.")
             viewModel.toggleLike()
         }
     }
 
+    // Implémentation de la navigation vers CompletedReadingsFragment
     private fun setupBooksReadClickListener() {
         binding.llBooksReadClickableArea.setOnClickListener {
+            val targetUserId = args.userId
             val targetUsername = args.username ?: getString(R.string.profile_title_default)
-            Toast.makeText(context, getString(R.string.books_read_clicked_message, targetUsername), Toast.LENGTH_SHORT).show()
-            Log.d(TAG, "Clic sur 'Livres lus'. Fonctionnalité à implémenter pour afficher la liste pour ${args.userId}")
+
+            // Création de l'action de navigation avec les arguments nécessaires
+            val action = PublicProfileFragmentDirections.actionPublicProfileFragmentDestinationToCompletedReadingsFragment(
+                userId = targetUserId,
+                username = targetUsername
+            )
+            // Exécution de la navigation
+            findNavController().navigate(action)
+            Log.d(TAG, "Clic sur 'Livres lus'. Navigation vers la liste des lectures terminées pour User ID: $targetUserId, Username: $targetUsername")
         }
     }
 

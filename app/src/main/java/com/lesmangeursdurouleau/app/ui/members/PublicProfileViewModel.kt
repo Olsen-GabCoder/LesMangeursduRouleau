@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.filterNotNull
 import javax.inject.Inject
 
 // UI State pour la lecture en cours (pas de changement pour cette étape)
@@ -47,10 +48,10 @@ sealed class CommentEvent {
     data class ShowCommentError(val message: String) : CommentEvent()
     object ClearCommentInput : CommentEvent()
     data class CommentDeletedSuccess(val commentId: String) : CommentEvent()
-    data class ShowCommentLikeError(val message: String) : CommentEvent() // NOUVEAU
+    data class ShowCommentLikeError(val message: String) : CommentEvent()
 }
 
-// NOUVEAU : Événements ponctuels pour la gestion des likes UI (pour la lecture, distinct des commentaires)
+// Événements ponctuels pour la gestion des likes UI (pour la lecture, distinct des commentaires)
 sealed class LikeEvent {
     data class ShowLikeError(val message: String) : LikeEvent()
 }
@@ -90,6 +91,9 @@ class PublicProfileViewModel @Inject constructor(
     // StateFlow pour la lecture en cours
     private val _currentReadingUiState = MutableStateFlow(CurrentReadingUiState(isLoading = true))
     val currentReadingUiState: StateFlow<CurrentReadingUiState> = _currentReadingUiState.asStateFlow()
+
+    // StateFlow pour stocker le bookId de la lecture active, pour les interactions
+    private val _bookIdForInteractions = MutableStateFlow<String?>(null)
 
     // StateFlow pour les commentaires sur la lecture active du profil cible
     private val _comments = MutableStateFlow<Resource<List<Comment>>>(Resource.Loading())
@@ -232,9 +236,28 @@ class PublicProfileViewModel @Inject constructor(
                     }
             }
 
+            // Observer le bookId de la lecture en cours pour les interactions
+            viewModelScope.launch {
+                _currentReadingUiState
+                    .map { it.bookReading?.bookId } // Mappe pour extraire uniquement le bookId
+                    .collectLatest { bookId ->
+                        _bookIdForInteractions.value = bookId // Met à jour le StateFlow bookId pour les interactions
+                        Log.d(TAG, "Book ID for interactions updated to: $bookId")
+                    }
+            }
+
+
             // Observer les commentaires de la lecture active du profil cible
             viewModelScope.launch {
-                userRepository.getCommentsOnActiveReading(targetUserId)
+                // Combine targetUserId (constant dans ce ViewModel) et le bookId (dynamique)
+                combine(
+                    flowOf(targetUserId),
+                    _bookIdForInteractions.filterNotNull() // N'émet que lorsque bookId est non null
+                ) { targetId, bookId -> Pair(targetId, bookId) }
+                    .flatMapLatest { (targetId, bookId) ->
+                        Log.d(TAG, "Fetching comments for targetId: $targetId, bookId: $bookId")
+                        userRepository.getCommentsOnActiveReading(targetId, bookId)
+                    }
                     .catch { e ->
                         Log.e(TAG, "Erreur lors de la récupération des commentaires pour l'utilisateur $targetUserId: ${e.message}", e)
                         _comments.value = Resource.Error("Erreur lors du chargement des commentaires: ${e.localizedMessage}")
@@ -261,7 +284,16 @@ class PublicProfileViewModel @Inject constructor(
 
                 // Observer le statut de like de l'utilisateur courant sur cette lecture principale
                 viewModelScope.launch {
-                    userRepository.isLikedByCurrentUser(targetUserId, currentAuthUserId)
+                    // Combine targetUserId, bookId et currentAuthUserId
+                    combine(
+                        flowOf(targetUserId),
+                        _bookIdForInteractions.filterNotNull(), // N'émet que lorsque bookId est non null
+                        flowOf(currentAuthUserId)
+                    ) { targetId, bookId, currentId -> Triple(targetId, bookId, currentId) }
+                        .flatMapLatest { (targetId, bookId, currentId) ->
+                            Log.d(TAG, "Fetching like status for targetId: $targetId, bookId: $bookId, currentId: $currentId")
+                            userRepository.isLikedByCurrentUser(targetId, bookId, currentId)
+                        }
                         .catch { e ->
                             Log.e(TAG, "Erreur lors de l'observation du statut de like de l'utilisateur courant sur le profil $targetUserId: ${e.message}", e)
                             _isLikedByCurrentUser.value = Resource.Error("Erreur de statut de like: ${e.localizedMessage}")
@@ -273,7 +305,15 @@ class PublicProfileViewModel @Inject constructor(
                 }
                 // Observer le nombre total de likes sur cette lecture principale
                 viewModelScope.launch {
-                    userRepository.getActiveReadingLikesCount(targetUserId)
+                    // Combine targetUserId et bookId
+                    combine(
+                        flowOf(targetUserId),
+                        _bookIdForInteractions.filterNotNull() // N'émet que lorsque bookId est non null
+                    ) { targetId, bookId -> Pair(targetId, bookId) }
+                        .flatMapLatest { (targetId, bookId) ->
+                            Log.d(TAG, "Fetching likes count for targetId: $targetId, bookId: $bookId")
+                            userRepository.getActiveReadingLikesCount(targetId, bookId)
+                        }
                         .catch { e ->
                             Log.e(TAG, "Erreur lors de l'observation du nombre de likes sur le profil $targetUserId: ${e.message}", e)
                             _likesCount.value = Resource.Error("Erreur de compte de likes: ${e.localizedMessage}")
@@ -289,6 +329,7 @@ class PublicProfileViewModel @Inject constructor(
                 Log.w(TAG, "Utilisateur non connecté, impossible de charger les infos de profil pour commenter.")
                 _isLikedByCurrentUser.value = Resource.Error("Utilisateur non connecté. Impossible de vérifier le statut de like.")
                 _likesCount.value = Resource.Error("Utilisateur non connecté. Impossible de récupérer le nombre de likes.")
+                _bookIdForInteractions.value = null // S'assurer que bookIdForInteractions est null si pas d'utilisateur connecté
             }
 
             // Logique existante pour le suivi (follow/unfollow)
@@ -354,6 +395,7 @@ class PublicProfileViewModel @Inject constructor(
             _currentUserProfileForCommenting.value = Resource.Error("ID utilisateur cible manquant pour charger les infos de profil pour commenter.")
             _isLikedByCurrentUser.value = Resource.Error("ID utilisateur cible manquant pour vérifier le statut de like.")
             _likesCount.value = Resource.Error("ID utilisateur cible manquant pour récupérer le nombre de likes.")
+            _bookIdForInteractions.value = null // S'assurer que bookIdForInteractions est null si userIdFromArgs est vide
         }
     }
 
@@ -491,12 +533,13 @@ class PublicProfileViewModel @Inject constructor(
     fun postComment(commentText: String) {
         val currentAuthUserId = firebaseAuth.currentUser?.uid
         val targetId = userIdFromArgs
+        val bookId = _currentReadingUiState.value.bookReading?.bookId // Récupère le bookId de la lecture en cours
 
         // 1. Validation de base des IDs et du texte du commentaire
-        if (currentAuthUserId.isNullOrBlank() || targetId.isNullOrBlank()) {
-            val errorMessage = "Impossible de poster le commentaire: utilisateur non connecté ou profil cible manquant."
+        if (currentAuthUserId.isNullOrBlank() || targetId.isNullOrBlank() || bookId.isNullOrBlank()) {
+            val errorMessage = "Impossible de poster le commentaire: informations manquantes (utilisateur connecté, profil cible, ou livre non défini)."
             viewModelScope.launch { _commentEvents.emit(CommentEvent.ShowCommentError(errorMessage)) }
-            Log.e(TAG, "postComment: $errorMessage. current: $currentAuthUserId, target: $targetId")
+            Log.e(TAG, "postComment: $errorMessage. current: $currentAuthUserId, target: $targetId, bookId: $bookId")
             return
         }
         if (commentText.isBlank()) {
@@ -523,13 +566,14 @@ class PublicProfileViewModel @Inject constructor(
             userPhotoUrl = currentUser.profilePictureUrl,
             targetUserId = targetId,
             commentText = commentText,
-            timestamp = Timestamp.now() // Utilise le timestamp Firebase pour l'heure du serveur
+            timestamp = Timestamp.now(), // Utilise le timestamp Firebase pour l'heure du serveur
+            bookId = bookId // Assurez-vous que le bookId est inclus ici
         )
 
         // 4. Appeler le UserRepository pour ajouter le commentaire
-        Log.d(TAG, "postComment: Tentative de poster un commentaire sur la lecture de '$targetId' par '${currentUser.username}'.")
+        Log.d(TAG, "postComment: Tentative de poster un commentaire sur la lecture (bookId: $bookId) de '$targetId' par '${currentUser.username}'.")
         viewModelScope.launch {
-            val result = userRepository.addCommentOnActiveReading(targetId, newComment)
+            val result = userRepository.addCommentOnActiveReading(targetId, bookId, newComment) // Passe le bookId
             when (result) {
                 is Resource.Success -> {
                     Log.i(TAG, "postComment: Commentaire posté avec succès.")
@@ -549,33 +593,35 @@ class PublicProfileViewModel @Inject constructor(
 
     /**
      * Supprime un commentaire spécifique de la lecture active de l'utilisateur cible.
-     * Cette fonction ne doit être appelée que par l'auteur du commentaire.
+     * Cette fonction ne doit être appelée que par l'auteur du commentaire OU le propriétaire du profil cible.
      * @param commentId L'ID du commentaire à supprimer.
-     * @param commentAuthorId L'ID de l'auteur du commentaire (pour vérification côté client).
+     * @param commentAuthorId L'ID de l'auteur du commentaire.
      */
     fun deleteComment(commentId: String, commentAuthorId: String) {
         val currentAuthUserId = firebaseAuth.currentUser?.uid
         val targetUserId = userIdFromArgs // L'ID du profil sur lequel se trouve le commentaire
+        val bookId = _currentReadingUiState.value.bookReading?.bookId // Récupère le bookId de la lecture en cours
 
         // 1. Validation de base des IDs
-        if (currentAuthUserId.isNullOrBlank() || targetUserId.isNullOrBlank() || commentId.isBlank()) {
-            val errorMessage = "Impossible de supprimer le commentaire: informations manquantes."
+        if (currentAuthUserId.isNullOrBlank() || targetUserId.isNullOrBlank() || commentId.isBlank() || bookId.isNullOrBlank()) {
+            val errorMessage = "Impossible de supprimer le commentaire: informations manquantes (utilisateur, profil cible, commentaire ou livre non défini)."
             viewModelScope.launch { _commentEvents.emit(CommentEvent.ShowCommentError(errorMessage)) }
-            Log.e(TAG, "deleteComment: $errorMessage. CurrentUser: $currentAuthUserId, TargetUser: $targetUserId, CommentID: $commentId")
+            Log.e(TAG, "deleteComment: $errorMessage. CurrentUser: $currentAuthUserId, TargetUser: $targetUserId, CommentID: $commentId, BookID: $bookId")
             return
         }
 
-        // 2. Vérification que l'utilisateur connecté est bien l'auteur du commentaire
-        if (currentAuthUserId != commentAuthorId) {
+        // 2. Vérification de l'autorisation de suppression
+        // Correction ici: Permettre la suppression si l'utilisateur est l'auteur du commentaire OU le propriétaire du profil (targetUserId).
+        if (currentAuthUserId != commentAuthorId && currentAuthUserId != targetUserId) {
             val errorMessage = "Vous n'êtes pas autorisé à supprimer ce commentaire."
             viewModelScope.launch { _commentEvents.emit(CommentEvent.ShowCommentError(errorMessage)) }
-            Log.w(TAG, "deleteComment: Tentative de suppression non autorisée. UserID: $currentAuthUserId, CommentAuthorID: $commentAuthorId")
+            Log.w(TAG, "deleteComment: Tentative de suppression non autorisée. CurrentUser: $currentAuthUserId, CommentAuthorID: $commentAuthorId, TargetUserId: $targetUserId")
             return
         }
 
-        Log.d(TAG, "deleteComment: Tentative de suppression du commentaire '$commentId' par '$currentAuthUserId' sur le profil de '$targetUserId'.")
+        Log.d(TAG, "deleteComment: Tentative de suppression du commentaire '$commentId' par '$currentAuthUserId' sur le profil de '$targetUserId' (bookId: $bookId).")
         viewModelScope.launch {
-            val result = userRepository.deleteCommentOnActiveReading(targetUserId, commentId)
+            val result = userRepository.deleteCommentOnActiveReading(targetUserId, bookId, commentId)
             when (result) {
                 is Resource.Success -> {
                     Log.i(TAG, "deleteComment: Commentaire '$commentId' supprimé avec succès.")
@@ -598,26 +644,28 @@ class PublicProfileViewModel @Inject constructor(
     fun toggleLike() {
         val currentAuthUserId = firebaseAuth.currentUser?.uid
         val targetId = userIdFromArgs
+        val bookId = _currentReadingUiState.value.bookReading?.bookId // Récupère le bookId de la lecture en cours
 
-        if (currentAuthUserId.isNullOrBlank() || targetId.isNullOrBlank()) {
-            val errorMessage = "Impossible de liker/déliker: utilisateur non connecté ou profil cible manquant."
+        if (currentAuthUserId.isNullOrBlank() || targetId.isNullOrBlank() || bookId.isNullOrBlank()) {
+            val errorMessage = "Impossible de liker/déliker: informations manquantes (utilisateur non connecté, profil cible ou livre non défini)."
             viewModelScope.launch { _likeEvents.emit(LikeEvent.ShowLikeError(errorMessage)) }
-            Log.e(TAG, "toggleLike: $errorMessage. current: $currentAuthUserId, target: $targetId")
+            Log.e(TAG, "toggleLike: $errorMessage. current: $currentAuthUserId, target: $targetId, bookId: $bookId")
             return
         }
 
-        if (currentAuthUserId == targetId) {
-            val errorMessage = "Vous ne pouvez pas liker votre propre lecture."
-            viewModelScope.launch { _likeEvents.emit(LikeEvent.ShowLikeError(errorMessage)) }
-            Log.w(TAG, "toggleLike: Tentative de liker sa propre lecture.")
-            return
-        }
+        // Suppression de la vérification côté client :
+        // if (currentAuthUserId == targetId) {
+        //     val errorMessage = "Vous ne pouvez pas liker votre propre lecture."
+        //     viewModelScope.launch { _likeEvents.emit(LikeEvent.ShowLikeError(errorMessage)) }
+        //     Log.w(TAG, "toggleLike: Tentative de liker sa propre lecture.")
+        //     return
+        // }
 
         viewModelScope.launch {
-            val result = userRepository.toggleLikeOnActiveReading(targetId, currentAuthUserId)
+            val result = userRepository.toggleLikeOnActiveReading(targetId, bookId, currentAuthUserId)
             when (result) {
                 is Resource.Success -> {
-                    Log.i(TAG, "toggleLike: Statut de like basculé avec succès pour la lecture de '$targetId' par '$currentAuthUserId'.")
+                    Log.i(TAG, "toggleLike: Statut de like basculé avec succès pour la lecture (bookId: $bookId) de '$targetId' par '$currentAuthUserId'.")
                     // Les StateFlows _isLikedByCurrentUser et _likesCount se mettront à jour automatiquement.
                 }
                 is Resource.Error -> {
@@ -636,26 +684,28 @@ class PublicProfileViewModel @Inject constructor(
     fun toggleLikeOnComment(comment: Comment) {
         val currentAuthUserId = firebaseAuth.currentUser?.uid
         val targetUserId = userIdFromArgs // L'ID du profil sur lequel se trouve le commentaire
+        val bookId = comment.bookId // Le bookId doit être présent dans l'objet Comment depuis la phase 1
 
-        if (currentAuthUserId.isNullOrBlank() || targetUserId.isNullOrBlank() || comment.commentId.isBlank()) {
-            val errorMessage = "Impossible de liker/déliker le commentaire: informations manquantes."
+        if (currentAuthUserId.isNullOrBlank() || targetUserId.isNullOrBlank() || comment.commentId.isBlank() || bookId.isBlank()) {
+            val errorMessage = "Impossible de liker/déliker le commentaire: informations manquantes (utilisateur, profil cible, commentaire ou livre non défini)."
             viewModelScope.launch { _commentEvents.emit(CommentEvent.ShowCommentLikeError(errorMessage)) }
-            Log.e(TAG, "toggleLikeOnComment: $errorMessage. CurrentUser: $currentAuthUserId, TargetUser: $targetUserId, CommentID: ${comment.commentId}")
+            Log.e(TAG, "toggleLikeOnComment: $errorMessage. CurrentUser: $currentAuthUserId, TargetUser: $targetUserId, CommentID: ${comment.commentId}, BookID: $bookId")
             return
         }
 
-        if (currentAuthUserId == comment.userId) {
-            val errorMessage = "Vous ne pouvez pas liker votre propre commentaire."
-            viewModelScope.launch { _commentEvents.emit(CommentEvent.ShowCommentLikeError(errorMessage)) }
-            Log.w(TAG, "toggleLikeOnComment: Tentative de liker son propre commentaire. UserID: $currentAuthUserId, CommentID: ${comment.commentId}")
-            return
-        }
+        // Suppression de la vérification côté client :
+        // if (currentAuthUserId == comment.userId) {
+        //     val errorMessage = "Vous ne pouvez pas liker votre propre commentaire."
+        //     viewModelScope.launch { _commentEvents.emit(CommentEvent.ShowCommentLikeError(errorMessage)) }
+        //     Log.w(TAG, "toggleLikeOnComment: Tentative de liker son propre commentaire. UserID: $currentAuthUserId, CommentID: ${comment.commentId}")
+        //     return
+        // }
 
         viewModelScope.launch {
-            val result = userRepository.toggleLikeOnComment(targetUserId, comment.commentId, currentAuthUserId)
+            val result = userRepository.toggleLikeOnComment(targetUserId, bookId, comment.commentId, currentAuthUserId)
             when (result) {
                 is Resource.Success -> {
-                    Log.i(TAG, "toggleLikeOnComment: Statut de like basculé avec succès pour commentaire '${comment.commentId}' par '$currentAuthUserId'.")
+                    Log.i(TAG, "toggleLikeOnComment: Statut de like basculé avec succès pour commentaire '${comment.commentId}' (bookId: $bookId) par '$currentAuthUserId'.")
                     // La liste des commentaires (avec leurs likesCount mis à jour) se rafraîchira automatiquement via le Flow.
                 }
                 is Resource.Error -> {
@@ -675,14 +725,15 @@ class PublicProfileViewModel @Inject constructor(
     fun getCommentLikeStatus(commentId: String): Flow<Resource<Boolean>> {
         val currentAuthUserId = firebaseAuth.currentUser?.uid
         val targetUserId = userIdFromArgs
+        val bookId = _currentReadingUiState.value.bookReading?.bookId // Récupère le bookId de la lecture en cours
 
-        return if (currentAuthUserId.isNullOrBlank() || targetUserId.isNullOrBlank() || commentId.isBlank()) {
-            Log.w(TAG, "getCommentLikeStatus: IDs manquants pour vérifier le statut de like. Retourne Resource.Error.")
+        return if (currentAuthUserId.isNullOrBlank() || targetUserId.isNullOrBlank() || commentId.isBlank() || bookId.isNullOrBlank()) {
+            Log.w(TAG, "getCommentLikeStatus: IDs manquants pour vérifier le statut de like. Retourne Resource.Error. current: $currentAuthUserId, target: $targetUserId, comment: $commentId, bookId: $bookId")
             flowOf(Resource.Error("Informations manquantes pour vérifier le statut de like du commentaire."))
         } else {
-            userRepository.isCommentLikedByCurrentUser(targetUserId, commentId, currentAuthUserId)
+            userRepository.isCommentLikedByCurrentUser(targetUserId, bookId, commentId, currentAuthUserId)
                 .catch { e ->
-                    Log.e(TAG, "Erreur lors de l'observation du statut de like du commentaire '$commentId': ${e.message}", e)
+                    Log.e(TAG, "Erreur lors de l'observation du statut de like du commentaire '$commentId' (bookId: $bookId): ${e.message}", e)
                     emit(Resource.Error("Erreur de statut de like: ${e.localizedMessage}"))
                 }
         }
