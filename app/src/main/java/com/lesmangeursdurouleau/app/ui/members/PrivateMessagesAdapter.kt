@@ -6,11 +6,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
+import com.lesmangeursdurouleau.app.R
+import com.lesmangeursdurouleau.app.data.model.MessageStatus
 import com.lesmangeursdurouleau.app.data.model.PrivateMessage
 import com.lesmangeursdurouleau.app.databinding.ItemPrivateMessageReceivedBinding
 import com.lesmangeursdurouleau.app.databinding.ItemPrivateMessageSentBinding
@@ -66,8 +69,26 @@ class PrivateMessagesAdapter(
                     binding.llReactionsContainer.isVisible = false
                 }
 
-                // AJOUT: Gérer la visibilité de l'indicateur "(modifié)"
                 binding.tvEditedIndicator.isVisible = message.isEdited
+
+                // AJOUT: Logique d'affichage de l'indicateur de statut
+                val statusIcon = binding.ivMessageStatus
+                when (message.status) {
+                    MessageStatus.READ.name -> {
+                        statusIcon.isVisible = true
+                        statusIcon.setImageResource(R.drawable.ic_check_double)
+                        statusIcon.setColorFilter(ContextCompat.getColor(itemView.context, R.color.status_read_color))
+                    }
+                    MessageStatus.SENT.name -> {
+                        statusIcon.isVisible = true
+                        statusIcon.setImageResource(R.drawable.ic_check_single)
+                        statusIcon.setColorFilter(ContextCompat.getColor(itemView.context, R.color.white_60_alpha))
+                    }
+                    else -> {
+                        statusIcon.isVisible = false
+                    }
+                }
+
 
                 itemView.setOnLongClickListener {
                     onMessageLongClick(binding.bubbleContainer, message)
@@ -89,7 +110,6 @@ class PrivateMessagesAdapter(
                     binding.llReactionsContainer.isVisible = false
                 }
 
-                // AJOUT: Gérer la visibilité de l'indicateur "(modifié)"
                 binding.tvEditedIndicator.isVisible = message.isEdited
 
                 itemView.setOnLongClickListener {

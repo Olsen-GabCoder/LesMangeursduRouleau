@@ -30,9 +30,11 @@
             android:paddingBottom="24dp"
             android:textColor="@android:color/white"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-            tools:text="Ceci est un très long message envoyé par l'utilisateur actuel qui devrait normalement passer sur plusieurs lignes pour bien tester l'alignement." />
+            tools:text="Ceci est un très long message envoyé par l'utilisateur actuel qui devrait normalement passer sur plusieurs lignes pour bien tester l'alignement."
+            android:autoLink="web"
+            android:textColorLink="@color/link_color_sent"/>
 
-        <!-- MODIFIÉ: Conteneur pour l'indicateur (modifié) et l'heure -->
+        <!-- MODIFIÉ: Conteneur pour l'indicateur (modifié), l'heure et le statut -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -64,6 +66,18 @@
                 android:textSize="11sp"
                 tools:ignore="SmallSp"
                 tools:text="14:32" />
+
+            <!-- AJOUT: Indicateur de statut du message -->
+            <ImageView
+                android:id="@+id/iv_message_status"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="4dp"
+                app:tint="@color/white_60_alpha"
+                tools:src="@drawable/ic_check_double"
+                tools:visibility="visible"
+                android:visibility="gone"
+                android:contentDescription="@string/message_status_indicator" />
         </LinearLayout>
 
     </FrameLayout>

@@ -57,6 +57,8 @@ interface UserRepository {
 
     suspend fun removeCompletedReading(userId: String, bookId: String): Resource<Unit>
 
+
+
     fun getCompletedReadings(
         userId: String,
         orderBy: String,
@@ -81,13 +83,14 @@ interface UserRepository {
 
     suspend fun addOrUpdateReaction(conversationId: String, messageId: String, userId: String, emoji: String): Resource<Unit>
 
+    suspend fun editPrivateMessage(conversationId: String, messageId: String, newText: String): Resource<Unit>
+
     /**
-     * AJOUT: Met à jour le texte d'un message privé existant.
+     * AJOUT: Met à jour le statut des messages spécifiés en "lu".
      *
      * @param conversationId L'ID de la conversation.
-     * @param messageId L'ID du message à modifier.
-     * @param newText Le nouveau contenu textuel du message.
+     * @param messageIds La liste des IDs des messages à mettre à jour.
      * @return Une Resource indiquant le succès ou l'échec.
      */
-    suspend fun editPrivateMessage(conversationId: String, messageId: String, newText: String): Resource<Unit>
+    suspend fun updateMessagesStatusToRead(conversationId: String, messageIds: List<String>): Resource<Unit>
 }

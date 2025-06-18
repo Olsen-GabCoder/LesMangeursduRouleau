@@ -363,4 +363,7 @@
     <string name="edit">Modifier</string>
     <!-- Fichier: res/values/strings.xml -->
     <string name="edited_indicator">(modifié)</string>
+
+    <!-- AJOUT: Description pour l'indicateur de statut du message pour l'accessibilité -->
+    <string name="message_status_indicator">Indicateur de statut du message</string>
 </resources>

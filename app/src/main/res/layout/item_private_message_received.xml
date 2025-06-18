@@ -30,7 +30,9 @@
             android:paddingBottom="24dp"
             android:textColor="@android:color/black"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-            tools:text="Ceci est un message reçu qui est aussi assez long pour tester le retour à la ligne et voir si les métadonnées se placent bien en bas à droite sans rien cacher." />
+            tools:text="Ceci est un message reçu qui est aussi assez long pour tester le retour à la ligne et voir si les métadonnées se placent bien en bas à droite sans rien cacher."
+            android:autoLink="web"
+            android:textColorLink="@color/link_color_received"/>
 
         <!-- MODIFIÉ: Conteneur pour l'indicateur (modifié) et l'heure -->
         <LinearLayout

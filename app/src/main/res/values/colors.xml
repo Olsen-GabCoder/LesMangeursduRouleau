@@ -59,5 +59,9 @@
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
     <color name="auth_background_dark">#2C004F</color> <color name="auth_card_background_light">#FFFFFF</color> <color name="text_on_dark_background">#FFFFFF</color> <color name="text_on_light_background_primary">#212121</color> <color name="text_on_light_background_secondary">#757575</color> <color name="text_link_color">#6200EE</color> <color name="outline_stroke_color">#E0E0E0</color> <color name="separator_color">#BDBDBD</color> <color name="google_btn_text_color">#4285F4</color> <color name="google_btn_border_color">#DADCE0</color>
+    <!-- AJOUT: Couleurs pour les liens dans les messages -->
+    <color name="link_color_sent">#CDE6FF</color>
+    <color name="link_color_received">#00579B</color>
+    <!-- AJOUT: Couleur pour l'indicateur de statut "lu" -->
+    <color name="status_read_color">#4FC3F7</color>
 </resources>
-

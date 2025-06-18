@@ -15,6 +15,7 @@ import com.lesmangeursdurouleau.app.data.model.Comment
 import com.lesmangeursdurouleau.app.data.model.CompletedReading
 import com.lesmangeursdurouleau.app.data.model.Conversation
 import com.lesmangeursdurouleau.app.data.model.Like
+import com.lesmangeursdurouleau.app.data.model.MessageStatus
 import com.lesmangeursdurouleau.app.data.model.PrivateMessage
 import com.lesmangeursdurouleau.app.data.model.User
 import com.lesmangeursdurouleau.app.data.model.UserBookReading
@@ -1430,7 +1431,6 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    // AJOUT: Implémentation de la logique d'édition de message
     override suspend fun editPrivateMessage(conversationId: String, messageId: String, newText: String): Resource<Unit> {
         if (conversationId.isBlank() || messageId.isBlank() || newText.isBlank()) {
             return Resource.Error("Arguments invalides pour la modification du message.")
@@ -1452,6 +1452,35 @@ class UserRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "editPrivateMessage: Erreur lors de la modification du message $messageId: ${e.message}", e)
             Resource.Error("Erreur lors de la modification du message: ${e.localizedMessage}")
+        }
+    }
+
+    // AJOUT: Implémentation de la mise à jour des statuts de message
+    override suspend fun updateMessagesStatusToRead(conversationId: String, messageIds: List<String>): Resource<Unit> {
+        if (conversationId.isBlank() || messageIds.isEmpty()) {
+            Log.w(TAG, "updateMessagesStatusToRead: conversationId ou messageIds est vide. Rien à faire.")
+            return Resource.Success(Unit) // Pas une erreur, juste rien à faire.
+        }
+
+        return try {
+            Log.d(TAG, "updateMessagesStatusToRead: Démarrage d'un batch pour mettre à jour ${messageIds.size} messages en 'lu' dans la conv $conversationId.")
+            val messagesRef = conversationsCollection.document(conversationId)
+                .collection(FirebaseConstants.SUBCOLLECTION_MESSAGES)
+
+            val batch = firestore.batch()
+
+            for (messageId in messageIds) {
+                val docRef = messagesRef.document(messageId)
+                batch.update(docRef, "status", MessageStatus.READ.name)
+            }
+
+            batch.commit().await()
+
+            Log.i(TAG, "updateMessagesStatusToRead: Batch de mise à jour des statuts terminé avec succès.")
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "updateMessagesStatusToRead: Erreur lors du batch de mise à jour des statuts pour la conv $conversationId: ${e.message}", e)
+            Resource.Error("Erreur lors de la mise à jour du statut des messages: ${e.localizedMessage}")
         }
     }
 }
