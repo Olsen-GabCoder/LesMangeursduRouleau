@@ -674,7 +674,7 @@ class UserRepositoryImpl @Inject constructor(
             return Resource.Error("Le commentaire ne peut pas être vide.")
         }
         if (comment.userId.isBlank()) {
-            Log.w(TAG, "addCommentOnActiveReading: L'ID de l'auteur du commentaire est vide.")
+            Log.w(TAG, "addCommentOnActiveReading: L'ID de l'auteur du commentaire est manquant.")
             return Resource.Error("L'ID de l'auteur du commentaire est manquant.")
         }
 
@@ -1254,8 +1254,10 @@ class UserRepositoryImpl @Inject constructor(
         trySend(Resource.Loading())
         Log.d(TAG, "getConversationMessages: Récupération des messages pour la conversation $conversationId.")
 
-        val listenerRegistration = conversationsCollection.document(conversationId)
+        val messagesCollectionRef = conversationsCollection.document(conversationId)
             .collection(FirebaseConstants.SUBCOLLECTION_MESSAGES)
+
+        val listenerRegistration = messagesCollectionRef
             .orderBy("timestamp", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -1265,7 +1267,10 @@ class UserRepositoryImpl @Inject constructor(
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
-                    val messages = snapshot.toObjects(PrivateMessage::class.java)
+                    // MODIFIÉ pour inclure l'ID du document
+                    val messages = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(PrivateMessage::class.java)?.copy(id = doc.id)
+                    }
                     Log.d(TAG, "getConversationMessages: ${messages.size} messages trouvés pour $conversationId.")
                     trySend(Resource.Success(messages))
                 }
@@ -1320,20 +1325,63 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
+    // MODIFIÉ: Implémentation transactionnelle robuste pour la suppression
     override suspend fun deletePrivateMessage(conversationId: String, messageId: String): Resource<Unit> {
         return try {
-            Log.d(TAG, "deletePrivateMessage: Tentative de suppression du message $messageId dans la conversation $conversationId.")
-            val messageDocRef = conversationsCollection
-                .document(conversationId)
-                .collection(FirebaseConstants.SUBCOLLECTION_MESSAGES)
-                .document(messageId)
+            val conversationDocRef = conversationsCollection.document(conversationId)
+            val messagesCollectionRef = conversationDocRef.collection(FirebaseConstants.SUBCOLLECTION_MESSAGES)
+            val messageToDeleteDocRef = messagesCollectionRef.document(messageId)
 
-            messageDocRef.delete().await()
+            // --- ÉTAPE 1: LECTURE (hors transaction) ---
+            // Lire les 2 derniers messages pour déterminer l'état après suppression.
+            val lastTwoMessagesQuery = messagesCollectionRef
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(2)
 
-            Log.i(TAG, "deletePrivateMessage: Message $messageId supprimé avec succès.")
+            val lastTwoMessagesSnapshot = lastTwoMessagesQuery.get().await()
+            val lastMessagesDocs = lastTwoMessagesSnapshot.documents
+
+            // --- ÉTAPE 2: ÉCRITURE (dans une transaction) ---
+            firestore.runTransaction { transaction ->
+                Log.d(TAG, "deletePrivateMessage [Transac]: Début pour message $messageId.")
+
+                // 1. Toujours supprimer le message ciblé.
+                transaction.delete(messageToDeleteDocRef)
+
+                // 2. Déterminer si le message supprimé était le dernier.
+                val latestMessageDoc = lastMessagesDocs.firstOrNull()
+                if (latestMessageDoc != null && latestMessageDoc.id == messageId) {
+                    // Le message supprimé était bien le dernier. Il faut mettre à jour le résumé.
+                    val newLatestMessageDoc = if (lastMessagesDocs.size > 1) lastMessagesDocs[1] else null
+
+                    val conversationUpdate: Map<String, Any?>
+                    if (newLatestMessageDoc != null) {
+                        // Il y a un message précédent, il devient le nouveau dernier message.
+                        val newLatestMessage = newLatestMessageDoc.toObject(PrivateMessage::class.java)
+                        Log.d(TAG, "deletePrivateMessage [Transac]: Le nouveau dernier message est: ${newLatestMessage?.text}")
+                        conversationUpdate = mapOf(
+                            "lastMessage" to newLatestMessage?.text,
+                            "lastMessageTimestamp" to newLatestMessage?.timestamp
+                        )
+                    } else {
+                        // Il n'y a plus de messages, la conversation est vide.
+                        Log.d(TAG, "deletePrivateMessage [Transac]: La conversation est maintenant vide. Réinitialisation du résumé.")
+                        conversationUpdate = mapOf(
+                            "lastMessage" to "",
+                            "lastMessageTimestamp" to null
+                        )
+                    }
+                    transaction.update(conversationDocRef, conversationUpdate)
+                } else {
+                    // Le message supprimé n'était pas le dernier, pas besoin de mettre à jour le résumé.
+                    Log.d(TAG, "deletePrivateMessage [Transac]: Le message supprimé n'était pas le dernier. Aucune mise à jour du résumé nécessaire.")
+                }
+            }.await()
+
+            Log.i(TAG, "deletePrivateMessage: Transaction de suppression de message terminée avec succès.")
             Resource.Success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "deletePrivateMessage: Erreur lors de la suppression du message $messageId: ${e.message}", e)
+            Log.e(TAG, "deletePrivateMessage: Erreur lors de la transaction de suppression du message $messageId: ${e.message}", e)
             Resource.Error("Erreur lors de la suppression du message: ${e.localizedMessage}")
         }
     }
