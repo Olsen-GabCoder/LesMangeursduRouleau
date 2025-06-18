@@ -32,17 +32,40 @@
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
             tools:text="Ceci est un message reçu qui est aussi assez long pour tester le retour à la ligne et voir si les métadonnées se placent bien en bas à droite sans rien cacher." />
 
-        <TextView
-            android:id="@+id/tv_message_timestamp"
+        <!-- MODIFIÉ: Conteneur pour l'indicateur (modifié) et l'heure -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
             android:paddingEnd="8dp"
             android:paddingBottom="4dp"
-            android:textColor="@color/black_60_alpha"
-            android:textSize="11sp"
-            tools:ignore="SmallSp"
-            tools:text="14:33" />
+            tools:ignore="RtlSymmetry">
+
+            <TextView
+                android:id="@+id/tv_edited_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/edited_indicator"
+                android:textColor="@color/black_60_alpha"
+                android:textSize="11sp"
+                android:textStyle="italic"
+                android:layout_marginEnd="4dp"
+                android:visibility="gone"
+                tools:visibility="visible"
+                tools:ignore="SmallSp"/>
+
+            <TextView
+                android:id="@+id/tv_message_timestamp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/black_60_alpha"
+                android:textSize="11sp"
+                tools:ignore="SmallSp"
+                tools:text="14:33" />
+        </LinearLayout>
+
     </FrameLayout>
 
     <LinearLayout

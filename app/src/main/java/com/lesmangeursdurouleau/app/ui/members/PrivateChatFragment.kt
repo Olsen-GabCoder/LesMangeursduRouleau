@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
@@ -20,6 +21,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.lesmangeursdurouleau.app.R
 import com.lesmangeursdurouleau.app.data.model.PrivateMessage
@@ -94,18 +96,33 @@ class PrivateChatFragment : Fragment() {
                 launch {
                     viewModel.deleteState.collectLatest { resource ->
                         when(resource) {
-                            is Resource.Loading -> {
-                                // Optionnel: Peut être remplacé par un indicateur visuel plus subtil
-                            }
+                            is Resource.Loading -> { /* No-op */ }
                             is Resource.Success -> {
                                 Toast.makeText(context, getString(R.string.message_deleted_successfully), Toast.LENGTH_SHORT).show()
-                                viewModel.resetDeleteState() // Réinitialiser l'état
+                                viewModel.resetDeleteState()
                             }
                             is Resource.Error -> {
                                 Toast.makeText(context, "Erreur: ${resource.message}", Toast.LENGTH_LONG).show()
-                                viewModel.resetDeleteState() // Réinitialiser l'état
+                                viewModel.resetDeleteState()
                             }
-                            null -> { /* État initial ou réinitialisé, ne rien faire */ }
+                            null -> { /* Initial state */ }
+                        }
+                    }
+                }
+                // AJOUT: Observateur pour l'état de l'édition de message
+                launch {
+                    viewModel.editState.collectLatest { resource ->
+                        when(resource) {
+                            is Resource.Loading -> { /* No-op */ }
+                            is Resource.Success -> {
+                                Toast.makeText(context, "Message modifié", Toast.LENGTH_SHORT).show()
+                                viewModel.resetEditState()
+                            }
+                            is Resource.Error -> {
+                                Toast.makeText(context, "Erreur: ${resource.message}", Toast.LENGTH_LONG).show()
+                                viewModel.resetEditState()
+                            }
+                            null -> { /* Initial state */ }
                         }
                     }
                 }
@@ -126,7 +143,6 @@ class PrivateChatFragment : Fragment() {
             showActionsMenuForMessage(anchorView, message)
         }
         val layoutManager = LinearLayoutManager(context)
-        // MODIFIÉ: Assure que la liste est affichée depuis le bas au démarrage.
         layoutManager.stackFromEnd = true
         binding.rvMessages.adapter = messagesAdapter
         binding.rvMessages.layoutManager = layoutManager
@@ -140,29 +156,24 @@ class PrivateChatFragment : Fragment() {
     }
 
     private fun showActionsMenuForMessage(anchorView: View, message: PrivateMessage) {
-        // MODIFIÉ: Ajout d'une garde pour s'assurer que le message a un ID.
         if (message.id.isNullOrBlank()) {
             Toast.makeText(context, getString(R.string.error_invalid_message_id), Toast.LENGTH_SHORT).show()
             return
         }
 
         val inflater = LayoutInflater.from(requireContext())
-        val popupView = inflater.inflate(R.layout.popup_message_actions, null)
+        val popupView = inflater.inflate(R.layout.popup_message_actions, binding.root, false)
 
         val popupWindow = PopupWindow(
             popupView,
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
-            true // Rend le popup focusable
+            true
         )
 
-        // MODIFIÉ: Logique de clic pour les emojis appelle maintenant le ViewModel.
         val emojis = mapOf(
-            R.id.emoji_thumbs_up to "👍",
-            R.id.emoji_heart to "❤️",
-            R.id.emoji_laugh to "😂",
-            R.id.emoji_wow to "😮",
-            R.id.emoji_sad to "😢"
+            R.id.emoji_thumbs_up to "👍", R.id.emoji_heart to "❤️", R.id.emoji_laugh to "😂",
+            R.id.emoji_wow to "😮", R.id.emoji_sad to "😢"
         )
         emojis.forEach { (id, emoji) ->
             popupView.findViewById<TextView>(id).setOnClickListener {
@@ -171,23 +182,27 @@ class PrivateChatFragment : Fragment() {
             }
         }
 
-        // Logique de clic pour l'action "Copier"
         popupView.findViewById<TextView>(R.id.action_copy_message_popup).setOnClickListener {
             copyMessageToClipboard(message.text)
             popupWindow.dismiss()
         }
 
-        // Logique conditionnelle pour afficher/masquer l'option de suppression
+        val editActionView = popupView.findViewById<TextView>(R.id.action_edit_message_popup)
         val deleteActionView = popupView.findViewById<TextView>(R.id.action_delete_message_popup)
         val separatorView = popupView.findViewById<View>(R.id.separator)
         val isSentByCurrentUser = message.senderId == firebaseAuth.currentUser?.uid
 
         if (isSentByCurrentUser) {
+            editActionView.setOnClickListener {
+                showEditMessageDialog(message)
+                popupWindow.dismiss()
+            }
             deleteActionView.setOnClickListener {
                 showDeleteConfirmationDialog(message)
                 popupWindow.dismiss()
             }
         } else {
+            editActionView.visibility = View.GONE
             deleteActionView.visibility = View.GONE
             separatorView.visibility = View.GONE
         }
@@ -198,29 +213,48 @@ class PrivateChatFragment : Fragment() {
         val location = IntArray(2)
         anchorView.getLocationOnScreen(location)
         val x = location[0] + (anchorView.width - popupWidth) / 2
-        val y = location[1] - popupHeight - 16 // Ajoute un petit offset au-dessus de l'ancre
+        val y = location[1] - popupHeight - 16
 
         popupWindow.showAtLocation(anchorView, 0, x, y)
     }
 
+    private fun showEditMessageDialog(message: PrivateMessage) {
+        if (message.id.isNullOrBlank()) return
+
+        val textInputLayout = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_edit_message, null) as TextInputLayout
+        val editText = textInputLayout.editText
+        editText?.setText(message.text)
+        editText?.setSelection(message.text.length)
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Modifier le message")
+            .setView(textInputLayout)
+            .setNegativeButton(R.string.cancel) { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setPositiveButton("Enregistrer") { dialog, _ ->
+                val newText = editText?.text.toString().trim()
+                if (newText.isNotEmpty() && newText != message.text) {
+                    viewModel.editMessage(message.id, newText)
+                }
+                dialog.dismiss()
+            }
+            .show()
+    }
+
     private fun copyMessageToClipboard(text: String?) {
         if (text.isNullOrEmpty()) return
-
         val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("Message Text", text)
         clipboard.setPrimaryClip(clip)
-
         Toast.makeText(context, getString(R.string.message_copied_to_clipboard), Toast.LENGTH_SHORT).show()
     }
 
     private fun showDeleteConfirmationDialog(message: PrivateMessage) {
-        // La vérification de l'ID est déjà faite dans showActionsMenuForMessage,
-        // mais une double vérification ici est une bonne pratique de défense.
         if (message.id.isNullOrBlank()) {
             Toast.makeText(context, getString(R.string.error_invalid_message_id), Toast.LENGTH_SHORT).show()
             return
         }
-
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(R.string.delete_message_dialog_title))
             .setMessage(getString(R.string.delete_message_dialog_message))
@@ -238,7 +272,6 @@ class PrivateChatFragment : Fragment() {
         binding.etMessageInput.addTextChangedListener {
             binding.btnSend.isEnabled = it.toString().isNotBlank()
         }
-
         binding.btnSend.setOnClickListener {
             val messageText = binding.etMessageInput.text.toString().trim()
             if (messageText.isNotEmpty()) {

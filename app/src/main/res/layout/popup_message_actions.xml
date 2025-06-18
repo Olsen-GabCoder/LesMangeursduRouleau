@@ -75,6 +75,12 @@
                 style="@style/Widget.App.MessageAction"
                 android:text="@string/copy" />
 
+            <!-- AJOUT: Option pour modifier le message -->
+            <TextView
+                android:id="@+id/action_edit_message_popup"
+                style="@style/Widget.App.MessageAction"
+                android:text="@string/edit" />
+
             <TextView
                 android:id="@+id/action_delete_message_popup"
                 style="@style/Widget.App.MessageAction"

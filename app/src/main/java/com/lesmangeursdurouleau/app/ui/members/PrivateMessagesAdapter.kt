@@ -59,19 +59,19 @@ class PrivateMessagesAdapter(
                 binding.tvMessageBody.text = message.text
                 binding.tvMessageTimestamp.text = message.timestamp?.let { timeFormat.format(it) } ?: ""
 
-                // MODIFIÉ: Gérer l'affichage des réactions
                 if (message.reactions.isNotEmpty()) {
                     binding.llReactionsContainer.isVisible = true
-                    // Concatène les emojis pour l'affichage
                     binding.tvReactions.text = message.reactions.values.joinToString("")
                 } else {
                     binding.llReactionsContainer.isVisible = false
                 }
 
+                // AJOUT: Gérer la visibilité de l'indicateur "(modifié)"
+                binding.tvEditedIndicator.isVisible = message.isEdited
+
                 itemView.setOnLongClickListener {
-                    // MODIFIÉ: Ancrer le menu à la bulle de message pour un meilleur positionnement
-                    onMessageLongClick(binding.tvMessageBody, message)
-                    true // Indique que l'événement a été consommé
+                    onMessageLongClick(binding.bubbleContainer, message)
+                    true
                 }
             }
         }
@@ -82,19 +82,19 @@ class PrivateMessagesAdapter(
                 binding.tvMessageBody.text = message.text
                 binding.tvMessageTimestamp.text = message.timestamp?.let { timeFormat.format(it) } ?: ""
 
-                // MODIFIÉ: Gérer l'affichage des réactions
                 if (message.reactions.isNotEmpty()) {
                     binding.llReactionsContainer.isVisible = true
-                    // Concatène les emojis pour l'affichage
                     binding.tvReactions.text = message.reactions.values.joinToString("")
                 } else {
                     binding.llReactionsContainer.isVisible = false
                 }
 
+                // AJOUT: Gérer la visibilité de l'indicateur "(modifié)"
+                binding.tvEditedIndicator.isVisible = message.isEdited
+
                 itemView.setOnLongClickListener {
-                    // MODIFIÉ: Ancrer le menu à la bulle de message pour un meilleur positionnement
-                    onMessageLongClick(binding.tvMessageBody, message)
-                    true // Indique que l'événement a été consommé
+                    onMessageLongClick(binding.bubbleContainer, message)
+                    true
                 }
             }
         }
@@ -102,13 +102,10 @@ class PrivateMessagesAdapter(
 
     class MessageDiffCallback : DiffUtil.ItemCallback<PrivateMessage>() {
         override fun areItemsTheSame(oldItem: PrivateMessage, newItem: PrivateMessage): Boolean {
-            // MODIFIÉ: Utiliser l'ID unique du message pour une comparaison plus fiable.
             return oldItem.id == newItem.id
         }
 
         override fun areContentsTheSame(oldItem: PrivateMessage, newItem: PrivateMessage): Boolean {
-            // Cette comparaison est maintenant efficace car elle inclut le champ 'reactions'.
-            // DiffUtil détectera un changement dans les réactions et mettra à jour la vue.
             return oldItem == newItem
         }
     }

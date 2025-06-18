@@ -41,7 +41,8 @@ class UserRepositoryImpl @Inject constructor(
     private val usersCollection = firestore.collection(FirebaseConstants.COLLECTION_USERS)
     private val conversationsCollection = firestore.collection(FirebaseConstants.COLLECTION_CONVERSATIONS)
 
-    // Helper function pour créer un objet User à partir d'un DocumentSnapshot, gérant la conversion de createdAt
+    // ... (toutes les autres méthodes de UserRepositoryImpl restent inchangées) ...
+
     private fun createUserFromSnapshot(document: DocumentSnapshot): User {
         return User(
             uid = document.id,
@@ -1391,7 +1392,6 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    // AJOUTÉ: Implémentation de la logique de réaction
     override suspend fun addOrUpdateReaction(conversationId: String, messageId: String, userId: String, emoji: String): Resource<Unit> {
         if (conversationId.isBlank() || messageId.isBlank() || userId.isBlank() || emoji.isBlank()) {
             return Resource.Error("Arguments invalides pour la réaction.")
@@ -1411,8 +1411,6 @@ class UserRepositoryImpl @Inject constructor(
                 val currentReactions = messageSnapshot.get("reactions") as? Map<String, String> ?: emptyMap()
                 val newReactions = currentReactions.toMutableMap()
 
-                // Si l'utilisateur réagit avec le même emoji, on retire sa réaction.
-                // Sinon, on ajoute ou on met à jour sa réaction.
                 if (newReactions[userId] == emoji) {
                     newReactions.remove(userId)
                     Log.d(TAG, "addOrUpdateReaction [Transac]: Réaction retirée pour l'utilisateur $userId.")
@@ -1429,6 +1427,31 @@ class UserRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "addOrUpdateReaction: Erreur lors de la transaction de réaction pour le message $messageId: ${e.message}", e)
             Resource.Error("Erreur lors de la mise à jour de la réaction: ${e.localizedMessage}")
+        }
+    }
+
+    // AJOUT: Implémentation de la logique d'édition de message
+    override suspend fun editPrivateMessage(conversationId: String, messageId: String, newText: String): Resource<Unit> {
+        if (conversationId.isBlank() || messageId.isBlank() || newText.isBlank()) {
+            return Resource.Error("Arguments invalides pour la modification du message.")
+        }
+
+        return try {
+            val messageRef = conversationsCollection.document(conversationId)
+                .collection(FirebaseConstants.SUBCOLLECTION_MESSAGES).document(messageId)
+
+            val updates = mapOf(
+                "text" to newText,
+                "isEdited" to true
+            )
+
+            messageRef.update(updates).await()
+
+            Log.i(TAG, "editPrivateMessage: Message $messageId modifié avec succès.")
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "editPrivateMessage: Erreur lors de la modification du message $messageId: ${e.message}", e)
+            Resource.Error("Erreur lors de la modification du message: ${e.localizedMessage}")
         }
     }
 }

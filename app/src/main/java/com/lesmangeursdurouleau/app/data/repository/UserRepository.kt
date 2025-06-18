@@ -79,17 +79,15 @@ interface UserRepository {
 
     suspend fun markConversationAsRead(conversationId: String, userId: String): Resource<Unit>
 
+    suspend fun addOrUpdateReaction(conversationId: String, messageId: String, userId: String, emoji: String): Resource<Unit>
+
     /**
-     * AJOUT: Ajoute, met à jour ou supprime une réaction sur un message.
-     * Si l'utilisateur a déjà réagi avec le même emoji, la réaction est retirée.
-     * S'il réagit avec un autre emoji, sa réaction est mise à jour.
-     * Sinon, la nouvelle réaction est ajoutée.
+     * AJOUT: Met à jour le texte d'un message privé existant.
      *
      * @param conversationId L'ID de la conversation.
-     * @param messageId L'ID du message.
-     * @param userId L'ID de l'utilisateur qui réagit.
-     * @param emoji L'emoji de la réaction.
+     * @param messageId L'ID du message à modifier.
+     * @param newText Le nouveau contenu textuel du message.
      * @return Une Resource indiquant le succès ou l'échec.
      */
-    suspend fun addOrUpdateReaction(conversationId: String, messageId: String, userId: String, emoji: String): Resource<Unit>
+    suspend fun editPrivateMessage(conversationId: String, messageId: String, newText: String): Resource<Unit>
 }

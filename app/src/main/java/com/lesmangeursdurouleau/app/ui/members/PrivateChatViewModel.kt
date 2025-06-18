@@ -38,6 +38,10 @@ class PrivateChatViewModel @Inject constructor(
     private val _deleteState = MutableStateFlow<Resource<Unit>?>(null)
     val deleteState = _deleteState.asStateFlow()
 
+    // AJOUT: StateFlow pour gérer le résultat de l'opération d'édition
+    private val _editState = MutableStateFlow<Resource<Unit>?>(null)
+    val editState = _editState.asStateFlow()
+
     init {
         initializeConversation()
         loadTargetUser()
@@ -57,7 +61,6 @@ class PrivateChatViewModel @Inject constructor(
                     _conversationId.value = convId
                     if (convId != null) {
                         loadMessages(convId)
-                        // AJOUT: Marquer la conversation comme lue dès qu'on a l'ID
                         markConversationAsRead(convId, currentUserId)
                     } else {
                         _messages.value = Resource.Error("Impossible de créer ou de trouver la conversation.")
@@ -134,9 +137,6 @@ class PrivateChatViewModel @Inject constructor(
         _deleteState.value = null
     }
 
-    /**
-     * AJOUT: Gère l'ajout, la mise à jour ou la suppression d'une réaction pour le message spécifié.
-     */
     fun addOrUpdateReaction(messageId: String, emoji: String) {
         val convId = _conversationId.value
         val currentUserId = firebaseAuth.currentUser?.uid
@@ -147,12 +147,38 @@ class PrivateChatViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // C'est une opération "fire-and-forget" pour l'UI, on ne gère pas d'état de chargement.
-            // On logue simplement l'erreur si elle survient.
             val result = userRepository.addOrUpdateReaction(convId, messageId, currentUserId, emoji)
             if (result is Resource.Error) {
                 Log.e("PrivateChatViewModel", "Erreur lors de l'ajout/mise à jour de la réaction: ${result.message}")
             }
         }
+    }
+
+    /**
+     * AJOUT: Déclenche la modification d'un message.
+     */
+    fun editMessage(messageId: String, newText: String) {
+        val convId = _conversationId.value
+        if (convId == null) {
+            _editState.value = Resource.Error("ID de conversation non disponible.")
+            return
+        }
+        if (messageId.isBlank() || newText.isBlank()) {
+            _editState.value = Resource.Error("Le nouveau message ne peut pas être vide.")
+            return
+        }
+
+        viewModelScope.launch {
+            _editState.value = Resource.Loading()
+            val result = userRepository.editPrivateMessage(convId, messageId, newText)
+            _editState.value = result
+        }
+    }
+
+    /**
+     * AJOUT: Réinitialise l'état de modification pour éviter les actions répétées.
+     */
+    fun resetEditState() {
+        _editState.value = null
     }
 }

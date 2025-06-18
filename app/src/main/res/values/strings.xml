@@ -360,4 +360,7 @@
     <string name="reaction_wow">Réaction surpris</string>
     <string name="reaction_sad">Réaction triste</string>
     <string name="message_copied_to_clipboard">Message copié dans le presse-papiers</string>
+    <string name="edit">Modifier</string>
+    <!-- Fichier: res/values/strings.xml -->
+    <string name="edited_indicator">(modifié)</string>
 </resources>

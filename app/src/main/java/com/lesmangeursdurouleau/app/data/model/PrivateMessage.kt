@@ -1,4 +1,3 @@
-// Fichier : com/lesmangeursdurouleau/app/data/model/PrivateMessage.kt
 package com.lesmangeursdurouleau.app.data.model
 
 import com.google.firebase.firestore.DocumentId
@@ -18,9 +17,11 @@ data class PrivateMessage(
     @ServerTimestamp
     val timestamp: Date? = null,
 
-    // AJOUT: Champ pour stocker les réactions. Clé = UserID, Valeur = Emoji (String).
-    val reactions: Map<String, String> = emptyMap()
+    val reactions: Map<String, String> = emptyMap(),
+
+    // AJOUT: Indicateur pour savoir si le message a été modifié.
+    val isEdited: Boolean = false
 ) {
     // Constructeur sans argument requis par Firestore pour la désérialisation
-    constructor() : this(null, "", "", null, emptyMap())
+    constructor() : this(null, "", "", null, emptyMap(), false)
 }
