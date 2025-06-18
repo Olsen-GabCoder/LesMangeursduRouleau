@@ -1,4 +1,3 @@
-// Fichier : com/lesmangeursdurouleau/app/data/repository/UserRepository.kt
 package com.lesmangeursdurouleau.app.data.repository
 
 import com.google.firebase.firestore.Query
@@ -58,13 +57,6 @@ interface UserRepository {
 
     suspend fun removeCompletedReading(userId: String, bookId: String): Resource<Unit>
 
-    /**
-     * MODIFIÉ: Récupère un flux de lectures terminées pour un utilisateur, avec options de tri.
-     * @param userId L'ID de l'utilisateur.
-     * @param orderBy Le champ sur lequel trier (ex: "completionDate", "title").
-     * @param direction La direction du tri (ASCENDING ou DESCENDING).
-     * @return Un Flow de Resource<List<CompletedReading>>.
-     */
     fun getCompletedReadings(
         userId: String,
         orderBy: String,
@@ -75,51 +67,29 @@ interface UserRepository {
 
     // --- MESSAGERIE PRIVÉE ---
 
-    /**
-     * Récupère en temps réel la liste des conversations pour un utilisateur donné.
-     * @param userId L'ID de l'utilisateur dont on veut les conversations.
-     * @return Un Flow de Resource contenant la liste des conversations.
-     */
     fun getUserConversations(userId: String): Flow<Resource<List<Conversation>>>
 
-    /**
-     * Crée une nouvelle conversation entre deux utilisateurs si elle n'existe pas,
-     * ou récupère l'ID de la conversation existante.
-     * @param currentUserId L'ID de l'utilisateur actuellement connecté.
-     * @param targetUserId L'ID de l'utilisateur avec qui démarrer la conversation.
-     * @return Une Resource contenant l'ID de la conversation (existante ou nouvelle).
-     */
     suspend fun createOrGetConversation(currentUserId: String, targetUserId: String): Resource<String>
 
-    /**
-     * Récupère en temps réel la liste des messages pour une conversation donnée.
-     * @param conversationId L'ID de la conversation.
-     * @return Un Flow de Resource contenant la liste des messages privés.
-     */
     fun getConversationMessages(conversationId: String): Flow<Resource<List<PrivateMessage>>>
 
-    /**
-     * Envoie un message dans une conversation.
-     * @param conversationId L'ID de la conversation où envoyer le message.
-     * @param message L'objet message à envoyer.
-     * @return Une Resource indiquant le succès ou l'échec de l'opération.
-     */
     suspend fun sendPrivateMessage(conversationId: String, message: PrivateMessage): Resource<Unit>
 
-    /**
-     * Supprime un message dans une conversation.
-     * Seul l'auteur du message peut effectuer cette action (géré par les règles de sécurité Firestore).
-     * @param conversationId L'ID de la conversation contenant le message.
-     * @param messageId L'ID du message à supprimer.
-     * @return Une Resource indiquant le succès ou l'échec de l'opération.
-     */
     suspend fun deletePrivateMessage(conversationId: String, messageId: String): Resource<Unit>
 
-    /**
-     * AJOUTÉ: Réinitialise le compteur de messages non lus pour l'utilisateur spécifié dans une conversation.
-     * @param conversationId L'ID de la conversation à mettre à jour.
-     * @param userId L'ID de l'utilisateur pour lequel réinitialiser le compteur.
-     * @return Une Resource indiquant le succès ou l'échec de l'opération.
-     */
     suspend fun markConversationAsRead(conversationId: String, userId: String): Resource<Unit>
+
+    /**
+     * AJOUT: Ajoute, met à jour ou supprime une réaction sur un message.
+     * Si l'utilisateur a déjà réagi avec le même emoji, la réaction est retirée.
+     * S'il réagit avec un autre emoji, sa réaction est mise à jour.
+     * Sinon, la nouvelle réaction est ajoutée.
+     *
+     * @param conversationId L'ID de la conversation.
+     * @param messageId L'ID du message.
+     * @param userId L'ID de l'utilisateur qui réagit.
+     * @param emoji L'emoji de la réaction.
+     * @return Une Resource indiquant le succès ou l'échec.
+     */
+    suspend fun addOrUpdateReaction(conversationId: String, messageId: String, userId: String, emoji: String): Resource<Unit>
 }

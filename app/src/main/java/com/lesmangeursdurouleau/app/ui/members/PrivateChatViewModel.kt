@@ -1,4 +1,3 @@
-// Fichier : com/lesmangeursdurouleau/app/ui/members/PrivateChatViewModel.kt
 package com.lesmangeursdurouleau.app.ui.members
 
 import android.util.Log
@@ -74,11 +73,8 @@ class PrivateChatViewModel @Inject constructor(
         }
     }
 
-    // AJOUT: Fonction pour appeler le repository et marquer la conversation comme lue.
     private fun markConversationAsRead(conversationId: String, userId: String) {
         viewModelScope.launch {
-            // C'est une opération "fire-and-forget". On ne gère pas l'état Loading/Success
-            // dans l'UI car l'effet est implicite. On logue juste l'erreur si elle se produit.
             val result = userRepository.markConversationAsRead(conversationId, userId)
             if (result is Resource.Error) {
                 Log.e("PrivateChatViewModel", "Erreur lors du marquage de la conversation comme lue: ${result.message}")
@@ -116,10 +112,6 @@ class PrivateChatViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Déclenche la suppression d'un message.
-     * @param messageId L'ID du document message à supprimer dans Firestore.
-     */
     fun deleteMessage(messageId: String) {
         val convId = _conversationId.value
         if (convId == null) {
@@ -138,10 +130,29 @@ class PrivateChatViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Réinitialise l'état de suppression pour éviter les actions répétées (ex: Toasts).
-     */
     fun resetDeleteState() {
         _deleteState.value = null
+    }
+
+    /**
+     * AJOUT: Gère l'ajout, la mise à jour ou la suppression d'une réaction pour le message spécifié.
+     */
+    fun addOrUpdateReaction(messageId: String, emoji: String) {
+        val convId = _conversationId.value
+        val currentUserId = firebaseAuth.currentUser?.uid
+
+        if (convId == null || currentUserId == null) {
+            Log.e("PrivateChatViewModel", "Impossible de réagir: ID de conversation ou d'utilisateur manquant")
+            return
+        }
+
+        viewModelScope.launch {
+            // C'est une opération "fire-and-forget" pour l'UI, on ne gère pas d'état de chargement.
+            // On logue simplement l'erreur si elle survient.
+            val result = userRepository.addOrUpdateReaction(convId, messageId, currentUserId, emoji)
+            if (result is Resource.Error) {
+                Log.e("PrivateChatViewModel", "Erreur lors de l'ajout/mise à jour de la réaction: ${result.message}")
+            }
+        }
     }
 }

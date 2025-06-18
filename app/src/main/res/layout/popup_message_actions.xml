@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="8dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Barre de réactions Emoji -->
+        <LinearLayout
+            android:id="@+id/llEmojiReactions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/emoji_thumbs_up"
+                style="@style/Widget.App.EmojiReaction"
+                android:text="👍"
+                android:contentDescription="@string/reaction_thumbs_up"/>
+
+            <TextView
+                android:id="@+id/emoji_heart"
+                style="@style/Widget.App.EmojiReaction"
+                android:text="❤️"
+                android:contentDescription="@string/reaction_heart"/>
+
+            <TextView
+                android:id="@+id/emoji_laugh"
+                style="@style/Widget.App.EmojiReaction"
+                android:text="😂"
+                android:contentDescription="@string/reaction_laughing"/>
+
+            <TextView
+                android:id="@+id/emoji_wow"
+                style="@style/Widget.App.EmojiReaction"
+                android:text="😮"
+                android:contentDescription="@string/reaction_wow"/>
+
+            <TextView
+                android:id="@+id/emoji_sad"
+                style="@style/Widget.App.EmojiReaction"
+                android:text="😢"
+                android:contentDescription="@string/reaction_sad"/>
+
+        </LinearLayout>
+
+        <!-- Séparateur -->
+        <View
+            android:id="@+id/separator"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="?android:attr/listDivider" />
+
+        <!-- Actions du menu -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
+
+            <TextView
+                android:id="@+id/action_copy_message_popup"
+                style="@style/Widget.App.MessageAction"
+                android:text="@string/copy" />
+
+            <TextView
+                android:id="@+id/action_delete_message_popup"
+                style="@style/Widget.App.MessageAction"
+                android:text="@string/delete" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

@@ -6,32 +6,69 @@
     android:layout_height="wrap_content"
     android:paddingStart="8dp"
     android:paddingEnd="64dp"
-    android:paddingTop="4dp"
-    android:paddingBottom="4dp">
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp">
 
-    <TextView
-        android:id="@+id/tv_message_body"
+    <FrameLayout
+        android:id="@+id/bubble_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_chat_bubble_received"
-        android:padding="12dp"
-        android:textColor="@android:color/black"
-        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:text="Ceci est un message reçu de l'interlocuteur." />
+        app:layout_constraintWidth_max="wrap"
+        app:layout_constrainedWidth="true"
+        app:layout_constraintHorizontal_bias="0.0">
 
-    <!-- NOUVEAU: TextView pour l'horodatage -->
-    <TextView
-        android:id="@+id/tv_message_timestamp"
+        <TextView
+            android:id="@+id/tv_message_body"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="12dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="24dp"
+            android:textColor="@android:color/black"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+            tools:text="Ceci est un message reçu qui est aussi assez long pour tester le retour à la ligne et voir si les métadonnées se placent bien en bas à droite sans rien cacher." />
+
+        <TextView
+            android:id="@+id/tv_message_timestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:paddingEnd="8dp"
+            android:paddingBottom="4dp"
+            android:textColor="@color/black_60_alpha"
+            android:textSize="11sp"
+            tools:ignore="SmallSp"
+            tools:text="14:33" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_reactions_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-        android:textSize="10sp"
-        tools:ignore="SmallSp"
-        app:layout_constraintStart_toStartOf="@+id/tv_message_body"
-        app:layout_constraintTop_toBottomOf="@+id/tv_message_body"
-        tools:text="14:33" />
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/bg_reactions"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="4dp"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="@id/bubble_container"
+        app:layout_constraintTop_toBottomOf="@id/bubble_container"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/tv_reactions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            tools:text="👍❤️" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

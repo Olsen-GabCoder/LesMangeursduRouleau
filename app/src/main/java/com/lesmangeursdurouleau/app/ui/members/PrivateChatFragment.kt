@@ -1,10 +1,14 @@
-// Fichier : com/lesmangeursdurouleau/app/ui/members/PrivateChatFragment.kt
 package com.lesmangeursdurouleau.app.ui.members
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupWindow
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
@@ -58,7 +62,6 @@ class PrivateChatFragment : Fragment() {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // Observer les messages
                 launch {
                     viewModel.messages.collect { resource ->
                         when (resource) {
@@ -74,8 +77,6 @@ class PrivateChatFragment : Fragment() {
                         }
                     }
                 }
-
-                // Observer l'état de l'envoi de message
                 launch {
                     viewModel.sendState.collectLatest { resource ->
                         if (resource is Resource.Error) {
@@ -83,8 +84,6 @@ class PrivateChatFragment : Fragment() {
                         }
                     }
                 }
-
-                // Observer les informations de l'utilisateur cible
                 launch {
                     viewModel.targetUser.collect { resource ->
                         if (resource is Resource.Success) {
@@ -92,17 +91,14 @@ class PrivateChatFragment : Fragment() {
                         }
                     }
                 }
-
-                // Observer l'état de la suppression de message
                 launch {
                     viewModel.deleteState.collectLatest { resource ->
                         when(resource) {
                             is Resource.Loading -> {
-                                // Optionnel: afficher un indicateur de chargement
-                                Toast.makeText(context, "Suppression en cours...", Toast.LENGTH_SHORT).show()
+                                // Optionnel: Peut être remplacé par un indicateur visuel plus subtil
                             }
                             is Resource.Success -> {
-                                Toast.makeText(context, "Message supprimé", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, getString(R.string.message_deleted_successfully), Toast.LENGTH_SHORT).show()
                                 viewModel.resetDeleteState() // Réinitialiser l'état
                             }
                             is Resource.Error -> {
@@ -126,27 +122,102 @@ class PrivateChatFragment : Fragment() {
 
     private fun setupRecyclerView() {
         val currentUserId = firebaseAuth.currentUser?.uid ?: ""
-        messagesAdapter = PrivateMessagesAdapter(currentUserId) { message ->
-            onMessageLongClicked(message)
+        messagesAdapter = PrivateMessagesAdapter(currentUserId) { anchorView, message ->
+            showActionsMenuForMessage(anchorView, message)
         }
         val layoutManager = LinearLayoutManager(context)
+        // MODIFIÉ: Assure que la liste est affichée depuis le bas au démarrage.
+        layoutManager.stackFromEnd = true
         binding.rvMessages.adapter = messagesAdapter
         binding.rvMessages.layoutManager = layoutManager
 
         messagesAdapter.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
             override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
+                super.onItemRangeInserted(positionStart, itemCount)
                 binding.rvMessages.scrollToPosition(messagesAdapter.itemCount - 1)
             }
         })
     }
 
-    /**
-     * Gère le clic long sur un message en affichant une boîte de dialogue.
-     */
-    private fun onMessageLongClicked(message: PrivateMessage) {
-        // L'ID du message est crucial. Cette vérification reste une sécurité.
-        if (message.id?.isBlank() == true) {
-            Toast.makeText(context, "Impossible de supprimer ce message (ID manquant)", Toast.LENGTH_SHORT).show()
+    private fun showActionsMenuForMessage(anchorView: View, message: PrivateMessage) {
+        // MODIFIÉ: Ajout d'une garde pour s'assurer que le message a un ID.
+        if (message.id.isNullOrBlank()) {
+            Toast.makeText(context, getString(R.string.error_invalid_message_id), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val inflater = LayoutInflater.from(requireContext())
+        val popupView = inflater.inflate(R.layout.popup_message_actions, null)
+
+        val popupWindow = PopupWindow(
+            popupView,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true // Rend le popup focusable
+        )
+
+        // MODIFIÉ: Logique de clic pour les emojis appelle maintenant le ViewModel.
+        val emojis = mapOf(
+            R.id.emoji_thumbs_up to "👍",
+            R.id.emoji_heart to "❤️",
+            R.id.emoji_laugh to "😂",
+            R.id.emoji_wow to "😮",
+            R.id.emoji_sad to "😢"
+        )
+        emojis.forEach { (id, emoji) ->
+            popupView.findViewById<TextView>(id).setOnClickListener {
+                viewModel.addOrUpdateReaction(message.id, emoji)
+                popupWindow.dismiss()
+            }
+        }
+
+        // Logique de clic pour l'action "Copier"
+        popupView.findViewById<TextView>(R.id.action_copy_message_popup).setOnClickListener {
+            copyMessageToClipboard(message.text)
+            popupWindow.dismiss()
+        }
+
+        // Logique conditionnelle pour afficher/masquer l'option de suppression
+        val deleteActionView = popupView.findViewById<TextView>(R.id.action_delete_message_popup)
+        val separatorView = popupView.findViewById<View>(R.id.separator)
+        val isSentByCurrentUser = message.senderId == firebaseAuth.currentUser?.uid
+
+        if (isSentByCurrentUser) {
+            deleteActionView.setOnClickListener {
+                showDeleteConfirmationDialog(message)
+                popupWindow.dismiss()
+            }
+        } else {
+            deleteActionView.visibility = View.GONE
+            separatorView.visibility = View.GONE
+        }
+
+        popupView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+        val popupWidth = popupView.measuredWidth
+        val popupHeight = popupView.measuredHeight
+        val location = IntArray(2)
+        anchorView.getLocationOnScreen(location)
+        val x = location[0] + (anchorView.width - popupWidth) / 2
+        val y = location[1] - popupHeight - 16 // Ajoute un petit offset au-dessus de l'ancre
+
+        popupWindow.showAtLocation(anchorView, 0, x, y)
+    }
+
+    private fun copyMessageToClipboard(text: String?) {
+        if (text.isNullOrEmpty()) return
+
+        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Message Text", text)
+        clipboard.setPrimaryClip(clip)
+
+        Toast.makeText(context, getString(R.string.message_copied_to_clipboard), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showDeleteConfirmationDialog(message: PrivateMessage) {
+        // La vérification de l'ID est déjà faite dans showActionsMenuForMessage,
+        // mais une double vérification ici est une bonne pratique de défense.
+        if (message.id.isNullOrBlank()) {
+            Toast.makeText(context, getString(R.string.error_invalid_message_id), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -157,7 +228,7 @@ class PrivateChatFragment : Fragment() {
                 dialog.dismiss()
             }
             .setPositiveButton(getString(R.string.delete)) { dialog, _ ->
-                message.id?.let { viewModel.deleteMessage(it) }
+                viewModel.deleteMessage(message.id)
                 dialog.dismiss()
             }
             .show()

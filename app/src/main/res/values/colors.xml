@@ -7,7 +7,8 @@
     <color name="chat_input_background_dark">#1F2C34</color>
     <color name="chat_input_text_dark">#E9EDEF</color>
     <color name="chat_input_hint_dark">#8696A0</color>
-
+    <color name="white_60_alpha">#99FFFFFF</color>
+    <color name="black_60_alpha">#99000000</color>
     <color name="chat_bubble_sent_bg_dark">#0B80FE</color>
     <color name="chat_text_sent_dark">#FFFFFF</color>
     <color name="chat_bubble_received_bg_dark">#1F2C34</color>

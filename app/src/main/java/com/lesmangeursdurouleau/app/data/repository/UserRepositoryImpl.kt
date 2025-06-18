@@ -1,18 +1,23 @@
-// Fichier : com/lesmangeursdurouleau/app/data/repository/UserRepositoryImpl.kt
 package com.lesmangeursdurouleau.app.data.repository
 
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldPath
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
-import com.lesmangeursdurouleau.app.data.model.User
-import com.lesmangeursdurouleau.app.data.model.UserBookReading
+import com.google.firebase.Timestamp
 import com.lesmangeursdurouleau.app.data.model.Comment
-import com.lesmangeursdurouleau.app.data.model.Like
 import com.lesmangeursdurouleau.app.data.model.CompletedReading
 import com.lesmangeursdurouleau.app.data.model.Conversation
+import com.lesmangeursdurouleau.app.data.model.Like
 import com.lesmangeursdurouleau.app.data.model.PrivateMessage
+import com.lesmangeursdurouleau.app.data.model.User
+import com.lesmangeursdurouleau.app.data.model.UserBookReading
 import com.lesmangeursdurouleau.app.data.remote.FirebaseStorageService
 import com.lesmangeursdurouleau.app.remote.FirebaseConstants
 import com.lesmangeursdurouleau.app.utils.Resource
@@ -20,14 +25,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
-import javax.inject.Inject
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestoreException
-import com.google.firebase.firestore.FieldPath
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.Query
-import com.google.firebase.Timestamp
 import java.util.Date
+import javax.inject.Inject
 
 class UserRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
@@ -1325,15 +1324,12 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    // MODIFIÉ: Implémentation transactionnelle robuste pour la suppression
     override suspend fun deletePrivateMessage(conversationId: String, messageId: String): Resource<Unit> {
         return try {
             val conversationDocRef = conversationsCollection.document(conversationId)
             val messagesCollectionRef = conversationDocRef.collection(FirebaseConstants.SUBCOLLECTION_MESSAGES)
             val messageToDeleteDocRef = messagesCollectionRef.document(messageId)
 
-            // --- ÉTAPE 1: LECTURE (hors transaction) ---
-            // Lire les 2 derniers messages pour déterminer l'état après suppression.
             val lastTwoMessagesQuery = messagesCollectionRef
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(2)
@@ -1341,22 +1337,17 @@ class UserRepositoryImpl @Inject constructor(
             val lastTwoMessagesSnapshot = lastTwoMessagesQuery.get().await()
             val lastMessagesDocs = lastTwoMessagesSnapshot.documents
 
-            // --- ÉTAPE 2: ÉCRITURE (dans une transaction) ---
             firestore.runTransaction { transaction ->
                 Log.d(TAG, "deletePrivateMessage [Transac]: Début pour message $messageId.")
 
-                // 1. Toujours supprimer le message ciblé.
                 transaction.delete(messageToDeleteDocRef)
 
-                // 2. Déterminer si le message supprimé était le dernier.
                 val latestMessageDoc = lastMessagesDocs.firstOrNull()
                 if (latestMessageDoc != null && latestMessageDoc.id == messageId) {
-                    // Le message supprimé était bien le dernier. Il faut mettre à jour le résumé.
                     val newLatestMessageDoc = if (lastMessagesDocs.size > 1) lastMessagesDocs[1] else null
 
                     val conversationUpdate: Map<String, Any?>
                     if (newLatestMessageDoc != null) {
-                        // Il y a un message précédent, il devient le nouveau dernier message.
                         val newLatestMessage = newLatestMessageDoc.toObject(PrivateMessage::class.java)
                         Log.d(TAG, "deletePrivateMessage [Transac]: Le nouveau dernier message est: ${newLatestMessage?.text}")
                         conversationUpdate = mapOf(
@@ -1364,7 +1355,6 @@ class UserRepositoryImpl @Inject constructor(
                             "lastMessageTimestamp" to newLatestMessage?.timestamp
                         )
                     } else {
-                        // Il n'y a plus de messages, la conversation est vide.
                         Log.d(TAG, "deletePrivateMessage [Transac]: La conversation est maintenant vide. Réinitialisation du résumé.")
                         conversationUpdate = mapOf(
                             "lastMessage" to "",
@@ -1373,7 +1363,6 @@ class UserRepositoryImpl @Inject constructor(
                     }
                     transaction.update(conversationDocRef, conversationUpdate)
                 } else {
-                    // Le message supprimé n'était pas le dernier, pas besoin de mettre à jour le résumé.
                     Log.d(TAG, "deletePrivateMessage [Transac]: Le message supprimé n'était pas le dernier. Aucune mise à jour du résumé nécessaire.")
                 }
             }.await()
@@ -1399,6 +1388,47 @@ class UserRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "markConversationAsRead: Erreur lors de la réinitialisation du compteur pour $userId: ${e.message}", e)
             Resource.Error("Erreur lors de la mise à jour du statut de lecture: ${e.localizedMessage}")
+        }
+    }
+
+    // AJOUTÉ: Implémentation de la logique de réaction
+    override suspend fun addOrUpdateReaction(conversationId: String, messageId: String, userId: String, emoji: String): Resource<Unit> {
+        if (conversationId.isBlank() || messageId.isBlank() || userId.isBlank() || emoji.isBlank()) {
+            return Resource.Error("Arguments invalides pour la réaction.")
+        }
+
+        return try {
+            val messageRef = conversationsCollection.document(conversationId)
+                .collection(FirebaseConstants.SUBCOLLECTION_MESSAGES).document(messageId)
+
+            firestore.runTransaction { transaction ->
+                val messageSnapshot = transaction.get(messageRef)
+                if (!messageSnapshot.exists()) {
+                    throw FirebaseFirestoreException("Message non trouvé.", FirebaseFirestoreException.Code.NOT_FOUND)
+                }
+
+                @Suppress("UNCHECKED_CAST")
+                val currentReactions = messageSnapshot.get("reactions") as? Map<String, String> ?: emptyMap()
+                val newReactions = currentReactions.toMutableMap()
+
+                // Si l'utilisateur réagit avec le même emoji, on retire sa réaction.
+                // Sinon, on ajoute ou on met à jour sa réaction.
+                if (newReactions[userId] == emoji) {
+                    newReactions.remove(userId)
+                    Log.d(TAG, "addOrUpdateReaction [Transac]: Réaction retirée pour l'utilisateur $userId.")
+                } else {
+                    newReactions[userId] = emoji
+                    Log.d(TAG, "addOrUpdateReaction [Transac]: Réaction ajoutée/mise à jour pour l'utilisateur $userId avec $emoji.")
+                }
+
+                transaction.update(messageRef, "reactions", newReactions)
+            }.await()
+
+            Log.i(TAG, "addOrUpdateReaction: Transaction de réaction terminée avec succès pour le message $messageId.")
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "addOrUpdateReaction: Erreur lors de la transaction de réaction pour le message $messageId: ${e.message}", e)
+            Resource.Error("Erreur lors de la mise à jour de la réaction: ${e.localizedMessage}")
         }
     }
 }

@@ -352,4 +352,12 @@
     <string name="sort_by_author_desc">Auteur (Z-A)</string>
     <string name="delete_message_dialog_title">Supprimer le message ?</string>
     <string name="delete_message_dialog_message">Cette action est irréversible. Le message sera supprimé définitivement.</string>
+    <string name="copy">Copier</string>
+    <string name="error_invalid_message_id">Erreur : ID de message invalide.</string>
+    <string name="reaction_thumbs_up">Réaction pouce en l\'air</string>
+    <string name="reaction_heart">Réaction coeur</string>
+    <string name="reaction_laughing">Réaction rire</string>
+    <string name="reaction_wow">Réaction surpris</string>
+    <string name="reaction_sad">Réaction triste</string>
+    <string name="message_copied_to_clipboard">Message copié dans le presse-papiers</string>
 </resources>

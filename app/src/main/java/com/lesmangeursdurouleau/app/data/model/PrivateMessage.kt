@@ -16,8 +16,11 @@ data class PrivateMessage(
     val text: String = "",
 
     @ServerTimestamp
-    val timestamp: Date? = null
+    val timestamp: Date? = null,
+
+    // AJOUT: Champ pour stocker les réactions. Clé = UserID, Valeur = Emoji (String).
+    val reactions: Map<String, String> = emptyMap()
 ) {
     // Constructeur sans argument requis par Firestore pour la désérialisation
-    constructor() : this(null, "", "", null)
+    constructor() : this(null, "", "", null, emptyMap())
 }

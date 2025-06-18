@@ -1,0 +1,6 @@
+<!-- Fichier: res/drawable/bg_reactions.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/colorSurfaceContainer" />
+    <corners android:radius="12dp" />
+</shape>
