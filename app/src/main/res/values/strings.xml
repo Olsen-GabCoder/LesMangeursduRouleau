@@ -350,4 +350,6 @@
     <string name="sort_by_title_desc">Titre (Z-A)</string>
     <string name="sort_by_author_asc">Auteur (A-Z)</string>
     <string name="sort_by_author_desc">Auteur (Z-A)</string>
+    <string name="delete_message_dialog_title">Supprimer le message ?</string>
+    <string name="delete_message_dialog_message">Cette action est irréversible. Le message sera supprimé définitivement.</string>
 </resources>

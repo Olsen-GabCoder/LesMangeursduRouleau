@@ -21,5 +21,10 @@ data class Conversation(
     val lastMessage: String? = null,
 
     @ServerTimestamp
-    val lastMessageTimestamp: Date? = null
+    val lastMessageTimestamp: Date? = null,
+
+    // NOUVEAU CHAMP:
+    // Compte le nombre de messages non lus pour chaque participant.
+    // La clé est l'UID du participant, la valeur est le nombre de messages non lus.
+    val unreadCount: Map<String, Int> = emptyMap()
 )

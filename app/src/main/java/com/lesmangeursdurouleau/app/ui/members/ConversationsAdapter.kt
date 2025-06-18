@@ -1,7 +1,9 @@
 // Fichier : com/lesmangeursdurouleau/app/ui/members/ConversationsAdapter.kt
 package com.lesmangeursdurouleau.app.ui.members
 
+import android.graphics.Typeface
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -42,8 +44,8 @@ class ConversationsAdapter(
                 binding.tvParticipantName.text = participantName
                 Glide.with(binding.root.context)
                     .load(participantPhotoUrl)
-                    .placeholder(R.drawable.ic_book_placeholder) // Assurez-vous d'avoir un drawable par défaut
-                    .error(R.drawable.ic_book_placeholder)
+                    .placeholder(R.drawable.ic_profile_placeholder) // Placeholder cohérent
+                    .error(R.drawable.ic_profile_placeholder)
                     .into(binding.ivParticipantPhoto)
             }
 
@@ -55,6 +57,20 @@ class ConversationsAdapter(
             } ?: run {
                 binding.tvLastMessageTimestamp.text = ""
             }
+
+            // --- NOUVELLE LOGIQUE POUR LE BADGE DE NON LUS ---
+            val unreadCount = conversation.unreadCount[currentUserId] ?: 0
+            if (unreadCount > 0) {
+                binding.tvUnreadCount.visibility = View.VISIBLE
+                binding.tvUnreadCount.text = if (unreadCount > 9) "9+" else unreadCount.toString()
+                binding.tvLastMessage.setTypeface(null, Typeface.BOLD)
+                binding.tvParticipantName.setTypeface(null, Typeface.BOLD)
+            } else {
+                binding.tvUnreadCount.visibility = View.GONE
+                binding.tvLastMessage.setTypeface(null, Typeface.NORMAL)
+                binding.tvParticipantName.setTypeface(null, Typeface.NORMAL)
+            }
+            // --- FIN DE LA NOUVELLE LOGIQUE ---
 
             binding.root.setOnClickListener {
                 onConversationClick(conversation)

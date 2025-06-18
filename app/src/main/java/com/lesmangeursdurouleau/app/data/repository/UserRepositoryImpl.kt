@@ -762,7 +762,7 @@ class UserRepositoryImpl @Inject constructor(
             Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "deleteCommentOnActiveReading: Erreur lors de la suppression du commentaire '$commentId' pour '$targetUserId' (bookId: $bookId): ${e.message}", e)
-            Resource.Error("Erreur lors de la suppression du commentaire: ${e.localizedMessage}")
+            return Resource.Error("Erreur lors de la suppression du commentaire: ${e.localizedMessage}")
         }
     }
 
@@ -1232,6 +1232,11 @@ class UserRepositoryImpl @Inject constructor(
                     participantPhotoUrls = mapOf(
                         currentUserId to (currentUserDoc.getString("profilePictureUrl") ?: ""),
                         targetUserId to (targetUserDoc.getString("profilePictureUrl") ?: "")
+                    ),
+                    // Initialiser les compteurs de non-lus à 0 pour les deux participants
+                    unreadCount = mapOf(
+                        currentUserId to 0,
+                        targetUserId to 0
                     )
                 )
                 transaction.set(conversationDocRef, newConversation)
@@ -1277,8 +1282,22 @@ class UserRepositoryImpl @Inject constructor(
             val conversationDocRef = conversationsCollection.document(conversationId)
             val newMessageDocRef = conversationDocRef.collection(FirebaseConstants.SUBCOLLECTION_MESSAGES).document()
 
-            Log.d(TAG, "sendPrivateMessage: Préparation du batch pour envoyer le message dans $conversationId.")
+            // Étape 1: Lire les données actuelles de la conversation pour identifier le destinataire.
+            val conversationSnapshot = conversationDocRef.get().await()
+            val participants = conversationSnapshot.get("participantIds") as? List<String>
+            if (participants == null) {
+                Log.e(TAG, "sendPrivateMessage: Impossible de récupérer les participants de la conversation $conversationId.")
+                return Resource.Error("Erreur interne: participants non trouvés.")
+            }
+            val receiverId = participants.firstOrNull { it != message.senderId }
+            if (receiverId == null) {
+                Log.e(TAG, "sendPrivateMessage: Impossible d'identifier le destinataire dans la conversation $conversationId.")
+                return Resource.Error("Erreur interne: destinataire non trouvé.")
+            }
 
+            Log.d(TAG, "sendPrivateMessage: Préparation du batch pour envoyer le message dans $conversationId. Destinataire: $receiverId")
+
+            // Étape 2: Utiliser un WriteBatch pour les écritures atomiques.
             firestore.runBatch { batch ->
                 // 1. Ajouter le nouveau message
                 batch.set(newMessageDocRef, message)
@@ -1286,7 +1305,9 @@ class UserRepositoryImpl @Inject constructor(
                 // 2. Mettre à jour le document de conversation parent
                 val conversationUpdate = mapOf(
                     "lastMessage" to message.text,
-                    "lastMessageTimestamp" to FieldValue.serverTimestamp()
+                    "lastMessageTimestamp" to FieldValue.serverTimestamp(),
+                    // 3. Incrémenter le compteur de messages non lus pour le destinataire
+                    "unreadCount.$receiverId" to FieldValue.increment(1)
                 )
                 batch.update(conversationDocRef, conversationUpdate)
             }.await()
@@ -1296,6 +1317,24 @@ class UserRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "sendPrivateMessage: Erreur lors de l'envoi du message: ${e.message}", e)
             Resource.Error("Erreur lors de l'envoi du message: ${e.localizedMessage}")
+        }
+    }
+
+    override suspend fun deletePrivateMessage(conversationId: String, messageId: String): Resource<Unit> {
+        return try {
+            Log.d(TAG, "deletePrivateMessage: Tentative de suppression du message $messageId dans la conversation $conversationId.")
+            val messageDocRef = conversationsCollection
+                .document(conversationId)
+                .collection(FirebaseConstants.SUBCOLLECTION_MESSAGES)
+                .document(messageId)
+
+            messageDocRef.delete().await()
+
+            Log.i(TAG, "deletePrivateMessage: Message $messageId supprimé avec succès.")
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "deletePrivateMessage: Erreur lors de la suppression du message $messageId: ${e.message}", e)
+            Resource.Error("Erreur lors de la suppression du message: ${e.localizedMessage}")
         }
     }
 }

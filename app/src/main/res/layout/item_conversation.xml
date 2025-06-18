@@ -41,9 +41,11 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-        app:layout_constraintEnd_toEndOf="@+id/tv_participant_name"
+        app:layout_constraintEnd_toStartOf="@+id/tv_unread_count"
         app:layout_constraintStart_toStartOf="@+id/tv_participant_name"
         app:layout_constraintTop_toBottomOf="@+id/tv_participant_name"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintHorizontal_chainStyle="packed"
         tools:text="Ceci est le dernier message de la conversation..." />
 
     <com.google.android.material.textview.MaterialTextView
@@ -54,5 +56,23 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/tv_participant_name"
         tools:text="10:42" />
+
+    <!-- NOUVEAU BADGE pour les messages non lus -->
+    <TextView
+        android:id="@+id/tv_unread_count"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/badge_background_red"
+        android:gravity="center"
+        android:textColor="@android:color/white"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/tv_last_message"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/tv_last_message"
+        tools:text="3"
+        tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

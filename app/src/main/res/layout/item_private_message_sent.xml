@@ -21,4 +21,17 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Ceci est un message envoyé par l'utilisateur actuel." />
 
+    <!-- NOUVEAU: TextView pour l'horodatage -->
+    <TextView
+        android:id="@+id/tv_message_timestamp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+        android:textSize="10sp"
+        tools:ignore="SmallSp"
+        app:layout_constraintEnd_toEndOf="@+id/tv_message_body"
+        app:layout_constraintTop_toBottomOf="@+id/tv_message_body"
+        tools:text="14:32" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

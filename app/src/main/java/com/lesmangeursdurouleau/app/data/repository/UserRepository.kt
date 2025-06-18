@@ -105,4 +105,13 @@ interface UserRepository {
      * @return Une Resource indiquant le succès ou l'échec de l'opération.
      */
     suspend fun sendPrivateMessage(conversationId: String, message: PrivateMessage): Resource<Unit>
+
+    /**
+     * AJOUTÉ: Supprime un message dans une conversation.
+     * Seul l'auteur du message peut effectuer cette action (géré par les règles de sécurité Firestore).
+     * @param conversationId L'ID de la conversation contenant le message.
+     * @param messageId L'ID du message à supprimer.
+     * @return Une Resource indiquant le succès ou l'échec de l'opération.
+     */
+    suspend fun deletePrivateMessage(conversationId: String, messageId: String): Resource<Unit>
 }

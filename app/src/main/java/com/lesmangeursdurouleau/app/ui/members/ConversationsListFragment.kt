@@ -52,10 +52,15 @@ class ConversationsListFragment : Fragment() {
             // Gérer le clic sur une conversation
             val otherUserId = conversation.participantIds.firstOrNull { it != currentUserId }
             if (conversation.id != null && otherUserId != null) {
-                // La navigation sera définie à l'étape 2.3
-                // val action = ConversationsListFragmentDirections.actionToPrivateChat(conversation.id, otherUserId)
-                // findNavController().navigate(action)
-                Toast.makeText(context, "Ouverture de la conv ${conversation.id}", Toast.LENGTH_SHORT).show()
+                // CORRECTION: Remplacer le Toast par la navigation réelle
+                val action = ConversationsListFragmentDirections
+                    .actionConversationsListFragmentDestinationToPrivateChatFragmentDestination(
+                        targetUserId = otherUserId,
+                        conversationId = conversation.id
+                    )
+                findNavController().navigate(action)
+            } else {
+                Toast.makeText(context, "Impossible d'ouvrir la conversation.", Toast.LENGTH_SHORT).show()
             }
         }
         binding.rvConversations.adapter = conversationsAdapter
