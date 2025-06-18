@@ -1385,4 +1385,20 @@ class UserRepositoryImpl @Inject constructor(
             Resource.Error("Erreur lors de la suppression du message: ${e.localizedMessage}")
         }
     }
+
+    override suspend fun markConversationAsRead(conversationId: String, userId: String): Resource<Unit> {
+        return try {
+            Log.d(TAG, "markConversationAsRead: Réinitialisation du compteur pour l'utilisateur $userId dans la conv $conversationId")
+            val conversationDocRef = conversationsCollection.document(conversationId)
+            val fieldPathToUpdate = "unreadCount.$userId"
+
+            conversationDocRef.update(fieldPathToUpdate, 0).await()
+
+            Log.i(TAG, "markConversationAsRead: Compteur de non-lus réinitialisé avec succès pour $userId.")
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "markConversationAsRead: Erreur lors de la réinitialisation du compteur pour $userId: ${e.message}", e)
+            Resource.Error("Erreur lors de la mise à jour du statut de lecture: ${e.localizedMessage}")
+        }
+    }
 }

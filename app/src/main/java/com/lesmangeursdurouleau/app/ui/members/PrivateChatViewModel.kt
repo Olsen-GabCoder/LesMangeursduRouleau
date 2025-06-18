@@ -1,6 +1,7 @@
 // Fichier : com/lesmangeursdurouleau/app/ui/members/PrivateChatViewModel.kt
 package com.lesmangeursdurouleau.app.ui.members
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -35,7 +36,6 @@ class PrivateChatViewModel @Inject constructor(
     private val _sendState = MutableStateFlow<Resource<Unit>?>(null)
     val sendState = _sendState.asStateFlow()
 
-    // AJOUT: StateFlow pour l'état de la suppression de message
     private val _deleteState = MutableStateFlow<Resource<Unit>?>(null)
     val deleteState = _deleteState.asStateFlow()
 
@@ -58,6 +58,8 @@ class PrivateChatViewModel @Inject constructor(
                     _conversationId.value = convId
                     if (convId != null) {
                         loadMessages(convId)
+                        // AJOUT: Marquer la conversation comme lue dès qu'on a l'ID
+                        markConversationAsRead(convId, currentUserId)
                     } else {
                         _messages.value = Resource.Error("Impossible de créer ou de trouver la conversation.")
                     }
@@ -68,6 +70,18 @@ class PrivateChatViewModel @Inject constructor(
                 is Resource.Loading -> {
                     _messages.value = Resource.Loading()
                 }
+            }
+        }
+    }
+
+    // AJOUT: Fonction pour appeler le repository et marquer la conversation comme lue.
+    private fun markConversationAsRead(conversationId: String, userId: String) {
+        viewModelScope.launch {
+            // C'est une opération "fire-and-forget". On ne gère pas l'état Loading/Success
+            // dans l'UI car l'effet est implicite. On logue juste l'erreur si elle se produit.
+            val result = userRepository.markConversationAsRead(conversationId, userId)
+            if (result is Resource.Error) {
+                Log.e("PrivateChatViewModel", "Erreur lors du marquage de la conversation comme lue: ${result.message}")
             }
         }
     }
@@ -103,7 +117,7 @@ class PrivateChatViewModel @Inject constructor(
     }
 
     /**
-     * AJOUT: Déclenche la suppression d'un message.
+     * Déclenche la suppression d'un message.
      * @param messageId L'ID du document message à supprimer dans Firestore.
      */
     fun deleteMessage(messageId: String) {
@@ -125,7 +139,7 @@ class PrivateChatViewModel @Inject constructor(
     }
 
     /**
-     * AJOUT: Réinitialise l'état de suppression pour éviter les actions répétées (ex: Toasts).
+     * Réinitialise l'état de suppression pour éviter les actions répétées (ex: Toasts).
      */
     fun resetDeleteState() {
         _deleteState.value = null

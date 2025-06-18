@@ -107,11 +107,19 @@ interface UserRepository {
     suspend fun sendPrivateMessage(conversationId: String, message: PrivateMessage): Resource<Unit>
 
     /**
-     * AJOUTÉ: Supprime un message dans une conversation.
+     * Supprime un message dans une conversation.
      * Seul l'auteur du message peut effectuer cette action (géré par les règles de sécurité Firestore).
      * @param conversationId L'ID de la conversation contenant le message.
      * @param messageId L'ID du message à supprimer.
      * @return Une Resource indiquant le succès ou l'échec de l'opération.
      */
     suspend fun deletePrivateMessage(conversationId: String, messageId: String): Resource<Unit>
+
+    /**
+     * AJOUTÉ: Réinitialise le compteur de messages non lus pour l'utilisateur spécifié dans une conversation.
+     * @param conversationId L'ID de la conversation à mettre à jour.
+     * @param userId L'ID de l'utilisateur pour lequel réinitialiser le compteur.
+     * @return Une Resource indiquant le succès ou l'échec de l'opération.
+     */
+    suspend fun markConversationAsRead(conversationId: String, userId: String): Resource<Unit>
 }
