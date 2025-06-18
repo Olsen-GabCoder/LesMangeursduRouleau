@@ -1,3 +1,4 @@
+// Fichier : com/lesmangeursdurouleau/app/remote/FirebaseConstants.kt
 package com.lesmangeursdurouleau.app.remote
 
 object FirebaseConstants {
@@ -11,13 +12,16 @@ object FirebaseConstants {
     const val FIELD_EDIT_READINGS_CODE = "edit_readings_code"
     const val FIELD_SECRET_CODE_LAST_UPDATED_TIMESTAMP = "lastSecretCodeUpdateTimestamp"
 
-    // NOUVELLES CONSTANTES POUR LA LECTURE EN COURS
+    // CONSTANTES POUR LA LECTURE EN COURS
     const val SUBCOLLECTION_USER_READINGS = "user_readings"
     const val DOCUMENT_ACTIVE_READING = "activeReading"
 
     const val SUBCOLLECTION_COMMENTS = "comments"
     const val SUBCOLLECTION_LIKES = "likes"
 
+    const val SUBCOLLECTION_COMPLETED_READINGS = "completed_readings"
 
-    const val SUBCOLLECTION_COMPLETED_READINGS = "completed_readings" // NOUVEAU
+    // CONSTANTES POUR LA MESSAGERIE PRIVÉE
+    const val COLLECTION_CONVERSATIONS = "conversations"
+    const val SUBCOLLECTION_MESSAGES = "messages"
 }

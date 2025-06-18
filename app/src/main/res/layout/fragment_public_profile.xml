@@ -185,7 +185,6 @@
                             tools:text="01 Janvier 2024" />
                     </LinearLayout>
 
-                    <!-- Ajustement des LinearLayouts des compteurs avec weights et ajout de maxLines/ellipsize -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -209,7 +208,7 @@
                                 android:id="@+id/tv_followers_count"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="0"
+                                tools:text="123"
                                 android:textSize="20sp"
                                 android:textStyle="bold"
                                 android:textColor="?attr/colorPrimary"/>
@@ -220,7 +219,7 @@
                                 android:textSize="14sp"
                                 android:textColor="?attr/colorOnSurfaceVariant"
                                 android:maxLines="1"
-                            android:ellipsize="end"/>
+                                android:ellipsize="end"/>
                         </LinearLayout>
 
                         <LinearLayout
@@ -238,7 +237,7 @@
                                 android:id="@+id/tv_following_count"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="0"
+                                tools:text="45"
                                 android:textSize="20sp"
                                 android:textStyle="bold"
                                 android:textColor="?attr/colorPrimary"/>
@@ -249,7 +248,7 @@
                                 android:textSize="14sp"
                                 android:textColor="?attr/colorOnSurfaceVariant"
                                 android:maxLines="1"
-                            android:ellipsize="end"/>
+                                android:ellipsize="end"/>
                         </LinearLayout>
 
                         <LinearLayout
@@ -267,7 +266,7 @@
                                 android:id="@+id/tv_books_read_count"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="0"
+                                tools:text="8"
                                 android:textSize="20sp"
                                 android:textStyle="bold"
                                 android:textColor="?attr/colorPrimary"/>
@@ -279,25 +278,50 @@
                                 android:textSize="14sp"
                                 android:textColor="?attr/colorOnSurfaceVariant"
                                 android:maxLines="1"
-                            android:ellipsize="end"/>
+                                android:ellipsize="end"/>
                         </LinearLayout>
                     </LinearLayout>
-                    <!-- FIN DE LA MODIFICATION des compteurs -->
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_toggle_follow"
+                    <!-- NOUVEAU: LinearLayout pour les boutons Suivre et Message -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/follow"
-                        android:visibility="gone"
-                        tools:visibility="visible"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        app:strokeColor="?attr/colorPrimary"
-                        android:textColor="?attr/colorPrimary"
-                        app:rippleColor="?attr/colorPrimary"
-                        app:iconTint="?attr/colorPrimary"
-                        app:cornerRadius="8dp"/>
+                        android:orientation="horizontal"
+                        android:layout_marginTop="16dp">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_toggle_follow"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp"
+                            android:text="@string/follow"
+                            android:visibility="gone"
+                            tools:visibility="visible"
+                            app:strokeColor="?attr/colorPrimary"
+                            android:textColor="?attr/colorPrimary"
+                            app:rippleColor="?attr/colorPrimary"
+                            app:iconTint="?attr/colorPrimary"
+                            app:cornerRadius="8dp"/>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_send_message"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Message"
+                            android:visibility="gone"
+                            tools:visibility="visible"
+                            app:icon="@drawable/ic_send"
+                            app:strokeColor="?attr/colorPrimary"
+                            android:textColor="?attr/colorPrimary"
+                            app:rippleColor="?attr/colorPrimary"
+                            app:iconTint="?attr/colorPrimary"
+                            app:cornerRadius="8dp"/>
+                    </LinearLayout>
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -405,7 +429,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- NOUVEAU: Section "Lecture en cours" -->
+            <!-- Section "Lecture en cours" -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_current_reading"
                 android:layout_width="match_parent"
@@ -424,7 +448,6 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <!-- En-tête de section -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -449,7 +472,6 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Détails du livre : Couverture, Titre, Auteur -->
                     <androidx.constraintlayout.widget.ConstraintLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -505,7 +527,6 @@
 
                     </androidx.constraintlayout.widget.ConstraintLayout>
 
-                    <!-- Progression de lecture -->
                     <TextView
                         android:id="@+id/tv_current_reading_progress_text"
                         android:layout_width="match_parent"
@@ -526,7 +547,6 @@
                         android:max="100"
                         tools:progress="50" />
 
-                    <!-- Contenu personnel : Citation/Réflexion -->
                     <LinearLayout
                         android:id="@+id/ll_personal_reflection_section"
                         android:layout_width="match_parent"
@@ -553,7 +573,6 @@
                             tools:text="“La lecture est un voyage sans bagages.” - Anonyme. J'adore ce livre, l'intrigue est captivante et les personnages sont très bien développés." />
                     </LinearLayout>
 
-                    <!-- NOUVELLE SECTION : Bouton J'aime et Compteur -->
                     <LinearLayout
                         android:id="@+id/ll_like_section"
                         android:layout_width="match_parent"
@@ -565,7 +584,6 @@
                         android:visibility="gone"
                         tools:visibility="visible">
 
-                        <!-- Bouton J'aime -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_toggle_like"
                             style="@style/Widget.Material3.Button.TextButton.Icon"
@@ -582,7 +600,6 @@
                             tools:text="123" />
                     </LinearLayout>
 
-                    <!-- Bouton d'action pour le propriétaire du profil -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_edit_current_reading"
                         android:layout_width="match_parent"
@@ -601,7 +618,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- NOUVELLE SECTION : Commentaires sur la lecture actuelle -->
+            <!-- Section "Commentaires sur la lecture actuelle" -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_comments_section"
                 android:layout_width="match_parent"
@@ -618,7 +635,6 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <!-- En-tête de section "Commentaires" -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -645,7 +661,6 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- TextView pour "Aucun commentaire pour l'instant" -->
                     <TextView
                         android:id="@+id/tv_no_comments_yet"
                         android:layout_width="match_parent"
@@ -658,7 +673,6 @@
                         android:visibility="gone"
                         tools:visibility="visible"/>
 
-                    <!-- RecyclerView pour les commentaires -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_comments"
                         android:layout_width="match_parent"
@@ -669,7 +683,6 @@
                         tools:listitem="@layout/item_comment"
                         tools:itemCount="3" />
 
-                    <!-- Section pour la saisie de commentaire -->
                     <LinearLayout
                         android:id="@+id/ll_comment_input_section"
                         android:layout_width="match_parent"
@@ -713,7 +726,6 @@
                             app:rippleColor="?attr/colorPrimaryVariant" />
 
                     </LinearLayout>
-
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

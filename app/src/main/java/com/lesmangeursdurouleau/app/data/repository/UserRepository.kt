@@ -1,3 +1,4 @@
+// Fichier : com/lesmangeursdurouleau/app/data/repository/UserRepository.kt
 package com.lesmangeursdurouleau.app.data.repository
 
 import com.google.firebase.firestore.Query
@@ -6,6 +7,8 @@ import com.lesmangeursdurouleau.app.data.model.UserBookReading
 import com.lesmangeursdurouleau.app.data.model.Comment
 import com.lesmangeursdurouleau.app.data.model.Like
 import com.lesmangeursdurouleau.app.data.model.CompletedReading
+import com.lesmangeursdurouleau.app.data.model.Conversation
+import com.lesmangeursdurouleau.app.data.model.PrivateMessage
 import com.lesmangeursdurouleau.app.utils.Resource
 import kotlinx.coroutines.flow.Flow
 
@@ -69,4 +72,37 @@ interface UserRepository {
     ): Flow<Resource<List<CompletedReading>>>
 
     fun getCompletedReadingDetail(userId: String, bookId: String): Flow<Resource<CompletedReading?>>
+
+    // --- MESSAGERIE PRIVÉE ---
+
+    /**
+     * Récupère en temps réel la liste des conversations pour un utilisateur donné.
+     * @param userId L'ID de l'utilisateur dont on veut les conversations.
+     * @return Un Flow de Resource contenant la liste des conversations.
+     */
+    fun getUserConversations(userId: String): Flow<Resource<List<Conversation>>>
+
+    /**
+     * Crée une nouvelle conversation entre deux utilisateurs si elle n'existe pas,
+     * ou récupère l'ID de la conversation existante.
+     * @param currentUserId L'ID de l'utilisateur actuellement connecté.
+     * @param targetUserId L'ID de l'utilisateur avec qui démarrer la conversation.
+     * @return Une Resource contenant l'ID de la conversation (existante ou nouvelle).
+     */
+    suspend fun createOrGetConversation(currentUserId: String, targetUserId: String): Resource<String>
+
+    /**
+     * Récupère en temps réel la liste des messages pour une conversation donnée.
+     * @param conversationId L'ID de la conversation.
+     * @return Un Flow de Resource contenant la liste des messages privés.
+     */
+    fun getConversationMessages(conversationId: String): Flow<Resource<List<PrivateMessage>>>
+
+    /**
+     * Envoie un message dans une conversation.
+     * @param conversationId L'ID de la conversation où envoyer le message.
+     * @param message L'objet message à envoyer.
+     * @return Une Resource indiquant le succès ou l'échec de l'opération.
+     */
+    suspend fun sendPrivateMessage(conversationId: String, message: PrivateMessage): Resource<Unit>
 }

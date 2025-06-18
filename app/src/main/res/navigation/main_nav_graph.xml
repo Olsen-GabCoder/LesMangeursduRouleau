@@ -21,7 +21,6 @@
         <action
             android:id="@+id/action_readingsFragment_to_bookDetailFragment"
             app:destination="@id/bookDetailFragment" />
-        <!-- NOUVELLE ACTION POUR AJOUTER/MODIFIER UNE LECTURE MENSUELLE -->
         <action
             android:id="@+id/action_readingsFragment_to_addEditMonthlyReadingFragment"
             app:destination="@id/addEditMonthlyReadingFragment">
@@ -52,7 +51,6 @@
         <action
             android:id="@+id/action_profileFragment_to_chatFragment"
             app:destination="@id/chatFragmentDestination" />
-        <!-- ACTION EXISTANTE : Naviguer de ProfileFragment vers EditCurrentReadingFragment -->
         <action
             android:id="@+id/action_navigation_members_profile_to_editCurrentReadingFragment"
             app:destination="@id/editCurrentReadingFragment"
@@ -60,15 +58,18 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <!-- NOUVELLE ACTION: Vers la liste des conversations privées -->
+        <action
+            android:id="@+id/action_navigation_members_profile_to_conversationsListFragmentDestination"
+            app:destination="@id/conversationsListFragmentDestination" />
     </fragment>
 
-    <!-- Liste des Membres (MODIFIÉE pour accepter des arguments et être réutilisable) -->
+    <!-- Liste des Membres -->
     <fragment
         android:id="@+id/membersFragmentDestination"
         android:name="com.lesmangeursdurouleau.app.ui.members.MembersFragment"
         android:label="{listTitle}"
         tools:layout="@layout/fragment_members">
-        <!-- NOUVEAUX ARGUMENTS pour filtrer la liste -->
         <argument
             android:name="userId"
             app:argType="string"
@@ -82,7 +83,7 @@
         <argument
             android:name="listTitle"
             app:argType="string"
-            android:defaultValue="Liste des Membres" /> <!-- Titre par défaut pour la liste de tous les membres -->
+            android:defaultValue="Liste des Membres" />
         <action
             android:id="@+id/action_membersFragment_to_publicProfileFragment"
             app:destination="@id/publicProfileFragmentDestination" />
@@ -104,7 +105,7 @@
             android:defaultValue="Détails du Livre" />
     </fragment>
 
-    <!-- Profil public (d'un autre membre - AJOUT DE NOUVELLES ACTIONS) -->
+    <!-- Profil public (d'un autre membre) -->
     <fragment
         android:id="@+id/publicProfileFragmentDestination"
         android:name="com.lesmangeursdurouleau.app.ui.members.PublicProfileFragment"
@@ -118,37 +119,20 @@
             app:argType="string"
             app:nullable="true"
             android:defaultValue="Profil Membre" />
-        <!-- NOUVELLE ACTION : Naviguer vers la liste des FOLLOWERS (réutilise MembersFragment) -->
         <action
             android:id="@+id/action_publicProfileFragmentDestination_to_membersFragmentDestination_followers"
             app:destination="@id/membersFragmentDestination">
-            <argument
-                android:name="userId"
-                app:argType="string" />
-            <argument
-                android:name="listType"
-                app:argType="string"
-                android:defaultValue="followers" />
-            <argument
-                android:name="listTitle"
-                app:argType="string" />
+            <argument android:name="userId" app:argType="string" />
+            <argument android:name="listType" android:defaultValue="followers" app:argType="string" />
+            <argument android:name="listTitle" app:argType="string" />
         </action>
-        <!-- NOUVELLE ACTION : Naviguer vers la liste des FOLLOWING (réutilise MembersFragment) -->
         <action
             android:id="@+id/action_publicProfileFragmentDestination_to_membersFragmentDestination_following"
             app:destination="@id/membersFragmentDestination">
-            <argument
-                android:name="userId"
-                app:argType="string" />
-            <argument
-                android:name="listType"
-                app:argType="string"
-                android:defaultValue="following" />
-            <argument
-                android:name="listTitle"
-                app:argType="string" /> <!-- Le titre sera défini dynamiquement en Kotlin -->
+            <argument android:name="userId" app:argType="string" />
+            <argument android:name="listType" android:defaultValue="following" app:argType="string" />
+            <argument android:name="listTitle" app:argType="string" />
         </action>
-        <!-- CETTE ACTION EST CRUCIALE POUR LE PROFIL PUBLIC VERS L'ÉDITION DE LECTURE -->
         <action
             android:id="@+id/action_publicProfileFragmentDestination_to_editCurrentReadingFragment"
             app:destination="@id/editCurrentReadingFragment"
@@ -156,19 +140,16 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
-
-        <!-- NOUVELLE ACTION POUR NAVIGUER VERS L'HISTORIQUE DE LECTURES TERMINÉES -->
         <action
             android:id="@+id/action_publicProfileFragmentDestination_to_completedReadingsFragment"
             app:destination="@id/completedReadingsFragment">
-            <argument
-                android:name="userId"
-                app:argType="string" />
-            <argument
-                android:name="username"
-                app:argType="string"
-                app:nullable="true" />
+            <argument android:name="userId" app:argType="string" />
+            <argument android:name="username" app:argType="string" app:nullable="true" />
         </action>
+        <!-- NOUVELLE ACTION: Vers l'écran de chat privé -->
+        <action
+            android:id="@+id/action_publicProfileFragmentDestination_to_privateChatFragmentDestination"
+            app:destination="@id/privateChatFragmentDestination" />
     </fragment>
 
     <!-- Discussion générale -->
@@ -205,7 +186,6 @@
         android:name="com.lesmangeursdurouleau.app.ui.readings.EditCurrentReadingFragment"
         android:label="@string/edit_reading_title"
         tools:layout="@layout/fragment_edit_current_reading">
-        <!-- ACTION DU FRAGMENT D'ÉDITION VERS LE SÉLECTEUR DE LIVRE -->
         <action
             android:id="@+id/action_editCurrentReadingFragment_to_bookSelectionFragment"
             app:destination="@id/bookSelectionFragment"
@@ -228,14 +208,8 @@
         android:name="com.lesmangeursdurouleau.app.ui.members.CompletedReadingsFragment"
         android:label="{username}"
         tools:layout="@layout/fragment_completed_readings">
-        <argument
-            android:name="userId"
-            app:argType="string" />
-        <argument
-            android:name="username"
-            app:argType="string"
-            app:nullable="true" />
-        <!-- NOUVELLE ACTION: Naviguer vers le détail d'une lecture terminée -->
+        <argument android:name="userId" app:argType="string" />
+        <argument android:name="username" app:argType="string" app:nullable="true" />
         <action
             android:id="@+id/action_completedReadingsFragment_to_completedReadingDetailFragment"
             app:destination="@id/completedReadingDetailFragment"
@@ -245,27 +219,50 @@
             app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
-    <!-- NOUVEAU FRAGMENT: Détail d'une lecture terminée -->
+    <!-- FRAGMENT: Détail d'une lecture terminée -->
     <fragment
         android:id="@+id/completedReadingDetailFragment"
         android:name="com.lesmangeursdurouleau.app.ui.members.CompletedReadingDetailFragment"
         android:label="{bookTitle}"
         tools:layout="@layout/fragment_completed_reading_detail">
+        <argument android:name="userId" app:argType="string" />
+        <argument android:name="bookId" app:argType="string" />
+        <argument android:name="username" app:argType="string" app:nullable="true" />
+        <argument android:name="bookTitle" android:defaultValue="Détails de la lecture" app:argType="string" app:nullable="true" />
+    </fragment>
+
+    <!-- ====================================================== -->
+    <!-- ==== NOUVELLES DESTINATIONS POUR LA MESSAGERIE PRIVÉE ==== -->
+    <!-- ====================================================== -->
+
+    <!-- FRAGMENT: Liste des conversations privées -->
+    <fragment
+        android:id="@+id/conversationsListFragmentDestination"
+        android:name="com.lesmangeursdurouleau.app.ui.members.ConversationsListFragment"
+        android:label="Mes Messages"
+        tools:layout="@layout/fragment_conversations_list">
+        <!-- Action pour ouvrir une conversation spécifique -->
+        <action
+            android:id="@+id/action_conversationsListFragmentDestination_to_privateChatFragmentDestination"
+            app:destination="@id/privateChatFragmentDestination" />
+    </fragment>
+
+    <!-- FRAGMENT: Chat privé -->
+    <fragment
+        android:id="@+id/privateChatFragmentDestination"
+        android:name="com.lesmangeursdurouleau.app.ui.members.PrivateChatFragment"
+        android:label="Message"
+        tools:layout="@layout/fragment_private_chat">
+        <!-- Argument pour savoir avec qui on chat -->
         <argument
-            android:name="userId"
+            android:name="targetUserId"
             app:argType="string" />
+        <!-- Argument optionnel, pourrait être utile plus tard -->
         <argument
-            android:name="bookId"
-            app:argType="string" />
-        <argument
-            android:name="username"
-            app:argType="string"
-            app:nullable="true" />
-        <argument
-            android:name="bookTitle"
+            android:name="conversationId"
             app:argType="string"
             app:nullable="true"
-            android:defaultValue="Détails de la lecture" />
+            android:defaultValue="@null" />
     </fragment>
 
 </navigation>

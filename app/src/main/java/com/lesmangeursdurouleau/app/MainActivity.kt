@@ -1,3 +1,4 @@
+// Fichier: com/lesmangeursdurouleau/app/MainActivity.kt
 package com.lesmangeursdurouleau.app
 
 import android.content.Intent
@@ -15,7 +16,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
 import com.lesmangeursdurouleau.app.data.repository.UserRepository
-import com.lesmangeursdurouleau.app.databinding.ActivityMainBinding // Importation ajoutée pour ActivityMainBinding
+import com.lesmangeursdurouleau.app.databinding.ActivityMainBinding
 import com.lesmangeursdurouleau.app.notifications.MyFirebaseMessagingService
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.AndroidEntryPoint
@@ -53,6 +54,10 @@ class MainActivity : AppCompatActivity() {
             .findFragmentById(R.id.nav_host_fragment_main) as NavHostFragment
         navController = navHostFragment.navController
 
+        // La ligne suivante configure automatiquement la navigation pour la BottomNavigationView.
+        // Puisque l'ID de l'item de menu pour "Messages" (@id/conversationsListFragmentDestination)
+        // correspond à l'ID du fragment dans le nav_graph, le clic est géré sans code supplémentaire.
+        // C'est ici que nous interviendrons plus tard pour ajouter les badges de notification.
         binding.bottomNavigationView.setupWithNavController(navController)
 
         // Demander la permission de notification si nécessaire (Android 13+)
@@ -63,16 +68,6 @@ class MainActivity : AppCompatActivity() {
 
         // Gérer la navigation si l'activité est lancée par une notification
         handleNotificationIntent(intent)
-
-        // Optionnel : Configurer l'AppBar (Toolbar)
-        // setSupportActionBar(binding.toolbar)
-        // val appBarConfiguration = AppBarConfiguration(
-        //     setOf(
-        //         R.id.navigation_dashboard, R.id.navigation_readings,
-        //         R.id.navigation_meetings, R.id.navigation_members_profile
-        //     )
-        // )
-        // setupActionBarWithNavController(navController, appBarConfiguration)
     }
 
 

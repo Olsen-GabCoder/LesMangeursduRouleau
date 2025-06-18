@@ -47,6 +47,21 @@
         app:badgeText=""
         app:badgeGravity="TOP_END" />
 
+    <!-- NOUVEL ITEM: 💬 Messages - Accès à la messagerie privée -->
+    <item
+        android:id="@+id/conversationsListFragmentDestination"
+        android:icon="@drawable/ic_messages"
+        android:title="Messages"
+        android:orderInCategory="35"
+        android:checkable="true"
+        android:checked="false"
+        android:visible="true"
+        android:enabled="true"
+        app:showAsAction="always|withText"
+        app:iconTint="@color/navigation_item_color_selector"
+        app:badgeText=""
+        app:badgeGravity="TOP_END" />
+
     <!-- 👤 Profil - Espace membre personnalisé -->
     <item
         android:id="@+id/navigation_members_profile"

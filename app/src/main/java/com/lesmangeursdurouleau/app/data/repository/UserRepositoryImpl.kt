@@ -1,3 +1,4 @@
+// Fichier : com/lesmangeursdurouleau/app/data/repository/UserRepositoryImpl.kt
 package com.lesmangeursdurouleau.app.data.repository
 
 import android.util.Log
@@ -10,6 +11,8 @@ import com.lesmangeursdurouleau.app.data.model.UserBookReading
 import com.lesmangeursdurouleau.app.data.model.Comment
 import com.lesmangeursdurouleau.app.data.model.Like
 import com.lesmangeursdurouleau.app.data.model.CompletedReading
+import com.lesmangeursdurouleau.app.data.model.Conversation
+import com.lesmangeursdurouleau.app.data.model.PrivateMessage
 import com.lesmangeursdurouleau.app.data.remote.FirebaseStorageService
 import com.lesmangeursdurouleau.app.remote.FirebaseConstants
 import com.lesmangeursdurouleau.app.utils.Resource
@@ -37,6 +40,7 @@ class UserRepositoryImpl @Inject constructor(
     }
 
     private val usersCollection = firestore.collection(FirebaseConstants.COLLECTION_USERS)
+    private val conversationsCollection = firestore.collection(FirebaseConstants.COLLECTION_CONVERSATIONS)
 
     // Helper function pour créer un objet User à partir d'un DocumentSnapshot, gérant la conversion de createdAt
     private fun createUserFromSnapshot(document: DocumentSnapshot): User {
@@ -1168,6 +1172,130 @@ class UserRepositoryImpl @Inject constructor(
         awaitClose {
             Log.d(TAG, "getCompletedReadingDetail: Fermeture du listener de détail de lecture terminée pour bookId '$bookId', userId '$userId'.")
             listenerRegistration.remove()
+        }
+    }
+
+    // --- MESSAGERIE PRIVÉE ---
+
+    override fun getUserConversations(userId: String): Flow<Resource<List<Conversation>>> = callbackFlow {
+        trySend(Resource.Loading())
+        Log.d(TAG, "getUserConversations: Récupération des conversations pour l'utilisateur $userId.")
+
+        val listenerRegistration = conversationsCollection
+            .whereArrayContains("participantIds", userId)
+            .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "getUserConversations: Erreur Firestore: ${error.message}", error)
+                    trySend(Resource.Error("Erreur Firestore: ${error.localizedMessage}"))
+                    close(error)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val conversations = snapshot.toObjects(Conversation::class.java)
+                    Log.d(TAG, "getUserConversations: ${conversations.size} conversations trouvées pour $userId.")
+                    trySend(Resource.Success(conversations))
+                }
+            }
+        awaitClose {
+            Log.d(TAG, "getUserConversations: Fermeture du listener pour $userId.")
+            listenerRegistration.remove()
+        }
+    }
+
+    override suspend fun createOrGetConversation(currentUserId: String, targetUserId: String): Resource<String> {
+        return try {
+            val participants = listOf(currentUserId, targetUserId).sorted()
+            val conversationId = "${participants[0]}_${participants[1]}"
+            Log.d(TAG, "createOrGetConversation: ID canonique généré: $conversationId")
+
+            val conversationDocRef = conversationsCollection.document(conversationId)
+
+            firestore.runTransaction { transaction ->
+                val snapshot = transaction.get(conversationDocRef)
+                if (snapshot.exists()) {
+                    Log.d(TAG, "createOrGetConversation: La conversation $conversationId existe déjà.")
+                    return@runTransaction // Pas besoin de retourner de valeur, la transaction réussit.
+                }
+
+                Log.d(TAG, "createOrGetConversation: La conversation $conversationId n'existe pas. Création en cours.")
+                // Récupération des données des utilisateurs pour la dénormalisation
+                val currentUserDoc = transaction.get(usersCollection.document(currentUserId))
+                val targetUserDoc = transaction.get(usersCollection.document(targetUserId))
+
+                val newConversation = Conversation(
+                    participantIds = participants,
+                    participantNames = mapOf(
+                        currentUserId to (currentUserDoc.getString("username") ?: ""),
+                        targetUserId to (targetUserDoc.getString("username") ?: "")
+                    ),
+                    participantPhotoUrls = mapOf(
+                        currentUserId to (currentUserDoc.getString("profilePictureUrl") ?: ""),
+                        targetUserId to (targetUserDoc.getString("profilePictureUrl") ?: "")
+                    )
+                )
+                transaction.set(conversationDocRef, newConversation)
+                Log.i(TAG, "createOrGetConversation: Nouvelle conversation $conversationId créée avec succès.")
+            }.await()
+
+            Resource.Success(conversationId)
+        } catch (e: Exception) {
+            Log.e(TAG, "createOrGetConversation: Erreur lors de la création/récupération de la conversation: ${e.message}", e)
+            Resource.Error("Erreur lors du démarrage de la conversation : ${e.localizedMessage}")
+        }
+    }
+
+    override fun getConversationMessages(conversationId: String): Flow<Resource<List<PrivateMessage>>> = callbackFlow {
+        trySend(Resource.Loading())
+        Log.d(TAG, "getConversationMessages: Récupération des messages pour la conversation $conversationId.")
+
+        val listenerRegistration = conversationsCollection.document(conversationId)
+            .collection(FirebaseConstants.SUBCOLLECTION_MESSAGES)
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "getConversationMessages: Erreur Firestore: ${error.message}", error)
+                    trySend(Resource.Error("Erreur Firestore: ${error.localizedMessage}"))
+                    close(error)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val messages = snapshot.toObjects(PrivateMessage::class.java)
+                    Log.d(TAG, "getConversationMessages: ${messages.size} messages trouvés pour $conversationId.")
+                    trySend(Resource.Success(messages))
+                }
+            }
+
+        awaitClose {
+            Log.d(TAG, "getConversationMessages: Fermeture du listener pour $conversationId.")
+            listenerRegistration.remove()
+        }
+    }
+
+    override suspend fun sendPrivateMessage(conversationId: String, message: PrivateMessage): Resource<Unit> {
+        return try {
+            val conversationDocRef = conversationsCollection.document(conversationId)
+            val newMessageDocRef = conversationDocRef.collection(FirebaseConstants.SUBCOLLECTION_MESSAGES).document()
+
+            Log.d(TAG, "sendPrivateMessage: Préparation du batch pour envoyer le message dans $conversationId.")
+
+            firestore.runBatch { batch ->
+                // 1. Ajouter le nouveau message
+                batch.set(newMessageDocRef, message)
+
+                // 2. Mettre à jour le document de conversation parent
+                val conversationUpdate = mapOf(
+                    "lastMessage" to message.text,
+                    "lastMessageTimestamp" to FieldValue.serverTimestamp()
+                )
+                batch.update(conversationDocRef, conversationUpdate)
+            }.await()
+
+            Log.i(TAG, "sendPrivateMessage: Message envoyé et conversation mise à jour avec succès via batch.")
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "sendPrivateMessage: Erreur lors de l'envoi du message: ${e.message}", e)
+            Resource.Error("Erreur lors de l'envoi du message: ${e.localizedMessage}")
         }
     }
 }

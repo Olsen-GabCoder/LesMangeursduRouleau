@@ -1,3 +1,4 @@
+// Fichier : com/lesmangeursdurouleau/app/ui/members/PublicProfileFragment.kt
 package com.lesmangeursdurouleau.app.ui.members
 
 import android.content.res.ColorStateList
@@ -67,10 +68,9 @@ class PublicProfileFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
-        // MODIFICATION ICI : Passage du nouveau paramètre targetProfileOwnerId au CommentsAdapter
         commentsAdapter = CommentsAdapter(
             currentUserId = viewModel.currentUserId.value,
-            targetProfileOwnerId = args.userId, // Le propriétaire du profil est l'userId passé en argument
+            targetProfileOwnerId = args.userId,
             onDeleteClickListener = { commentToDelete ->
                 Log.d(TAG, "Clic sur bouton de suppression pour le commentaire ID: ${commentToDelete.commentId}")
                 showDeleteConfirmationDialog(commentToDelete)
@@ -94,11 +94,24 @@ class PublicProfileFragment : Fragment() {
 
     private fun setupClickListeners() {
         setupFollowButton()
+        setupMessageButton() // NOUVEL APPEL
         setupCounterClickListeners()
         setupCurrentReadingButton()
         setupCommentInputListeners()
         setupLikeButton()
         setupBooksReadClickListener()
+    }
+
+    // NOUVELLE FONCTION
+    private fun setupMessageButton() {
+        binding.btnSendMessage.setOnClickListener {
+            val targetUserId = args.userId
+            Log.d(TAG, "Bouton 'Message' cliqué. Navigation vers le chat avec $targetUserId.")
+            val action = PublicProfileFragmentDirections.actionPublicProfileFragmentDestinationToPrivateChatFragmentDestination(
+                targetUserId = targetUserId
+            )
+            findNavController().navigate(action)
+        }
     }
 
     private fun setupObservers() {
@@ -141,22 +154,26 @@ class PublicProfileFragment : Fragment() {
                         val currentUserId = viewModel.currentUserId.value
                         val targetUserId = args.userId
 
+                        // MODIFICATION: Masquer le bouton de suivi ET le bouton message si c'est son propre profil
                         if (currentUserId != null && currentUserId == targetUserId) {
                             binding.btnToggleFollow.visibility = View.GONE
-                            Log.d(TAG, "Bouton de suivi masqué car c'est le propre profil de l'utilisateur.")
+                            binding.btnSendMessage.visibility = View.GONE
+                            Log.d(TAG, "Boutons de suivi et message masqués car c'est le propre profil de l'utilisateur.")
                             return@collectLatest
                         }
+
+                        // Afficher les boutons si ce n'est pas son propre profil
+                        binding.btnToggleFollow.visibility = View.VISIBLE
+                        binding.btnSendMessage.visibility = View.VISIBLE
 
                         when (isFollowingResource) {
                             is Resource.Loading -> {
                                 binding.btnToggleFollow.text = getString(R.string.loading_follow_status)
                                 binding.btnToggleFollow.isEnabled = false
-                                binding.btnToggleFollow.visibility = View.VISIBLE
                                 Log.d(TAG, "Chargement du statut de suivi...")
                             }
                             is Resource.Success -> {
                                 binding.btnToggleFollow.isEnabled = true
-                                binding.btnToggleFollow.visibility = View.VISIBLE
                                 if (isFollowingResource.data == true) {
                                     binding.btnToggleFollow.text = getString(R.string.unfollow)
                                     binding.btnToggleFollow.setTextColor(requireContext().getColor(R.color.error_color))
@@ -172,7 +189,6 @@ class PublicProfileFragment : Fragment() {
                             is Resource.Error -> {
                                 binding.btnToggleFollow.text = getString(R.string.follow_error)
                                 binding.btnToggleFollow.isEnabled = false
-                                binding.btnToggleFollow.visibility = View.VISIBLE
                                 Toast.makeText(context, isFollowingResource.message, Toast.LENGTH_LONG).show()
                                 Log.e(TAG, "Erreur de statut de suivi: ${isFollowingResource.message}")
                             }
@@ -444,7 +460,7 @@ class PublicProfileFragment : Fragment() {
     private fun setupCounterClickListeners() {
         binding.llFollowersClickableArea.setOnClickListener {
             val targetUserId = args.userId
-            val targetUsername = args.username ?: getString(R.string.profile_title_default)
+            val targetUsername = viewModel.userProfile.value?.data?.username ?: getString(R.string.profile_title_default)
             val action = PublicProfileFragmentDirections.actionPublicProfileFragmentDestinationToMembersFragmentDestinationFollowers(
                 userId = targetUserId,
                 listType = "followers",
@@ -456,7 +472,7 @@ class PublicProfileFragment : Fragment() {
 
         binding.llFollowingClickableArea.setOnClickListener {
             val targetUserId = args.userId
-            val targetUsername = args.username ?: getString(R.string.profile_title_default)
+            val targetUsername = viewModel.userProfile.value?.data?.username ?: getString(R.string.profile_title_default)
             val action = PublicProfileFragmentDirections.actionPublicProfileFragmentDestinationToMembersFragmentDestinationFollowing(
                 userId = targetUserId,
                 listType = "following",
@@ -494,8 +510,6 @@ class PublicProfileFragment : Fragment() {
             val currentUserId = viewModel.currentUserId.value
             val targetUserId = args.userId
 
-            // MODIFICATION ICI: Suppression de la restriction côté client pour permettre de liker sa propre lecture.
-            // La validation des permissions est désormais entièrement gérée par le ViewModel et les règles Firestore.
             if (currentUserId.isNullOrBlank() || targetUserId.isNullOrBlank()) {
                 val message = "Vous devez être connecté pour liker."
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -508,18 +522,15 @@ class PublicProfileFragment : Fragment() {
         }
     }
 
-    // Implémentation de la navigation vers CompletedReadingsFragment
     private fun setupBooksReadClickListener() {
         binding.llBooksReadClickableArea.setOnClickListener {
             val targetUserId = args.userId
-            val targetUsername = args.username ?: getString(R.string.profile_title_default)
+            val targetUsername = viewModel.userProfile.value?.data?.username ?: getString(R.string.profile_title_default)
 
-            // Création de l'action de navigation avec les arguments nécessaires
             val action = PublicProfileFragmentDirections.actionPublicProfileFragmentDestinationToCompletedReadingsFragment(
                 userId = targetUserId,
                 username = targetUsername
             )
-            // Exécution de la navigation
             findNavController().navigate(action)
             Log.d(TAG, "Clic sur 'Livres lus'. Navigation vers la liste des lectures terminées pour User ID: $targetUserId, Username: $targetUsername")
         }
