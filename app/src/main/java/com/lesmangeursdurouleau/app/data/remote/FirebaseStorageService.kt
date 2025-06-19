@@ -1,8 +1,10 @@
 package com.lesmangeursdurouleau.app.data.remote
 
+import android.net.Uri
 import android.util.Log
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageException
+import com.lesmangeursdurouleau.app.remote.FirebaseConstants // Import de la classe des constantes
 import com.lesmangeursdurouleau.app.utils.Resource
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
@@ -18,9 +20,7 @@ class FirebaseStorageService @Inject constructor(
     }
 
     suspend fun uploadProfilePicture(userId: String, imageData: ByteArray): Resource<String> {
-        // --- AJOUT DU LOG POUR LA TAILLE DE L'IMAGE ---
         Log.d(TAG, "uploadProfilePicture: Reçu pour UserID: $userId, Taille des imageData: ${imageData.size} bytes.")
-        // --- FIN DE L'AJOUT ---
 
         if (imageData.isEmpty()) {
             Log.e(TAG, "uploadProfilePicture: imageData est vide. Annulation de l'upload.")
@@ -51,6 +51,44 @@ class FirebaseStorageService @Inject constructor(
                 "Erreur lors de l'upload de la photo: ${e.localizedMessage}"
             }
             Log.e(TAG, "uploadProfilePicture: Message d'erreur final retourné au Repository: $errorMessage")
+            Resource.Error(errorMessage)
+        }
+    }
+
+    /**
+     * Uploade une image pour un message de chat dans un chemin de stockage organisé.
+     * @param conversationId L'ID de la conversation, utilisé pour organiser les fichiers.
+     * @param fileName Le nom unique du fichier (par exemple, un UUID).
+     * @param imageUri L'URI locale de l'image à uploader.
+     * @return Une Resource contenant l'URL de téléchargement en cas de succès, ou un message d'erreur.
+     */
+    suspend fun uploadChatMessageImage(
+        conversationId: String,
+        fileName: String,
+        imageUri: Uri
+    ): Resource<String> {
+        Log.d(TAG, "uploadChatMessageImage: Reçu pour ConversationID: $conversationId")
+
+        // MODIFIÉ: Utilisation de la constante pour la robustesse
+        val storageRef = storage.reference.child("${FirebaseConstants.STORAGE_CHAT_IMAGES}/$conversationId/$fileName")
+        Log.i(TAG, "uploadChatMessageImage: Tentative d'upload vers Storage Path: ${storageRef.path}")
+
+        return try {
+            storageRef.putFile(imageUri).await()
+            Log.i(TAG, "uploadChatMessageImage: putFile SUCCÈS pour ${storageRef.path}")
+
+            val downloadUrl = storageRef.downloadUrl.await().toString()
+            Log.i(TAG, "uploadChatMessageImage: getDownloadUrl SUCCÈS. URL: $downloadUrl")
+
+            Resource.Success(downloadUrl)
+        } catch (e: Exception) {
+            Log.e(TAG, "uploadChatMessageImage: EXCEPTION lors de l'opération sur ${storageRef.path}. Message: ${e.message}", e)
+
+            val errorMessage = if (e is StorageException) {
+                "Erreur Storage (code ${e.errorCode}): ${e.localizedMessage}"
+            } else {
+                "Erreur lors de l'upload de l'image: ${e.localizedMessage}"
+            }
             Resource.Error(errorMessage)
         }
     }

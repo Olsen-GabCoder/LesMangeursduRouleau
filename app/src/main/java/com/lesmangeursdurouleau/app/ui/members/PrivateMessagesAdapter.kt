@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
+import com.bumptech.glide.Glide
 import com.lesmangeursdurouleau.app.R
 import com.lesmangeursdurouleau.app.data.model.MessageStatus
 import com.lesmangeursdurouleau.app.data.model.PrivateMessage
@@ -46,6 +47,7 @@ class PrivateMessagesAdapter(
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
     override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {
         holder.bind(getItem(position), onMessageLongClick)
     }
@@ -54,12 +56,33 @@ class PrivateMessagesAdapter(
         @RequiresApi(Build.VERSION_CODES.N)
         protected val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
+        @RequiresApi(Build.VERSION_CODES.N)
         abstract fun bind(message: PrivateMessage, onMessageLongClick: (anchorView: View, message: PrivateMessage) -> Unit)
 
         class SentMessageViewHolder(private val binding: ItemPrivateMessageSentBinding) : MessageViewHolder(binding) {
             @RequiresApi(Build.VERSION_CODES.N)
             override fun bind(message: PrivateMessage, onMessageLongClick: (anchorView: View, message: PrivateMessage) -> Unit) {
-                binding.tvMessageBody.text = message.text
+                // MODIFIÉ: Logique pour gérer l'affichage de l'image et/ou du texte
+                // Gérer l'affichage du texte
+                if (!message.text.isNullOrBlank()) {
+                    binding.tvMessageBody.isVisible = true
+                    binding.tvMessageBody.text = message.text
+                } else {
+                    binding.tvMessageBody.isVisible = false
+                }
+
+                // Gérer l'affichage de l'image
+                if (message.imageUrl != null) {
+                    binding.ivMessageImage.isVisible = true
+                    Glide.with(itemView.context)
+                        .load(message.imageUrl)
+                        .placeholder(R.drawable.ic_image_placeholder)
+                        .error(R.drawable.ic_image_error)
+                        .into(binding.ivMessageImage)
+                } else {
+                    binding.ivMessageImage.isVisible = false
+                }
+
                 binding.tvMessageTimestamp.text = message.timestamp?.let { timeFormat.format(it) } ?: ""
 
                 if (message.reactions.isNotEmpty()) {
@@ -71,7 +94,6 @@ class PrivateMessagesAdapter(
 
                 binding.tvEditedIndicator.isVisible = message.isEdited
 
-                // AJOUT: Logique d'affichage de l'indicateur de statut
                 val statusIcon = binding.ivMessageStatus
                 when (message.status) {
                     MessageStatus.READ.name -> {
@@ -89,7 +111,6 @@ class PrivateMessagesAdapter(
                     }
                 }
 
-
                 itemView.setOnLongClickListener {
                     onMessageLongClick(binding.bubbleContainer, message)
                     true
@@ -100,7 +121,27 @@ class PrivateMessagesAdapter(
         class ReceivedMessageViewHolder(private val binding: ItemPrivateMessageReceivedBinding) : MessageViewHolder(binding) {
             @RequiresApi(Build.VERSION_CODES.N)
             override fun bind(message: PrivateMessage, onMessageLongClick: (anchorView: View, message: PrivateMessage) -> Unit) {
-                binding.tvMessageBody.text = message.text
+                // MODIFIÉ: Logique pour gérer l'affichage de l'image et/ou du texte
+                // Gérer l'affichage du texte
+                if (!message.text.isNullOrBlank()) {
+                    binding.tvMessageBody.isVisible = true
+                    binding.tvMessageBody.text = message.text
+                } else {
+                    binding.tvMessageBody.isVisible = false
+                }
+
+                // Gérer l'affichage de l'image
+                if (message.imageUrl != null) {
+                    binding.ivMessageImage.isVisible = true
+                    Glide.with(itemView.context)
+                        .load(message.imageUrl)
+                        .placeholder(R.drawable.ic_image_placeholder)
+                        .error(R.drawable.ic_image_error)
+                        .into(binding.ivMessageImage)
+                } else {
+                    binding.ivMessageImage.isVisible = false
+                }
+
                 binding.tvMessageTimestamp.text = message.timestamp?.let { timeFormat.format(it) } ?: ""
 
                 if (message.reactions.isNotEmpty()) {

@@ -22,7 +22,12 @@ data class PrivateMessage(
     val id: String? = null,
 
     val senderId: String = "",
-    val text: String = "",
+
+    // MODIFIÉ: Le texte est maintenant optionnel pour permettre les messages avec image seule.
+    val text: String? = null,
+
+    // AJOUT: URL de l'image, optionnelle.
+    val imageUrl: String? = null,
 
     @ServerTimestamp
     val timestamp: Date? = null,
@@ -31,9 +36,9 @@ data class PrivateMessage(
 
     val isEdited: Boolean = false,
 
-    // AJOUT: Statut du message (envoyé, lu).
     val status: String = MessageStatus.SENT.name
 ) {
     // Constructeur sans argument requis par Firestore pour la désérialisation
-    constructor() : this(null, "", "", null, emptyMap(), false, MessageStatus.SENT.name)
+    // MODIFIÉ: Mise à jour pour inclure les nouveaux champs et la nullabilité.
+    constructor() : this(id = null, senderId = "", text = null, imageUrl = null, timestamp = null, reactions = emptyMap(), isEdited = false, status = MessageStatus.SENT.name)
 }

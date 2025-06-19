@@ -1,5 +1,6 @@
 package com.lesmangeursdurouleau.app.ui.members
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -137,6 +138,22 @@ class PrivateChatViewModel @Inject constructor(
             _sendState.value = Resource.Loading()
             val message = PrivateMessage(senderId = senderId, text = text)
             val result = userRepository.sendPrivateMessage(convId, message)
+            _sendState.value = result
+        }
+    }
+
+    // AJOUT: Méthode pour envoyer un message contenant une image.
+    fun sendImageMessage(uri: Uri) {
+        val convId = _conversationId.value
+        if (convId == null) {
+            _sendState.value = Resource.Error("ID de conversation non disponible pour l'envoi d'image.")
+            return
+        }
+
+        viewModelScope.launch {
+            _sendState.value = Resource.Loading()
+            // TODO: Ajouter la possibilité de joindre un texte à l'image
+            val result = userRepository.sendImageMessage(convId, uri, null)
             _sendState.value = result
         }
     }

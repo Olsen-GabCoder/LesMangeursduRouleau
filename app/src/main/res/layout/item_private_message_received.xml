@@ -20,21 +20,43 @@
         app:layout_constrainedWidth="true"
         app:layout_constraintHorizontal_bias="0.0">
 
-        <TextView
-            android:id="@+id/tv_message_body"
+        <!-- AJOUT: Conteneur vertical pour l'image et/ou le texte -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingStart="12dp"
+            android:orientation="vertical"
+            android:paddingStart="8dp"
             android:paddingTop="8dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="24dp"
-            android:textColor="@android:color/black"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-            tools:text="Ceci est un message reçu qui est aussi assez long pour tester le retour à la ligne et voir si les métadonnées se placent bien en bas à droite sans rien cacher."
-            android:autoLink="web"
-            android:textColorLink="@color/link_color_received"/>
+            android:paddingEnd="8dp"
+            android:paddingBottom="24dp">
 
-        <!-- MODIFIÉ: Conteneur pour l'indicateur (modifié) et l'heure -->
+            <!-- AJOUT: Vue pour l'image reçue -->
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/iv_message_image"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:maxHeight="240dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.App.ChatImage"
+                tools:src="@tools:sample/backgrounds/scenic"
+                tools:visibility="visible" />
+
+            <TextView
+                android:id="@+id/tv_message_body"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@android:color/black"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                android:autoLink="web"
+                android:textColorLink="@color/link_color_received"
+                tools:text="Ceci est une légende pour une image reçue." />
+
+        </LinearLayout>
+
+        <!-- Conteneur pour l'indicateur (modifié) et l'heure -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

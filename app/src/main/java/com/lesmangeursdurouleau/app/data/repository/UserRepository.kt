@@ -1,5 +1,6 @@
 package com.lesmangeursdurouleau.app.data.repository
 
+import android.net.Uri
 import com.google.firebase.firestore.Query
 import com.lesmangeursdurouleau.app.data.model.User
 import com.lesmangeursdurouleau.app.data.model.UserBookReading
@@ -57,8 +58,6 @@ interface UserRepository {
 
     suspend fun removeCompletedReading(userId: String, bookId: String): Resource<Unit>
 
-
-
     fun getCompletedReadings(
         userId: String,
         orderBy: String,
@@ -77,6 +76,16 @@ interface UserRepository {
 
     suspend fun sendPrivateMessage(conversationId: String, message: PrivateMessage): Resource<Unit>
 
+    /**
+     * AJOUT: Uploade une image sur Firebase Storage, puis envoie un message contenant l'URL de l'image.
+     *
+     * @param conversationId L'ID de la conversation.
+     * @param imageUri L'URI locale de l'image à uploader.
+     * @param text Le texte optionnel à joindre à l'image.
+     * @return Une Resource indiquant le succès ou l'échec de l'opération complète.
+     */
+    suspend fun sendImageMessage(conversationId: String, imageUri: Uri, text: String? = null): Resource<Unit>
+
     suspend fun deletePrivateMessage(conversationId: String, messageId: String): Resource<Unit>
 
     suspend fun markConversationAsRead(conversationId: String, userId: String): Resource<Unit>
@@ -85,12 +94,5 @@ interface UserRepository {
 
     suspend fun editPrivateMessage(conversationId: String, messageId: String, newText: String): Resource<Unit>
 
-    /**
-     * AJOUT: Met à jour le statut des messages spécifiés en "lu".
-     *
-     * @param conversationId L'ID de la conversation.
-     * @param messageIds La liste des IDs des messages à mettre à jour.
-     * @return Une Resource indiquant le succès ou l'échec.
-     */
     suspend fun updateMessagesStatusToRead(conversationId: String, messageIds: List<String>): Resource<Unit>
 }

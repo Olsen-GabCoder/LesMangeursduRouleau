@@ -3,14 +3,16 @@ package com.lesmangeursdurouleau.app.ui.members
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -43,6 +45,23 @@ class PrivateChatFragment : Fragment() {
 
     @Inject
     lateinit var firebaseAuth: FirebaseAuth
+
+    // AJOUT: Launcher pour le sélecteur d'images.
+    private lateinit var imagePickerLauncher: ActivityResultLauncher<String>
+
+    // AJOUT: La méthode onCreate est le meilleur endroit pour initialiser le launcher.
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            // Le callback s'exécute quand l'utilisateur a choisi une image (ou annulé).
+            uri?.let {
+                // TODO: Ajouter un indicateur de chargement visuel pendant l'upload de l'image.
+                // Nous appellerons la méthode du ViewModel pour envoyer l'image.
+                // Cette méthode sera créée à l'étape 4.
+                viewModel.sendImageMessage(it)
+            }
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -109,7 +128,6 @@ class PrivateChatFragment : Fragment() {
                         }
                     }
                 }
-                // AJOUT: Observateur pour l'état de l'édition de message
                 launch {
                     viewModel.editState.collectLatest { resource ->
                         when(resource) {
@@ -182,6 +200,7 @@ class PrivateChatFragment : Fragment() {
             }
         }
 
+        // MODIFIÉ: S'assurer que le texte est copiable même s'il est null (ne fait rien)
         popupView.findViewById<TextView>(R.id.action_copy_message_popup).setOnClickListener {
             copyMessageToClipboard(message.text)
             popupWindow.dismiss()
@@ -192,20 +211,29 @@ class PrivateChatFragment : Fragment() {
         val separatorView = popupView.findViewById<View>(R.id.separator)
         val isSentByCurrentUser = message.senderId == firebaseAuth.currentUser?.uid
 
-        if (isSentByCurrentUser) {
+        // On peut seulement éditer un message qui contient du texte
+        if (isSentByCurrentUser && !message.text.isNullOrBlank()) {
             editActionView.setOnClickListener {
                 showEditMessageDialog(message)
                 popupWindow.dismiss()
             }
+        } else {
+            editActionView.visibility = View.GONE
+        }
+
+        if (isSentByCurrentUser) {
             deleteActionView.setOnClickListener {
                 showDeleteConfirmationDialog(message)
                 popupWindow.dismiss()
             }
         } else {
-            editActionView.visibility = View.GONE
             deleteActionView.visibility = View.GONE
+        }
+
+        if (editActionView.visibility == View.GONE && deleteActionView.visibility == View.GONE) {
             separatorView.visibility = View.GONE
         }
+
 
         popupView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
         val popupWidth = popupView.measuredWidth
@@ -224,7 +252,7 @@ class PrivateChatFragment : Fragment() {
         val textInputLayout = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_edit_message, null) as TextInputLayout
         val editText = textInputLayout.editText
         editText?.setText(message.text)
-        editText?.setSelection(message.text.length)
+        message.text?.let { editText?.setSelection(it.length) }
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Modifier le message")
@@ -278,6 +306,12 @@ class PrivateChatFragment : Fragment() {
                 viewModel.sendPrivateMessage(messageText)
                 binding.etMessageInput.text.clear()
             }
+        }
+
+        // AJOUT: Click listener pour le bouton pièce jointe.
+        binding.btnAttachFile.setOnClickListener {
+            // Lance le sélecteur d'image. Le résultat sera géré par le launcher.
+            imagePickerLauncher.launch("image/*")
         }
     }
 

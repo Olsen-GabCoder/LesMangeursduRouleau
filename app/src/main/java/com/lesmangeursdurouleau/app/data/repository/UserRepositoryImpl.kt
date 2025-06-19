@@ -1,6 +1,8 @@
 package com.lesmangeursdurouleau.app.data.repository
 
+import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.DocumentSnapshot
@@ -27,6 +29,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.util.Date
+import java.util.UUID
 import javax.inject.Inject
 
 class UserRepositoryImpl @Inject constructor(
@@ -41,8 +44,6 @@ class UserRepositoryImpl @Inject constructor(
 
     private val usersCollection = firestore.collection(FirebaseConstants.COLLECTION_USERS)
     private val conversationsCollection = firestore.collection(FirebaseConstants.COLLECTION_CONVERSATIONS)
-
-    // ... (toutes les autres méthodes de UserRepositoryImpl restent inchangées) ...
 
     private fun createUserFromSnapshot(document: DocumentSnapshot): User {
         return User(
@@ -65,7 +66,7 @@ class UserRepositoryImpl @Inject constructor(
         if (username.isBlank()) {
             return Resource.Error("Le pseudo ne peut pas être vide.")
         }
-        try {
+        return try {
             val user = firebaseAuth.currentUser
             if (user == null || user.uid != userId) {
                 Log.e(TAG, "updateUserProfile: Utilisateur non authentifié ou ID ne correspond pas. UserID: $userId, AuthUID: ${user?.uid}")
@@ -77,16 +78,16 @@ class UserRepositoryImpl @Inject constructor(
             val userDocRef = usersCollection.document(userId)
             userDocRef.update("username", username).await()
             Log.d(TAG, "updateUserProfile: Champ 'username' dans Firestore mis à jour pour $userId.")
-            return Resource.Success(Unit)
+            Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserProfile: Erreur lors de la mise à jour du profil pour $userId: ${e.message}", e)
-            return Resource.Error("Erreur lors de la mise à jour du profil: ${e.localizedMessage}")
+            Resource.Error("Erreur lors de la mise à jour du profil: ${e.localizedMessage}")
         }
     }
 
     override suspend fun updateUserBio(userId: String, bio: String): Resource<Unit> {
         Log.d(TAG, "updateUserBio: Tentative de mise à jour de la bio pour UserID: $userId")
-        try {
+        return try {
             val currentUser = firebaseAuth.currentUser
             if (currentUser == null || currentUser.uid != userId) {
                 Log.e(TAG, "updateUserBio: Utilisateur non authentifié ou ID ne correspond pas. UserID: $userId, AuthUID: ${currentUser?.uid}")
@@ -95,16 +96,16 @@ class UserRepositoryImpl @Inject constructor(
             val userDocRef = usersCollection.document(userId)
             userDocRef.update("bio", bio).await()
             Log.i(TAG, "updateUserBio: Champ 'bio' dans Firestore mis à jour pour $userId.")
-            return Resource.Success(Unit)
+            Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserBio: Erreur lors de la mise à jour de la bio pour $userId: ${e.message}", e)
-            return Resource.Error("Erreur lors de la mise à jour de la biographie: ${e.localizedMessage}")
+            Resource.Error("Erreur lors de la mise à jour de la biographie: ${e.localizedMessage}")
         }
     }
 
     override suspend fun updateUserCity(userId: String, city: String): Resource<Unit> {
         Log.d(TAG, "updateUserCity: Tentative de mise à jour de la ville vers '$city' pour UserID: $userId")
-        try {
+        return try {
             val currentUser = firebaseAuth.currentUser
             if (currentUser == null || currentUser.uid != userId) {
                 Log.e(TAG, "updateUserCity: Utilisateur non authentifié ou ID ne correspond pas. UserID: $userId, AuthUID: ${currentUser?.uid}")
@@ -113,16 +114,16 @@ class UserRepositoryImpl @Inject constructor(
             val userDocRef = usersCollection.document(userId)
             userDocRef.update("city", city).await()
             Log.i(TAG, "updateUserCity: Champ 'city' dans Firestore mis à jour pour $userId.")
-            return Resource.Success(Unit)
+            Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserCity: Erreur lors de la mise à jour de la ville pour $userId: ${e.message}", e)
-            return Resource.Error("Erreur lors de la mise à jour de la ville: ${e.localizedMessage}")
+            Resource.Error("Erreur lors de la mise à jour de la ville: ${e.localizedMessage}")
         }
     }
 
     override suspend fun updateUserProfilePicture(userId: String, imageData: ByteArray): Resource<String> {
         Log.i(TAG, "updateUserProfilePicture: Début de la fonction pour UserID: $userId")
-        try {
+        return try {
             val user = firebaseAuth.currentUser
             if (user == null || user.uid != userId) {
                 Log.e(TAG, "updateUserProfilePicture: Utilisateur non authentifié ou ID ne correspond pas. UserID: $userId, AuthUID: ${user?.uid}")
@@ -158,7 +159,7 @@ class UserRepositoryImpl @Inject constructor(
                 }
 
                 Log.d(TAG, "updateUserProfilePicture: Tentative de mise à jour de Firebase Auth photoUri avec: $photoUrl")
-                val profileUpdates = UserProfileChangeRequest.Builder().setPhotoUri(android.net.Uri.parse(photoUrl)).build()
+                val profileUpdates = UserProfileChangeRequest.Builder().setPhotoUri(photoUrl.toUri()).build()
                 user.updateProfile(profileUpdates).await()
 
                 user.reload().await()
@@ -171,14 +172,14 @@ class UserRepositoryImpl @Inject constructor(
                     Log.w(TAG, "updateUserProfilePicture: DISCORDANCE! URL de Storage ($photoUrl) vs URL dans Auth après MAJ ($updatedAuthPhotoUrl)")
                 }
                 Log.i(TAG, "updateUserProfilePicture: Retour de Resource.Success avec URL: $photoUrl")
-                return Resource.Success(photoUrl)
+                Resource.Success(photoUrl)
             } else {
                 Log.e(TAG, "updateUserProfilePicture: Échec de l'upload de la photo sur Storage pour $userId: ${uploadResult.message}")
-                return Resource.Error(uploadResult.message ?: "Erreur lors de l'upload de la photo.")
+                Resource.Error(uploadResult.message ?: "Erreur lors de l'upload de la photo.")
             }
         } catch (e: Exception) {
             Log.e(TAG, "updateUserProfilePicture: Exception générale lors de la mise à jour de la photo de profil pour $userId: ${e.message}", e)
-            return Resource.Error("Erreur: ${e.localizedMessage}")
+            Resource.Error("Erreur: ${e.localizedMessage}")
         }
     }
 
@@ -197,7 +198,6 @@ class UserRepositoryImpl @Inject constructor(
                     val usersList = mutableListOf<User>()
                     for (document in snapshot.documents) {
                         try {
-                            // Utilisation de la fonction helper pour la création de l'objet User
                             val user = createUserFromSnapshot(document)
                             usersList.add(user)
                         } catch (e: Exception) {
@@ -234,7 +234,6 @@ class UserRepositoryImpl @Inject constructor(
             if (documentSnapshot != null && documentSnapshot.exists()) {
                 Log.d(TAG, "getUserById: Document trouvé pour ID '$userId'. Tentative de conversion.")
                 try {
-                    // Utilisation de la fonction helper pour la création de l'objet User
                     val user = createUserFromSnapshot(documentSnapshot)
                     Log.i(TAG, "getUserById: Utilisateur converti avec succès pour ID '$userId': $user")
                     trySend(Resource.Success(user))
@@ -267,7 +266,7 @@ class UserRepositoryImpl @Inject constructor(
             Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserTypingStatus: Erreur lors de la mise à jour du statut de frappe pour '$userId': ${e.message}", e)
-            return Resource.Error("Erreur technique lors de la mise à jour du statut: ${e.localizedMessage}")
+            Resource.Error("Erreur technique lors de la mise à jour du statut: ${e.localizedMessage}")
         }
     }
 
@@ -275,10 +274,10 @@ class UserRepositoryImpl @Inject constructor(
         return try {
             usersCollection.document(userId).update("canEditReadings", canEdit).await()
             Log.d(TAG, "updateUserEditPermission: Permission 'canEditReadings' de l'utilisateur $userId mise à jour à $canEdit.")
-            return Resource.Success(Unit)
+            Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserEditPermission: Erreur lors de la mise à jour de la permission d'édition pour $userId: ${e.message}", e)
-            return Resource.Error(e.localizedMessage ?: "Erreur lors de la mise à jour de la permission d'édition.")
+            Resource.Error(e.localizedMessage ?: "Erreur lors de la mise à jour de la permission d'édition.")
         }
     }
 
@@ -294,7 +293,7 @@ class UserRepositoryImpl @Inject constructor(
             Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserLastPermissionTimestamp: Erreur lors de la mise à jour du timestamp de permission pour $userId: ${e.message}", e)
-            return Resource.Error(e.localizedMessage ?: "Erreur lors de la mise à jour du timestamp de permission.")
+            Resource.Error(e.localizedMessage ?: "Erreur lors de la mise à jour du timestamp de permission.")
         }
     }
 
@@ -318,7 +317,7 @@ class UserRepositoryImpl @Inject constructor(
             Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "updateUserFCMToken: Erreur lors de la mise à jour du jeton FCM pour l'utilisateur $userId: ${e.message}", e)
-            return Resource.Error("Erreur lors de la mise à jour du jeton FCM: ${e.localizedMessage}")
+            Resource.Error("Erreur lors de la mise à jour du jeton FCM: ${e.localizedMessage}")
         }
     }
 
@@ -539,6 +538,7 @@ class UserRepositoryImpl @Inject constructor(
                 Log.e(TAG, "getFollowersUsers: Erreur lors de l'écoute de la sous-collection 'followers' pour $userId: ${error.message}", error)
                 trySend(Resource.Error("Erreur lors de la récupération des followers: ${error.localizedMessage}"))
                 close(error)
+                return@addSnapshotListener
             }
 
             if (snapshot != null && !snapshot.isEmpty) {
@@ -763,7 +763,7 @@ class UserRepositoryImpl @Inject constructor(
             Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "deleteCommentOnActiveReading: Erreur lors de la suppression du commentaire '$commentId' pour '$targetUserId' (bookId: $bookId): ${e.message}", e)
-            return Resource.Error("Erreur lors de la suppression du commentaire: ${e.localizedMessage}")
+            Resource.Error("Erreur lors de la suppression du commentaire: ${e.localizedMessage}")
         }
     }
 
@@ -1026,7 +1026,7 @@ class UserRepositoryImpl @Inject constructor(
             Resource.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "markActiveReadingAsCompleted: [Erreur Globale] Échec du processus de finalisation complet pour '$userId': ${e.message}", e)
-            return Resource.Error("Erreur lors de la finalisation de la lecture terminée: ${e.localizedMessage}")
+            Resource.Error("Erreur lors de la finalisation de la lecture terminée: ${e.localizedMessage}")
         }
     }
 
@@ -1069,7 +1069,7 @@ class UserRepositoryImpl @Inject constructor(
             Resource.Success(Unit)
         } catch (e: FirebaseFirestoreException) {
             Log.e(TAG, "removeCompletedReading: [Repository Error] Firestore transaction failed for '$userId'. Code=${e.code}, Message=${e.message}, Cause=${e.cause?.message}", e)
-            return when (e.code) {
+            when (e.code) {
                 FirebaseFirestoreException.Code.NOT_FOUND -> Resource.Error(e.message ?: "Lecture terminée non trouvée.")
                 else -> Resource.Error("Erreur Firestore: ${e.localizedMessage}")
             }
@@ -1290,6 +1290,7 @@ class UserRepositoryImpl @Inject constructor(
 
             // Étape 1: Lire les données actuelles de la conversation pour identifier le destinataire.
             val conversationSnapshot = conversationDocRef.get().await()
+            @Suppress("UNCHECKED_CAST")
             val participants = conversationSnapshot.get("participantIds") as? List<String>
             if (participants == null) {
                 Log.e(TAG, "sendPrivateMessage: Impossible de récupérer les participants de la conversation $conversationId.")
@@ -1326,6 +1327,73 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun sendImageMessage(conversationId: String, imageUri: Uri, text: String?): Resource<Unit> {
+        val currentUserId = firebaseAuth.currentUser?.uid ?: return Resource.Error("Utilisateur non authentifié.")
+
+        return try {
+            // Étape 1: Uploader l'image sur Firebase Storage
+            val fileName = "${UUID.randomUUID()}.jpg"
+            val uploadResult = firebaseStorageService.uploadChatMessageImage(conversationId, fileName, imageUri)
+
+            if (uploadResult is Resource.Error<*>) {
+                Log.e(TAG, "sendImageMessage: Échec de l'upload de l'image sur Storage. ${uploadResult.message}")
+                return Resource.Error(uploadResult.message ?: "Erreur lors de l'upload de l'image.")
+            }
+
+            val imageUrl = (uploadResult as Resource.Success<*>).data as? String
+            if (imageUrl.isNullOrBlank()) {
+                return Resource.Error("Erreur interne: L'URL de l'image est vide après l'upload.")
+            }
+
+
+            // Étape 2: Préparer le message et la mise à jour de la conversation
+            val conversationDocRef = conversationsCollection.document(conversationId)
+            val newMessageDocRef = conversationDocRef.collection(FirebaseConstants.SUBCOLLECTION_MESSAGES).document()
+
+            val conversationSnapshot = conversationDocRef.get().await()
+            @Suppress("UNCHECKED_CAST")
+            val participants = conversationSnapshot.get("participantIds") as? List<String>
+                ?: return Resource.Error("Participants non trouvés.")
+            val receiverId = participants.firstOrNull { it != currentUserId }
+                ?: return Resource.Error("Destinataire non trouvé.")
+
+            val messageData = mapOf(
+                "senderId" to currentUserId,
+                "text" to text,
+                "imageUrl" to imageUrl,
+                "timestamp" to FieldValue.serverTimestamp(),
+                "status" to MessageStatus.SENT.name,
+                "reactions" to emptyMap<String, String>(),
+                "isEdited" to false
+            )
+
+            val lastMessageSummary = if (!text.isNullOrBlank()) {
+                "📷 $text"
+            } else {
+                "📷 Photo"
+            }
+
+            // Étape 3: Exécuter un WriteBatch atomique
+            Log.d(TAG, "sendImageMessage: Préparation du batch pour envoyer l'image dans $conversationId.")
+            firestore.runBatch { batch ->
+                batch.set(newMessageDocRef, messageData)
+                val conversationUpdate = mapOf(
+                    "lastMessage" to lastMessageSummary,
+                    "lastMessageTimestamp" to FieldValue.serverTimestamp(),
+                    "unreadCount.$receiverId" to FieldValue.increment(1)
+                )
+                batch.update(conversationDocRef, conversationUpdate)
+            }.await()
+
+            Log.i(TAG, "sendImageMessage: Message image envoyé et conversation mise à jour avec succès.")
+            Resource.Success(Unit)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "sendImageMessage: Erreur lors de l'envoi du message image: ${e.message}", e)
+            Resource.Error("Erreur lors de l'envoi de l'image: ${e.localizedMessage}")
+        }
+    }
+
     override suspend fun deletePrivateMessage(conversationId: String, messageId: String): Resource<Unit> {
         return try {
             val conversationDocRef = conversationsCollection.document(conversationId)
@@ -1351,9 +1419,15 @@ class UserRepositoryImpl @Inject constructor(
                     val conversationUpdate: Map<String, Any?>
                     if (newLatestMessageDoc != null) {
                         val newLatestMessage = newLatestMessageDoc.toObject(PrivateMessage::class.java)
-                        Log.d(TAG, "deletePrivateMessage [Transac]: Le nouveau dernier message est: ${newLatestMessage?.text}")
+                        Log.d(TAG, "deletePrivateMessage [Transac]: Le nouveau dernier message est: ${newLatestMessage?.text ?: newLatestMessage?.imageUrl}")
+                        // Gère le cas où le nouveau dernier message est une image
+                        val lastMessageText = when {
+                            !newLatestMessage?.text.isNullOrBlank() -> newLatestMessage?.text
+                            !newLatestMessage?.imageUrl.isNullOrBlank() -> "📷 Photo"
+                            else -> ""
+                        }
                         conversationUpdate = mapOf(
-                            "lastMessage" to newLatestMessage?.text,
+                            "lastMessage" to lastMessageText,
                             "lastMessageTimestamp" to newLatestMessage?.timestamp
                         )
                     } else {
@@ -1437,15 +1511,31 @@ class UserRepositoryImpl @Inject constructor(
         }
 
         return try {
-            val messageRef = conversationsCollection.document(conversationId)
-                .collection(FirebaseConstants.SUBCOLLECTION_MESSAGES).document(messageId)
+            val conversationDocRef = conversationsCollection.document(conversationId)
+            val messagesCollectionRef = conversationDocRef.collection(FirebaseConstants.SUBCOLLECTION_MESSAGES)
+            val messageRef = messagesCollectionRef.document(messageId)
 
-            val updates = mapOf(
-                "text" to newText,
-                "isEdited" to true
-            )
+            // CORRECTION: L'appel suspendu `.get().await()` est effectué AVANT le bloc `runBatch`.
+            val lastMessageSnapshot = messagesCollectionRef
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(1)
+                .get()
+                .await()
 
-            messageRef.update(updates).await()
+            // Le bloc `runBatch` ne contient maintenant que des opérations d'écriture non-suspendues.
+            firestore.runBatch { batch ->
+                val updates = mapOf(
+                    "text" to newText,
+                    "isEdited" to true
+                )
+                batch.update(messageRef, updates)
+
+                // Mise à jour du résumé de la conversation si le message édité est le dernier
+                if (lastMessageSnapshot.documents.firstOrNull()?.id == messageId) {
+                    batch.update(conversationDocRef, "lastMessage", newText)
+                    Log.i(TAG, "editPrivateMessage: Le résumé de la conversation sera mis à jour.")
+                }
+            }.await()
 
             Log.i(TAG, "editPrivateMessage: Message $messageId modifié avec succès.")
             Resource.Success(Unit)
@@ -1455,7 +1545,6 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    // AJOUT: Implémentation de la mise à jour des statuts de message
     override suspend fun updateMessagesStatusToRead(conversationId: String, messageIds: List<String>): Resource<Unit> {
         if (conversationId.isBlank() || messageIds.isEmpty()) {
             Log.w(TAG, "updateMessagesStatusToRead: conversationId ou messageIds est vide. Rien à faire.")
