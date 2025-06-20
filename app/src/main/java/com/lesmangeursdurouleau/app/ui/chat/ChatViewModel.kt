@@ -1,7 +1,5 @@
 package com.lesmangeursdurouleau.app.ui.chat
 
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -13,7 +11,8 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.lesmangeursdurouleau.app.data.model.Message
 import com.lesmangeursdurouleau.app.data.model.User
 import com.lesmangeursdurouleau.app.data.repository.ChatRepository
-import com.lesmangeursdurouleau.app.data.repository.UserRepository
+// MODIFIÉ: Import de UserProfileRepository et suppression de UserRepository
+import com.lesmangeursdurouleau.app.data.repository.UserProfileRepository
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -27,7 +26,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
-    private val userRepository: UserRepository,
+    // MODIFIÉ: Remplacement de UserRepository par UserProfileRepository
+    private val userProfileRepository: UserProfileRepository,
     val firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore // Injected FirebaseFirestore
 ) : ViewModel() {
@@ -94,7 +94,6 @@ class ChatViewModel @Inject constructor(
                 Log.d(TAG, "Réception des messages: $resource")
                 _messages.value = resource
 
-                // Mettre à jour le timestamp du message le plus ancien pour la pagination
                 if (resource is Resource.Success && !resource.data.isNullOrEmpty()) {
                     updateOldestMessageTimestamp(resource.data)
                     loadUserDetailsForMessages(resource.data)
@@ -140,13 +139,8 @@ class ChatViewModel @Inject constructor(
                             allOldMessagesLoaded = true
                             Log.d(TAG, "Fin de l'historique atteinte")
                         } else {
-                            // Mettre à jour le timestamp du plus ancien
                             updateOldestMessageTimestamp(oldMessages)
-
-                            // Charger les détails utilisateur pour ces messages
                             loadUserDetailsForMessages(oldMessages)
-
-                            // Vérifier si on a reçu moins de messages que demandé
                             if (oldMessages.size < HISTORY_PAGE_SIZE) {
                                 allOldMessagesLoaded = true
                                 Log.d(TAG, "Fin de l'historique atteinte (moins de messages que demandé)")
@@ -157,9 +151,7 @@ class ChatViewModel @Inject constructor(
                     is Resource.Error -> {
                         isLoadingMoreMessages = false
                     }
-                    is Resource.Loading -> {
-                        // Le chargement continue
-                    }
+                    is Resource.Loading -> {}
                 }
             }
             .launchIn(viewModelScope)
@@ -176,16 +168,16 @@ class ChatViewModel @Inject constructor(
                 try {
                     val newUserDetails = mutableMapOf<String, User>()
                     newUserIds.forEach { userId ->
-                        when (val result = userRepository.getUserById(userId)) {
-                            is Resource.Success<*> -> {
-                                (result.data as? User)?.let { user ->
+                        // MODIFIÉ: Appel sur userProfileRepository
+                        userProfileRepository.getUserById(userId).onEach { result ->
+                            if (result is Resource.Success<User>) {
+                                result.data?.let { user ->
                                     newUserDetails[userId] = user
                                 }
-                            }
-                            else -> {
+                            } else {
                                 Log.w(TAG, "Impossible de charger les détails de l'utilisateur $userId")
                             }
-                        }
+                        }.launchIn(viewModelScope) // Note: This launches a new coroutine for each user. Be mindful of performance on large lists.
                     }
                     _userDetailsCache.value = currentCache + newUserDetails
                 } catch (e: Exception) {
@@ -195,7 +187,6 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    // --- Typing Indicator Logic (User who is typing) ---
     fun userStartedTyping() {
         val userId = currentUserId
         if (userId == null) {
@@ -203,23 +194,21 @@ class ChatViewModel @Inject constructor(
             return
         }
 
-        // Cancel any previous typing timeout job
         typingJob?.cancel()
 
         if (!isCurrentlyTypingSent) {
-            // Only send 'true' if it hasn't been sent yet
             Log.d(TAG, "userStartedTyping: Signaling typing: true for user $userId")
             viewModelScope.launch {
-                userRepository.updateUserTypingStatus(userId, true)
+                // MODIFIÉ: Appel sur userProfileRepository
+                userProfileRepository.updateUserTypingStatus(userId, true)
                 isCurrentlyTypingSent = true
             }
         }
 
-        // Start a new timeout job
         typingJob = viewModelScope.launch {
             delay(TYPING_TIMEOUT_MS)
             Log.d(TAG, "userStoppedTyping: Typing timeout reached for user $userId")
-            userStoppedTyping() // Automatically set typing to false after timeout
+            userStoppedTyping()
         }
     }
 
@@ -230,21 +219,19 @@ class ChatViewModel @Inject constructor(
             return
         }
 
-        // Cancel the timeout job immediately
         typingJob?.cancel()
         typingJob = null
 
         if (isCurrentlyTypingSent) {
-            // Only send 'false' if 'true' was previously sent
             Log.d(TAG, "userStoppedTyping: Signaling typing: false for user $userId")
             viewModelScope.launch {
-                userRepository.updateUserTypingStatus(userId, false)
+                // MODIFIÉ: Appel sur userProfileRepository
+                userProfileRepository.updateUserTypingStatus(userId, false)
                 isCurrentlyTypingSent = false
             }
         }
     }
 
-    // --- Typing Indicator Logic (Observing other users) ---
     private fun observeOtherUsersTypingStatus() {
         val currentUserId = currentUserId
         if (currentUserId == null) {
@@ -265,7 +252,6 @@ class ChatViewModel @Inject constructor(
                     val typingUserIds = mutableSetOf<String>()
                     for (doc in snapshots.documents) {
                         val userId = doc.id
-                        // Exclude the current user from the typing list
                         if (userId != currentUserId) {
                             typingUserIds.add(userId)
                         }
@@ -282,7 +268,8 @@ class ChatViewModel @Inject constructor(
     fun sendMessage(text: String) {
         Log.d(TAG, "sendMessage appelé avec: \"$text\"")
         val senderUid = firebaseAuth.currentUser?.uid
-        val senderUsername = firebaseAuth.currentUser?.displayName // Or fetch from your User model
+        val senderUsername = firebaseAuth.currentUser?.displayName
+
         if (senderUid == null) {
             Log.e(TAG, "sendMessage: Current user is not authenticated.")
             _sendMessageStatus.value = Resource.Error("User not authenticated.")
@@ -294,7 +281,7 @@ class ChatViewModel @Inject constructor(
             senderId = senderUid,
             senderUsername = senderUsername ?: "Anonymous",
             timestamp = Date(),
-            messageId = "" // Message ID will be generated by the repository/backend
+            messageId = ""
         )
 
         viewModelScope.launch {
@@ -302,7 +289,7 @@ class ChatViewModel @Inject constructor(
             val result = chatRepository.sendGeneralChatMessage(message)
             _sendMessageStatus.value = result
             Log.d(TAG, "Résultat d'envoi: $result")
-            userStoppedTyping() // Important: Signal that the user stopped typing after sending a message
+            userStoppedTyping()
         }
     }
 
@@ -316,7 +303,6 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    // NOUVEAU: Fonction pour ajouter/retirer une réaction
     fun addReactionToMessage(messageId: String, reactionEmoji: String) {
         val userId = currentUserId
         if (userId == null) {
@@ -327,10 +313,9 @@ class ChatViewModel @Inject constructor(
 
         Log.d(TAG, "addReactionToMessage appelé pour message $messageId avec réaction '$reactionEmoji' par user $userId")
         viewModelScope.launch {
-            _reactionStatus.value = Resource.Loading() // Indique que l'opération est en cours
-            // Appel à la nouvelle méthode `toggleMessageReaction` du repository
+            _reactionStatus.value = Resource.Loading()
             val result = chatRepository.toggleMessageReaction(messageId, reactionEmoji, userId)
-            _reactionStatus.value = result // Met à jour le statut
+            _reactionStatus.value = result
             Log.d(TAG, "Résultat de la réaction: $result")
         }
     }
@@ -343,7 +328,6 @@ class ChatViewModel @Inject constructor(
         _deleteMessageStatus.value = null
     }
 
-    // NOUVEAU: Fonction pour réinitialiser le statut de réaction
     fun clearReactionStatus() {
         _reactionStatus.value = null
     }
@@ -358,9 +342,9 @@ class ChatViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        typingJob?.cancel() // Cancel any ongoing typing timeout
-        userStoppedTyping() // Ensure typing status is reset to false when ViewModel is cleared
-        typingStatusListener?.remove() // Detach the Firestore listener
+        typingJob?.cancel()
+        userStoppedTyping()
+        typingStatusListener?.remove()
         Log.d(TAG, "ChatViewModel cleared. Listeners removed.")
     }
 }

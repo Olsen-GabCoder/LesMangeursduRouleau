@@ -6,10 +6,12 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lesmangeursdurouleau.app.data.model.User
-import com.lesmangeursdurouleau.app.data.repository.UserRepository
+import com.lesmangeursdurouleau.app.data.repository.SocialRepository
+// MODIFIÉ: Import de UserProfileRepository et suppression de UserRepository
+import com.lesmangeursdurouleau.app.data.repository.UserProfileRepository
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow // Import pour la classe Flow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -17,7 +19,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MembersViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    // MODIFIÉ: Remplacement de UserRepository par UserProfileRepository
+    private val userProfileRepository: UserProfileRepository,
+    private val socialRepository: SocialRepository
 ) : ViewModel() {
 
     private val _members = MutableLiveData<Resource<List<User>>>()
@@ -53,7 +57,7 @@ class MembersViewModel @Inject constructor(
                         _members.postValue(Resource.Error("ID utilisateur cible manquant pour les followers."))
                         return@launch // Quitter la coroutine
                     }
-                    userRepository.getFollowersUsers(targetUserId)
+                    socialRepository.getFollowersUsers(targetUserId)
                 }
                 "following" -> {
                     if (targetUserId.isNullOrBlank()) {
@@ -62,10 +66,11 @@ class MembersViewModel @Inject constructor(
                         _members.postValue(Resource.Error("ID utilisateur cible manquant pour les abonnements."))
                         return@launch // Quitter la coroutine
                     }
-                    userRepository.getFollowingUsers(targetUserId)
+                    socialRepository.getFollowingUsers(targetUserId)
                 }
                 else -> { // Valeur par défaut: null ou "all" - récupérer tous les utilisateurs
-                    userRepository.getAllUsers()
+                    // MODIFIÉ: Appel sur userProfileRepository
+                    userProfileRepository.getAllUsers()
                 }
             }
 

@@ -7,12 +7,6 @@ import com.lesmangeursdurouleau.app.data.repository.ChatRepository
 import com.lesmangeursdurouleau.app.data.repository.ChatRepositoryImpl
 import com.lesmangeursdurouleau.app.data.repository.MonthlyReadingRepository
 import com.lesmangeursdurouleau.app.data.repository.MonthlyReadingRepositoryImpl
-import com.lesmangeursdurouleau.app.data.repository.UserRepository
-import com.lesmangeursdurouleau.app.data.repository.UserRepositoryImpl
-// L'import de BookRepository (interface) et BookRepositoryImpl (implémentation) ne sont plus nécessaires ici
-// car leur binding sera fait dans RepositoryBindingsModule
-
-// NOUVEAU: Importez le nouveau dépôt
 import com.lesmangeursdurouleau.app.data.repository.AppConfigRepository
 import com.lesmangeursdurouleau.app.data.repository.AppConfigRepositoryImpl
 
@@ -24,8 +18,10 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object RepositoryModule { // C'est un object pour les @Provides statiques
+object RepositoryModule {
 
+    // SUPPRESSION: Cette méthode est maintenant obsolète et doit être supprimée.
+    /*
     @Provides
     @Singleton
     fun provideUserRepository(
@@ -35,9 +31,7 @@ object RepositoryModule { // C'est un object pour les @Provides statiques
     ): UserRepository {
         return UserRepositoryImpl(firestore, firebaseAuth, firebaseStorageService)
     }
-
-    // SUPPRIMEZ la méthode provideBookRepository d'ici !
-    // Elle sera remplacée par @Binds dans RepositoryBindingsModule.
+    */
 
     @Provides
     @Singleton
@@ -56,12 +50,11 @@ object RepositoryModule { // C'est un object pour les @Provides statiques
         return MonthlyReadingRepositoryImpl(firestore)
     }
 
-    // NOUVEAU: Fourniture du AppConfigRepository
     @Provides
     @Singleton
     fun provideAppConfigRepository(
         firestore: FirebaseFirestore
-    ): AppConfigRepository { // Note: ici, on fournit l'interface AppConfigRepository, et l'implémentation est AppConfigRepositoryImpl
+    ): AppConfigRepository {
         return AppConfigRepositoryImpl(firestore)
     }
 }

@@ -4,33 +4,24 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.Query
 import com.lesmangeursdurouleau.app.data.model.Book
 import com.lesmangeursdurouleau.app.data.model.MonthlyReading
 import com.lesmangeursdurouleau.app.data.model.Phase
 import com.lesmangeursdurouleau.app.data.repository.AppConfigRepository
 import com.lesmangeursdurouleau.app.data.repository.MonthlyReadingRepository
-import com.lesmangeursdurouleau.app.data.repository.UserRepository
+// MODIFIÉ: Import de UserProfileRepository et suppression de UserRepository
+import com.lesmangeursdurouleau.app.data.repository.UserProfileRepository
 import com.lesmangeursdurouleau.app.domain.usecase.books.GetBooksUseCase
 import com.lesmangeursdurouleau.app.ui.readings.adapter.MonthlyReadingWithBook
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Date
-
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.launchIn // AJOUTÉ: Import pour launchIn
 import javax.inject.Inject
 
 enum class ReadingsFilter {
@@ -44,7 +35,8 @@ enum class ReadingsFilter {
 class ReadingsViewModel @Inject constructor(
     private val monthlyReadingRepository: MonthlyReadingRepository,
     private val getBooksUseCase: GetBooksUseCase,
-    private val userRepository: UserRepository,
+    // MODIFIÉ: Remplacement de UserRepository par UserProfileRepository
+    private val userProfileRepository: UserProfileRepository,
     private val firebaseAuth: FirebaseAuth,
     private val appConfigRepository: AppConfigRepository
 ) : ViewModel() {
@@ -76,7 +68,6 @@ class ReadingsViewModel @Inject constructor(
 
     private val _secretCodeLastUpdatedTimestamp = MutableStateFlow<Long?>(null)
 
-
     init {
         loadAllBooksIntoMap()
         setupAdminSecretCodeTimestampListener()
@@ -88,12 +79,12 @@ class ReadingsViewModel @Inject constructor(
         Log.d(TAG, "FUNC forcePermissionCheck: Forcing a re-evaluation of user edit permissions.")
         firebaseAuth.currentUser?.uid?.let { uid ->
             viewModelScope.launch {
-                // Re-déclencher la collecte des données de l'utilisateur pour forcer la réévaluation
-                userRepository.getUserById(uid)
+                // MODIFIÉ: Appel sur userProfileRepository
+                userProfileRepository.getUserById(uid)
                     .catch { e ->
                         Log.e(TAG, "FUNC forcePermissionCheck: Error forcing user permission check: ${e.localizedMessage}", e)
                     }
-                    .first() // Récupère la première valeur et annule la collecte du flow
+                    .first()
             }
         } ?: Log.w(TAG, "FUNC forcePermissionCheck: Cannot force permission check: No user logged in.")
     }
@@ -117,13 +108,11 @@ class ReadingsViewModel @Inject constructor(
     private fun setupUserEditPermissionListener() {
         Log.d(TAG, "INIT setupUserEditPermissionListener: Setting up combine listener for user and admin timestamps.")
         combine(
-            // Flow de l'utilisateur actuel. Si l'UID est vide, retourne une erreur pour gérer le cas non connecté.
-            userRepository.getUserById(firebaseAuth.currentUser?.uid ?: "")
+            // MODIFIÉ: Appel sur userProfileRepository
+            userProfileRepository.getUserById(firebaseAuth.currentUser?.uid ?: "")
                 .catch { emit(Resource.Error("User not found or error fetching user data")) },
-            // Flow du timestamp du code secret de l'admin.
             _secretCodeLastUpdatedTimestamp
         ) { userResource, adminTimestamp ->
-            // --- DÉBUT DES LOGS DÉTAILLÉS POUR LE DIAGNOSTIC ---
             Log.d(TAG, "COMBINE BLOCK START: Evaluating user permission.")
             Log.d(TAG, "  User Resource: $userResource")
             Log.d(TAG, "  Admin Timestamp State: ${adminTimestamp?.let { Date(it) }} (Raw: $adminTimestamp)")
@@ -148,19 +137,14 @@ class ReadingsViewModel @Inject constructor(
                 Log.d(TAG, "  No current user found or error fetching user data. Permission set to FALSE.")
                 _canEditReadings.value = false
             } else if (!hasInitialPermission) {
-                // Si l'utilisateur n'a pas la permission initiale, pas besoin de vérifier les timestamps
                 Log.d(TAG, "  User does not have initial permission. Permission set to FALSE.")
                 _canEditReadings.value = false
             } else {
-                // L'utilisateur a la permission initiale, vérifions les conditions d'invalidation
                 if (lastGrantedTimestamp == null) {
-                    // Si la permission est true mais le timestamp n'existe pas, cela indique une incohérence.
-                    // On force la ré-validation par sécurité.
                     Log.w(TAG, "  User has canEditReadings=true but lastPermissionGrantedTimestamp is NULL. Forcing revalidation.")
                     shouldRequestRevalidation = true
-                    _canEditReadings.value = false // Désactiver en attendant la ré-validation
+                    _canEditReadings.value = false
                 } else {
-                    // Vérification 1 : Expiration par le temps (3 minutes)
                     if ((now - lastGrantedTimestamp) > PERMISSION_LIFESPAN_MILLIS) {
                         isPermissionExpired = true
                         Log.d(TAG, "  Permission IS expired by time. (Now - LastGranted = ${now - lastGrantedTimestamp}ms)")
@@ -168,7 +152,6 @@ class ReadingsViewModel @Inject constructor(
                         Log.d(TAG, "  Permission is NOT expired by time. (Remaining: ${PERMISSION_LIFESPAN_MILLIS - (now - lastGrantedTimestamp)}ms)")
                     }
 
-                    // Vérification 2 : Invalidation par l'administrateur
                     if (currentAdminSecretCodeTimestamp != null && lastGrantedTimestamp < currentAdminSecretCodeTimestamp) {
                         isPermissionInvalidatedByAdmin = true
                         Log.d(TAG, "  Permission IS invalidated by admin. (LastGranted < AdminTimestamp: ${lastGrantedTimestamp} < ${currentAdminSecretCodeTimestamp})")
@@ -176,30 +159,24 @@ class ReadingsViewModel @Inject constructor(
                         Log.d(TAG, "  Permission is NOT invalidated by admin. (AdminTimestamp: ${currentAdminSecretCodeTimestamp?.let { Date(it) } ?: "N/A"})")
                     }
 
-                    // Décision finale basée sur les deux vérifications
                     if (isPermissionExpired || isPermissionInvalidatedByAdmin) {
                         Log.i(TAG, "  Final decision: Permission is NOT active due to expiration OR admin invalidation.")
                         shouldRequestRevalidation = true
-                        _canEditReadings.value = false // Désactiver la permission active
+                        _canEditReadings.value = false
                     } else {
                         Log.i(TAG, "  Final decision: Permission is ACTIVE and valid.")
-                        _canEditReadings.value = true // La permission reste active
+                        _canEditReadings.value = true
                     }
                 }
             }
 
-            // Émettre la requête de ré-validation si nécessaire
             if (shouldRequestRevalidation) {
                 Log.i(TAG, "  Emitting requestPermissionRevalidation event.")
                 _requestPermissionRevalidation.emit(true)
             }
             Log.d(TAG, "COMBINE BLOCK END: _canEditReadings.value is now ${_canEditReadings.value}")
-
-            // Ce bloc combine doit retourner une valeur, mais l'évaluation de permission est un side-effect.
-            // On peut retourner Unit ou juste un simple succès pour ce flow combiné interne.
-            // L'important est que _canEditReadings et _requestPermissionRevalidation soient mis à jour.
-            Unit // Retourne un Unit car le résultat principal est la mise à jour des StateFlows
-        }.launchIn(viewModelScope) // Utilisez launchIn pour collecter le flow combiné
+            Unit
+        }.launchIn(viewModelScope)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -263,7 +240,6 @@ class ReadingsViewModel @Inject constructor(
     }
 
     private fun applyStatusFilter(monthlyReading: MonthlyReading, filter: ReadingsFilter): Boolean {
-        // ... (Logique de filtrage inchangée) ...
         val now = Date()
 
         val isAnalysisPlanned = monthlyReading.analysisPhase.date != null && monthlyReading.analysisPhase.date.after(now) && monthlyReading.analysisPhase.status == Phase.STATUS_PLANIFIED
@@ -283,7 +259,6 @@ class ReadingsViewModel @Inject constructor(
         val isCurrentlyPlanned = (isAnalysisPlanned || isDebatePlanned) && !isCurrentlyInProgress && !isAnalysisCompleted && !isDebateCompleted
 
         val isCurrentlyPast = isDebateCompleted || (monthlyReading.debatePhase.date != null && !monthlyReading.debatePhase.date.after(now))
-
 
         return when (filter) {
             ReadingsFilter.ALL -> true

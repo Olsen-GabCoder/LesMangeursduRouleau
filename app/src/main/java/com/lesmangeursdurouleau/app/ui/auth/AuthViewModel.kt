@@ -15,7 +15,8 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.lesmangeursdurouleau.app.data.repository.UserRepository // N'oubliez pas cet import
+// MODIFIÉ: Import de UserProfileRepository et suppression de UserRepository
+import com.lesmangeursdurouleau.app.data.repository.UserProfileRepository
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -33,7 +34,8 @@ sealed class AuthResultWrapper {
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     application: Application,
-    private val userRepository: UserRepository, // Déjà injecté, c'est bien !
+    // MODIFIÉ: Remplacement de UserRepository par UserProfileRepository
+    private val userProfileRepository: UserProfileRepository,
     private val firebaseAuthInstance: FirebaseAuth,
     private val firestoreInstance: FirebaseFirestore
 ) : AndroidViewModel(application) {
@@ -282,13 +284,11 @@ class AuthViewModel @Inject constructor(
                     Log.d(TAG, "Nom d'utilisateur récupéré: ${_userDisplayName.value} pour UID: $userId")
                 } else {
                     Log.d(TAG, "Aucun document utilisateur trouvé dans Firestore pour UID: $userId")
-                    // Fallback sur le displayName de Firebase Auth si le document Firestore n'existe pas ou ne contient pas le champ
                     _userDisplayName.value = firebaseAuthInstance.currentUser?.displayName
                 }
             }
             .addOnFailureListener { exception ->
                 Log.e(TAG, "Erreur lors de la récupération du nom d'utilisateur depuis Firestore:", exception)
-                // Fallback sur le displayName de Firebase Auth en cas d'erreur
                 _userDisplayName.value = firebaseAuthInstance.currentUser?.displayName
             }
     }
@@ -329,7 +329,6 @@ class AuthViewModel @Inject constructor(
         _registrationResult.value = null
     }
 
-    // MODIFICATION ICI : DÉLÉGATION À USERREPOSITORY
     fun updateUserProfile(userId: String, username: String) {
         if (userId.isBlank()) {
             _profileUpdateResult.value = Resource.Error("ID utilisateur invalide pour la mise à jour du profil.")
@@ -344,29 +343,28 @@ class AuthViewModel @Inject constructor(
 
         _profileUpdateResult.value = Resource.Loading()
         viewModelScope.launch {
-            Log.d(TAG, "updateUserProfile: Lancement de la coroutine pour appeler userRepository.updateUserProfile")
-            val result = userRepository.updateUserProfile(userId, username)
-            _profileUpdateResult.postValue(result) // Utiliser postValue car on est sur une coroutine
+            Log.d(TAG, "updateUserProfile: Lancement de la coroutine pour appeler userProfileRepository.updateUserProfile")
+            // MODIFIÉ: Appel sur userProfileRepository
+            val result = userProfileRepository.updateUserProfile(userId, username)
+            _profileUpdateResult.postValue(result)
 
             if (result is Resource.Success) {
-                // Si la mise à jour est un succès, mettez à jour le nom d'utilisateur dans le ViewModel
-                // cela reflétera le changement immédiatement dans l'UI dépendante de _userDisplayName.
                 _userDisplayName.value = username
-                Log.i(TAG, "updateUserProfile: Pseudo mis à jour avec succès via UserRepository. Nouveau pseudo: $username")
+                Log.i(TAG, "updateUserProfile: Pseudo mis à jour avec succès via UserProfileRepository. Nouveau pseudo: $username")
             } else if (result is Resource.Error) {
-                Log.e(TAG, "updateUserProfile: Échec de la mise à jour du pseudo via UserRepository: ${result.message}")
+                Log.e(TAG, "updateUserProfile: Échec de la mise à jour du pseudo via UserProfileRepository: ${result.message}")
             }
         }
     }
-    // FIN DE LA MODIFICATION
 
     fun updateProfilePicture(userId: String, imageData: ByteArray) {
         Log.d(TAG, "updateProfilePicture: Début pour UserID: $userId")
         _profilePictureUpdateResult.value = Resource.Loading()
         viewModelScope.launch {
-            Log.d(TAG, "updateProfilePicture: Lancement de la coroutine pour appeler userRepository.updateUserProfilePicture")
-            val result = userRepository.updateUserProfilePicture(userId, imageData)
-            _profilePictureUpdateResult.postValue(result) // Poster directement le résultat
+            Log.d(TAG, "updateProfilePicture: Lancement de la coroutine pour appeler userProfileRepository.updateUserProfilePicture")
+            // MODIFIÉ: Appel sur userProfileRepository
+            val result = userProfileRepository.updateUserProfilePicture(userId, imageData)
+            _profilePictureUpdateResult.postValue(result)
 
             if (result is Resource.Success) {
                 Log.i(TAG, "updateProfilePicture: Mise à jour de la photo de profil réussie. Nouvelle URL: ${result.data}")
@@ -381,7 +379,7 @@ class AuthViewModel @Inject constructor(
         firebaseAuthInstance.signOut()
         _currentUser.value = null
         _userDisplayName.value = null
-        _justRegistered.value = false // Réinitialiser cet indicateur à la déconnexion générale
+        _justRegistered.value = false
         _loginResult.value = null
         _registrationResult.value = null
         _profileUpdateResult.value = null
