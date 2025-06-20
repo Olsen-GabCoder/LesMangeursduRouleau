@@ -46,18 +46,12 @@ class PrivateChatFragment : Fragment() {
     @Inject
     lateinit var firebaseAuth: FirebaseAuth
 
-    // AJOUT: Launcher pour le sélecteur d'images.
     private lateinit var imagePickerLauncher: ActivityResultLauncher<String>
 
-    // AJOUT: La méthode onCreate est le meilleur endroit pour initialiser le launcher.
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-            // Le callback s'exécute quand l'utilisateur a choisi une image (ou annulé).
             uri?.let {
-                // TODO: Ajouter un indicateur de chargement visuel pendant l'upload de l'image.
-                // Nous appellerons la méthode du ViewModel pour envoyer l'image.
-                // Cette méthode sera créée à l'étape 4.
                 viewModel.sendImageMessage(it)
             }
         }
@@ -157,9 +151,18 @@ class PrivateChatFragment : Fragment() {
 
     private fun setupRecyclerView() {
         val currentUserId = firebaseAuth.currentUser?.uid ?: ""
-        messagesAdapter = PrivateMessagesAdapter(currentUserId) { anchorView, message ->
-            showActionsMenuForMessage(anchorView, message)
-        }
+        // CORRIGÉ: L'instanciation de l'adapter inclut maintenant les 3 arguments requis.
+        messagesAdapter = PrivateMessagesAdapter(
+            currentUserId = currentUserId,
+            onMessageLongClick = { anchorView, message ->
+                showActionsMenuForMessage(anchorView, message)
+            },
+            onImageClick = { imageUrl ->
+                // Gère le clic sur une image pour l'afficher en plein écran.
+                val action = PrivateChatFragmentDirections.actionPrivateChatFragmentToFullScreenImageFragment(imageUrl)
+                findNavController().navigate(action)
+            }
+        )
         val layoutManager = LinearLayoutManager(context)
         layoutManager.stackFromEnd = true
         binding.rvMessages.adapter = messagesAdapter
@@ -200,7 +203,6 @@ class PrivateChatFragment : Fragment() {
             }
         }
 
-        // MODIFIÉ: S'assurer que le texte est copiable même s'il est null (ne fait rien)
         popupView.findViewById<TextView>(R.id.action_copy_message_popup).setOnClickListener {
             copyMessageToClipboard(message.text)
             popupWindow.dismiss()
@@ -211,7 +213,6 @@ class PrivateChatFragment : Fragment() {
         val separatorView = popupView.findViewById<View>(R.id.separator)
         val isSentByCurrentUser = message.senderId == firebaseAuth.currentUser?.uid
 
-        // On peut seulement éditer un message qui contient du texte
         if (isSentByCurrentUser && !message.text.isNullOrBlank()) {
             editActionView.setOnClickListener {
                 showEditMessageDialog(message)
@@ -308,9 +309,7 @@ class PrivateChatFragment : Fragment() {
             }
         }
 
-        // AJOUT: Click listener pour le bouton pièce jointe.
         binding.btnAttachFile.setOnClickListener {
-            // Lance le sélecteur d'image. Le résultat sera géré par le launcher.
             imagePickerLauncher.launch("image/*")
         }
     }

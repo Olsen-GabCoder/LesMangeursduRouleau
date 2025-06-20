@@ -42,11 +42,6 @@ android {
     buildFeatures {
         viewBinding = true
     }
-
-    // SUPPRIMÉ : Ce bloc sourceSets est obsolète et peut causer des problèmes avec les versions récentes de Safe Args.
-    // sourceSets.getByName("main") {
-    //     java.srcDirs("build/generated/source/navigation-safe-args")
-    // }
 }
 
 dependencies {
@@ -97,6 +92,9 @@ dependencies {
 
     // UCrop
     implementation("com.github.yalantis:ucrop:2.2.8")
+
+    // AJOUT : Librairie pour le zoom sur les images
+    implementation("com.github.chrisbanes:PhotoView:2.3.0")
 
     // Hilt Dependencies
     implementation("com.google.dagger:hilt-android:2.51.1")

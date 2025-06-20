@@ -25,7 +25,9 @@ private const val VIEW_TYPE_RECEIVED = 2
 
 class PrivateMessagesAdapter(
     private val currentUserId: String,
-    private val onMessageLongClick: (anchorView: View, message: PrivateMessage) -> Unit
+    private val onMessageLongClick: (anchorView: View, message: PrivateMessage) -> Unit,
+    // AJOUT : Callback pour gérer le clic sur une image
+    private val onImageClick: (imageUrl: String) -> Unit
 ) : ListAdapter<PrivateMessage, PrivateMessagesAdapter.MessageViewHolder>(MessageDiffCallback()) {
 
     override fun getItemViewType(position: Int): Int {
@@ -49,7 +51,8 @@ class PrivateMessagesAdapter(
 
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {
-        holder.bind(getItem(position), onMessageLongClick)
+        // MODIFIÉ : On passe le callback onImageClick au ViewHolder
+        holder.bind(getItem(position), onMessageLongClick, onImageClick)
     }
 
     abstract class MessageViewHolder(binding: ViewBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -57,12 +60,20 @@ class PrivateMessagesAdapter(
         protected val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
         @RequiresApi(Build.VERSION_CODES.N)
-        abstract fun bind(message: PrivateMessage, onMessageLongClick: (anchorView: View, message: PrivateMessage) -> Unit)
+        // MODIFIÉ : La signature de bind inclut maintenant onImageClick
+        abstract fun bind(
+            message: PrivateMessage,
+            onMessageLongClick: (anchorView: View, message: PrivateMessage) -> Unit,
+            onImageClick: (imageUrl: String) -> Unit
+        )
 
         class SentMessageViewHolder(private val binding: ItemPrivateMessageSentBinding) : MessageViewHolder(binding) {
             @RequiresApi(Build.VERSION_CODES.N)
-            override fun bind(message: PrivateMessage, onMessageLongClick: (anchorView: View, message: PrivateMessage) -> Unit) {
-                // MODIFIÉ: Logique pour gérer l'affichage de l'image et/ou du texte
+            override fun bind(
+                message: PrivateMessage,
+                onMessageLongClick: (anchorView: View, message: PrivateMessage) -> Unit,
+                onImageClick: (imageUrl: String) -> Unit
+            ) {
                 // Gérer l'affichage du texte
                 if (!message.text.isNullOrBlank()) {
                     binding.tvMessageBody.isVisible = true
@@ -79,6 +90,11 @@ class PrivateMessagesAdapter(
                         .placeholder(R.drawable.ic_image_placeholder)
                         .error(R.drawable.ic_image_error)
                         .into(binding.ivMessageImage)
+
+                    // AJOUT : Ajouter le listener de clic sur l'image
+                    binding.ivMessageImage.setOnClickListener {
+                        onImageClick(message.imageUrl)
+                    }
                 } else {
                     binding.ivMessageImage.isVisible = false
                 }
@@ -120,8 +136,11 @@ class PrivateMessagesAdapter(
 
         class ReceivedMessageViewHolder(private val binding: ItemPrivateMessageReceivedBinding) : MessageViewHolder(binding) {
             @RequiresApi(Build.VERSION_CODES.N)
-            override fun bind(message: PrivateMessage, onMessageLongClick: (anchorView: View, message: PrivateMessage) -> Unit) {
-                // MODIFIÉ: Logique pour gérer l'affichage de l'image et/ou du texte
+            override fun bind(
+                message: PrivateMessage,
+                onMessageLongClick: (anchorView: View, message: PrivateMessage) -> Unit,
+                onImageClick: (imageUrl: String) -> Unit
+            ) {
                 // Gérer l'affichage du texte
                 if (!message.text.isNullOrBlank()) {
                     binding.tvMessageBody.isVisible = true
@@ -138,6 +157,11 @@ class PrivateMessagesAdapter(
                         .placeholder(R.drawable.ic_image_placeholder)
                         .error(R.drawable.ic_image_error)
                         .into(binding.ivMessageImage)
+
+                    // AJOUT : Ajouter le listener de clic sur l'image
+                    binding.ivMessageImage.setOnClickListener {
+                        onImageClick(message.imageUrl)
+                    }
                 } else {
                     binding.ivMessageImage.isVisible = false
                 }

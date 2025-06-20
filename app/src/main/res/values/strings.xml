@@ -11,6 +11,9 @@
     <string name="error_generic_with_message">Erreur : %1$s</string>
     <string name="comment_like_button_description">Aimer ce commentaire</string>
     <string name="likes_count_default">0</string>
+    <string name="full_screen_image_view">Image en plein écran</string>
+    <string name="close_full_screen_image_view">Fermer la vue plein écran</string>
+    <string name="download_image">Télécharger l\'image</string>
 
     <string name="login_title">Connexion</string>
     <string name="reset_password_title">Réinitialiser le mot de passe</string>
