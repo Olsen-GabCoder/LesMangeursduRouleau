@@ -406,4 +406,18 @@ class PrivateChatRepositoryImpl @Inject constructor(
             Resource.Error("Erreur lors de la mise à jour du statut des messages: ${e.localizedMessage}")
         }
     }
+
+    override suspend fun updateFavoriteStatus(conversationId: String, isFavorite: Boolean): Resource<Unit> {
+        return try {
+            Log.d(TAG, "updateFavoriteStatus: Mise à jour du statut favori à '$isFavorite' pour la conv $conversationId.")
+            conversationsCollection.document(conversationId)
+                .update("isFavorite", isFavorite)
+                .await()
+            Log.i(TAG, "updateFavoriteStatus: Statut favori mis à jour avec succès.")
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "updateFavoriteStatus: Erreur lors de la mise à jour du statut favori: ${e.message}", e)
+            Resource.Error("Erreur lors de la mise à jour du favori: ${e.localizedMessage}")
+        }
+    }
 }

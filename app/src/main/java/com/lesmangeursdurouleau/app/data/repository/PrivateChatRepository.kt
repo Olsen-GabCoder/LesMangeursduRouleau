@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.Flow
  */
 interface PrivateChatRepository {
 
+    // ... (toutes les méthodes existantes restent inchangées)
+
     /**
      * Récupère en temps réel la liste des conversations pour un utilisateur donné.
      * @param userId L'ID de l'utilisateur.
@@ -93,4 +95,13 @@ interface PrivateChatRepository {
      * @return Une Resource indiquant le succès ou l'échec.
      */
     suspend fun updateMessagesStatusToRead(conversationId: String, messageIds: List<String>): Resource<Unit>
+
+    // --- NOUVELLE MÉTHODE ---
+    /**
+     * Met à jour le statut "favori" d'une conversation.
+     * @param conversationId L'ID de la conversation à mettre à jour.
+     * @param isFavorite Le nouveau statut (true ou false).
+     * @return Une Resource indiquant le succès ou l'échec.
+     */
+    suspend fun updateFavoriteStatus(conversationId: String, isFavorite: Boolean): Resource<Unit>
 }

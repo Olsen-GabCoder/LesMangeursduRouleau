@@ -1,4 +1,3 @@
-// Fichier : com/lesmangeursdurouleau/app/data/model/Conversation.kt
 package com.lesmangeursdurouleau.app.data.model
 
 import com.google.firebase.firestore.DocumentId
@@ -23,8 +22,20 @@ data class Conversation(
     @ServerTimestamp
     val lastMessageTimestamp: Date? = null,
 
-    // NOUVEAU CHAMP:
-    // Compte le nombre de messages non lus pour chaque participant.
-    // La clé est l'UID du participant, la valeur est le nombre de messages non lus.
-    val unreadCount: Map<String, Int> = emptyMap()
-)
+    val unreadCount: Map<String, Int> = emptyMap(),
+
+    // CHAMP ESSENTIEL POUR RÉSOUDRE L'ERREUR
+    val isFavorite: Boolean = false
+) {
+    // Constructeur sans argument requis par Firestore
+    constructor() : this(
+        id = null,
+        participantIds = emptyList(),
+        participantNames = emptyMap(),
+        participantPhotoUrls = emptyMap(),
+        lastMessage = null,
+        lastMessageTimestamp = null,
+        unreadCount = emptyMap(),
+        isFavorite = false // Valeur par défaut pour le nouveau champ
+    )
+}
