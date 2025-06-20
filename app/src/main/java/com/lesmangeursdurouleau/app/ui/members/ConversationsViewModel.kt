@@ -1,11 +1,13 @@
-// Fichier : com/lesmangeursdurouleau/app/ui/members/ConversationsViewModel.kt
 package com.lesmangeursdurouleau.app.ui.members
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.lesmangeursdurouleau.app.data.model.Conversation
-import com.lesmangeursdurouleau.app.data.repository.UserRepository
+// AJOUT: Import du nouveau repository
+import com.lesmangeursdurouleau.app.data.repository.PrivateChatRepository
+// SUPPRESSION: L'ancien import n'est plus nécessaire
+// import com.lesmangeursdurouleau.app.data.repository.UserRepository
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +18,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ConversationsViewModel @Inject constructor(
-    private val userRepository: UserRepository,
+    // MODIFIÉ: Injection de PrivateChatRepository au lieu de UserRepository
+    private val privateChatRepository: PrivateChatRepository,
     private val firebaseAuth: FirebaseAuth
 ) : ViewModel() {
 
@@ -34,7 +37,8 @@ class ConversationsViewModel @Inject constructor(
             return
         }
 
-        userRepository.getUserConversations(currentUserId)
+        // MODIFIÉ: Appel de la méthode sur le nouveau repository
+        privateChatRepository.getUserConversations(currentUserId)
             .onEach { resource ->
                 _conversations.value = resource
             }.launchIn(viewModelScope)

@@ -7,8 +7,9 @@ import com.lesmangeursdurouleau.app.data.model.UserBookReading
 import com.lesmangeursdurouleau.app.data.model.Comment
 import com.lesmangeursdurouleau.app.data.model.Like
 import com.lesmangeursdurouleau.app.data.model.CompletedReading
-import com.lesmangeursdurouleau.app.data.model.Conversation
-import com.lesmangeursdurouleau.app.data.model.PrivateMessage
+// SUPPRESSION: Imports liés à la messagerie
+// import com.lesmangeursdurouleau.app.data.model.Conversation
+// import com.lesmangeursdurouleau.app.data.model.PrivateMessage
 import com.lesmangeursdurouleau.app.utils.Resource
 import kotlinx.coroutines.flow.Flow
 
@@ -25,74 +26,29 @@ interface UserRepository {
     suspend fun updateUserFCMToken(userId: String, token: String): Resource<Unit>
 
     suspend fun followUser(currentUserId: String, targetUserId: String): Resource<Unit>
-
     suspend fun unfollowUser(currentUserId: String, targetUserId: String): Resource<Unit>
-
     fun isFollowing(currentUserId: String, targetUserId: String): Flow<Resource<Boolean>>
-
     fun getFollowingUsers(userId: String): Flow<Resource<List<User>>>
-
     fun getFollowersUsers(userId: String): Flow<Resource<List<User>>>
 
     fun getCurrentReading(userId: String): Flow<Resource<UserBookReading?>>
-
     suspend fun updateCurrentReading(userId: String, userBookReading: UserBookReading?): Resource<Unit>
-
     suspend fun addCommentOnActiveReading(targetUserId: String, bookId: String, comment: Comment): Resource<Unit>
-
     fun getCommentsOnActiveReading(targetUserId: String, bookId: String): Flow<Resource<List<Comment>>>
-
     suspend fun deleteCommentOnActiveReading(targetUserId: String, bookId: String, commentId: String): Resource<Unit>
-
     suspend fun toggleLikeOnActiveReading(targetUserId: String, bookId: String, currentUserId: String): Resource<Unit>
-
     fun isLikedByCurrentUser(targetUserId: String, bookId: String, currentUserId: String): Flow<Resource<Boolean>>
-
     fun getActiveReadingLikesCount(targetUserId: String, bookId: String): Flow<Resource<Int>>
-
     suspend fun toggleLikeOnComment(targetUserId: String, bookId: String, commentId: String, currentUserId: String): Resource<Unit>
-
     fun isCommentLikedByCurrentUser(targetUserId: String, bookId: String, commentId: String, currentUserId: String): Flow<Resource<Boolean>>
-
     suspend fun markActiveReadingAsCompleted(userId: String, activeReadingDetails: UserBookReading): Resource<Unit>
-
     suspend fun removeCompletedReading(userId: String, bookId: String): Resource<Unit>
-
     fun getCompletedReadings(
         userId: String,
         orderBy: String,
         direction: Query.Direction
     ): Flow<Resource<List<CompletedReading>>>
-
     fun getCompletedReadingDetail(userId: String, bookId: String): Flow<Resource<CompletedReading?>>
 
-    // --- MESSAGERIE PRIVÉE ---
-
-    fun getUserConversations(userId: String): Flow<Resource<List<Conversation>>>
-
-    suspend fun createOrGetConversation(currentUserId: String, targetUserId: String): Resource<String>
-
-    fun getConversationMessages(conversationId: String): Flow<Resource<List<PrivateMessage>>>
-
-    suspend fun sendPrivateMessage(conversationId: String, message: PrivateMessage): Resource<Unit>
-
-    /**
-     * AJOUT: Uploade une image sur Firebase Storage, puis envoie un message contenant l'URL de l'image.
-     *
-     * @param conversationId L'ID de la conversation.
-     * @param imageUri L'URI locale de l'image à uploader.
-     * @param text Le texte optionnel à joindre à l'image.
-     * @return Une Resource indiquant le succès ou l'échec de l'opération complète.
-     */
-    suspend fun sendImageMessage(conversationId: String, imageUri: Uri, text: String? = null): Resource<Unit>
-
-    suspend fun deletePrivateMessage(conversationId: String, messageId: String): Resource<Unit>
-
-    suspend fun markConversationAsRead(conversationId: String, userId: String): Resource<Unit>
-
-    suspend fun addOrUpdateReaction(conversationId: String, messageId: String, userId: String, emoji: String): Resource<Unit>
-
-    suspend fun editPrivateMessage(conversationId: String, messageId: String, newText: String): Resource<Unit>
-
-    suspend fun updateMessagesStatusToRead(conversationId: String, messageIds: List<String>): Resource<Unit>
+    // --- MESSAGERIE PRIVÉE (SUPPRIMÉE) ---
 }
