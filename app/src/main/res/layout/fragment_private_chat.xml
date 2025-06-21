@@ -14,9 +14,12 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:navigationIcon="@drawable/ic_arrow_back"
-        app:titleTextColor="@color/white"
-        tools:title="Nom de l'interlocuteur" />
+        app:navigationIcon="@drawable/ic_arrow_back">
+
+        <!-- MODIFICATION: Inclusion du layout personnalisé pour la toolbar -->
+        <include layout="@layout/toolbar_private_chat" />
+
+    </com.google.android.material.appbar.MaterialToolbar>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_messages"
@@ -44,7 +47,6 @@
         app:layout_constraintTop_toTopOf="@+id/rv_messages"
         tools:visibility="visible" />
 
-    <!-- NOUVELLE VUE: Indicateur de saisie à l'intérieur du chat -->
     <TextView
         android:id="@+id/tv_typing_indicator_in_chat"
         android:layout_width="wrap_content"

@@ -263,6 +263,16 @@
             app:argType="string"
             app:nullable="true"
             android:defaultValue="@null" />
+
+        <!-- MODIFICATION: Action vers le profil public ajoutée -->
+        <action
+            android:id="@+id/action_privateChatFragment_to_publicProfileFragmentDestination"
+            app:destination="@id/publicProfileFragmentDestination"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+
         <!-- AJOUT : Action vers la vue plein écran de l'image -->
         <action
             android:id="@+id/action_privateChatFragment_to_fullScreenImageFragment"

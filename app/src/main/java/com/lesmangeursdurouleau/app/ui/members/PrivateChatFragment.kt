@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
@@ -23,7 +24,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.imageview.ShapeableImageView
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.lesmangeursdurouleau.app.R
@@ -80,14 +83,13 @@ class PrivateChatFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.messages.collect { resource ->
+                        binding.progressBar.isVisible = resource is Resource.Loading
                         when (resource) {
-                            is Resource.Loading -> binding.progressBar.visibility = View.VISIBLE
+                            is Resource.Loading -> { /* No-op */ }
                             is Resource.Success -> {
-                                binding.progressBar.visibility = View.GONE
                                 messagesAdapter.submitList(resource.data)
                             }
                             is Resource.Error -> {
-                                binding.progressBar.visibility = View.GONE
                                 Toast.makeText(context, resource.message, Toast.LENGTH_LONG).show()
                             }
                         }
@@ -102,8 +104,17 @@ class PrivateChatFragment : Fragment() {
                 }
                 launch {
                     viewModel.targetUser.collect { resource ->
-                        if (resource is Resource.Success) {
-                            binding.toolbar.title = resource.data?.username ?: "Message"
+                        if (resource is Resource.Success && resource.data != null) {
+                            val user = resource.data
+                            val toolbarName = binding.toolbar.findViewById<TextView>(R.id.tv_toolbar_name)
+                            val toolbarPhoto = binding.toolbar.findViewById<ShapeableImageView>(R.id.iv_toolbar_photo)
+
+                            toolbarName.text = user.username
+                            Glide.with(this@PrivateChatFragment)
+                                .load(user.profilePictureUrl)
+                                .placeholder(R.drawable.ic_profile_placeholder)
+                                .error(R.drawable.ic_profile_placeholder)
+                                .into(toolbarPhoto)
                         }
                     }
                 }
@@ -139,9 +150,6 @@ class PrivateChatFragment : Fragment() {
                         }
                     }
                 }
-
-                // --- NOUVELLE OBSERVATION ---
-                // Observe l'état de saisie de l'interlocuteur et met à jour l'UI.
                 launch {
                     viewModel.isTargetUserTyping.collect { isTyping ->
                         binding.tvTypingIndicatorInChat.isVisible = isTyping
@@ -155,7 +163,20 @@ class PrivateChatFragment : Fragment() {
         binding.toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
         }
-        binding.toolbar.title = "Chargement..."
+
+        val clickableArea = binding.toolbar.findViewById<LinearLayout>(R.id.layout_toolbar_clickable_area)
+        clickableArea.setOnClickListener {
+            viewModel.targetUser.value.data?.let { user ->
+                // CORRECTION: Utilisation de 'user.uid' au lieu de 'user.id'
+                if (user.uid.isNotEmpty()) {
+                    val action = PrivateChatFragmentDirections.actionPrivateChatFragmentToPublicProfileFragmentDestination(
+                        userId = user.uid,
+                        username = user.username
+                    )
+                    findNavController().navigate(action)
+                }
+            }
+        }
     }
 
     private fun setupRecyclerView() {
@@ -226,7 +247,8 @@ class PrivateChatFragment : Fragment() {
                 popupWindow.dismiss()
             }
         } else {
-            editActionView.visibility = View.GONE
+            // CORRECTION: Utilisation de l'extension KTX 'isVisible'
+            editActionView.isVisible = false
         }
 
         if (isSentByCurrentUser) {
@@ -235,11 +257,13 @@ class PrivateChatFragment : Fragment() {
                 popupWindow.dismiss()
             }
         } else {
-            deleteActionView.visibility = View.GONE
+            // CORRECTION: Utilisation de l'extension KTX 'isVisible'
+            deleteActionView.isVisible = false
         }
 
-        if (editActionView.visibility == View.GONE && deleteActionView.visibility == View.GONE) {
-            separatorView.visibility = View.GONE
+        if (!editActionView.isVisible && !deleteActionView.isVisible) {
+            // CORRECTION: Utilisation de l'extension KTX 'isVisible'
+            separatorView.isVisible = false
         }
 
 
