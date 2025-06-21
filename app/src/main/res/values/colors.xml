@@ -13,7 +13,32 @@
     <color name="chat_text_sent_dark">#FFFFFF</color>
     <color name="chat_bubble_received_bg_dark">#1F2C34</color>
     <color name="chat_text_received_dark">#E9EDEF</color>
+    <color name="black_80_alpha">#CC000000</color>
+    <color name="gray_200">#E5E7EB</color>
+    <color name="gray_400">#9CA3AF</color>
+    <color name="gray_500">#6B7280</color>
+    <color name="gray_700">#374151</color>
+    <color name="green_500">#10B981</color>
 
+    <!-- Couleurs pour les backgrounds -->
+    <color name="reply_background_sent">#50FFFFFF</color>
+    <color name="reply_background_received">#F3F4F6</color>
+    <color name="reactions_background">#FFFFFF</color>
+
+    <!-- Couleurs pour le texte -->
+    <color name="white_70_alpha">#B3FFFFFF</color>
+    <color name="white_85_alpha">#D9FFFFFF</color>
+    <color name="sender_name_color">#667eea</color>
+    <color name="message_text_color">#1F2937</color>
+    <color name="reaction_count_color">#6B7280</color>
+
+    <!-- Couleurs pour les liens -->
+    <color name="link_color_sent_modern">#93C5FD</color>
+    <color name="link_color_received_modern">#3B82F6</color>
+
+    <!-- Couleur pour le cœur dynamique -->
+    <color name="heart_color_dynamic">#F59E0B</color>
+    <color name="accent_color">#F59E0B</color>
     <color name="chat_send_button_bg_dark">#0B80FE</color>
     <color name="chat_send_button_icon_dark">#FFFFFFFF</color>
 

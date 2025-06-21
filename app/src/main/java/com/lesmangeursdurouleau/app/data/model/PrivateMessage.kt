@@ -15,6 +15,22 @@ enum class MessageStatus {
 }
 
 /**
+ * Contient les informations nécessaires pour afficher une citation de réponse.
+ * @property repliedToMessageId L'ID du message original auquel on répond.
+ * @property repliedToSenderName Le nom de l'auteur du message original.
+ * @property repliedToMessagePreview Un court extrait du texte ou un placeholder pour l'image du message original.
+ */
+data class ReplyInfo(
+    val repliedToMessageId: String = "",
+    val repliedToSenderName: String = "",
+    val repliedToMessagePreview: String = ""
+) {
+    // Constructeur sans argument requis par Firestore
+    constructor() : this("", "", "")
+}
+
+
+/**
  * Représente un message unique au sein d'une conversation privée.
  */
 data class PrivateMessage(
@@ -23,10 +39,8 @@ data class PrivateMessage(
 
     val senderId: String = "",
 
-    // MODIFIÉ: Le texte est maintenant optionnel pour permettre les messages avec image seule.
     val text: String? = null,
 
-    // AJOUT: URL de l'image, optionnelle.
     val imageUrl: String? = null,
 
     @ServerTimestamp
@@ -36,9 +50,22 @@ data class PrivateMessage(
 
     val isEdited: Boolean = false,
 
-    val status: String = MessageStatus.SENT.name
+    val status: String = MessageStatus.SENT.name,
+
+    // Champ contenant les informations de réponse, s'il y en a.
+    val replyInfo: ReplyInfo? = null
+
 ) {
     // Constructeur sans argument requis par Firestore pour la désérialisation
-    // MODIFIÉ: Mise à jour pour inclure les nouveaux champs et la nullabilité.
-    constructor() : this(id = null, senderId = "", text = null, imageUrl = null, timestamp = null, reactions = emptyMap(), isEdited = false, status = MessageStatus.SENT.name)
+    constructor() : this(
+        id = null,
+        senderId = "",
+        text = null,
+        imageUrl = null,
+        timestamp = null,
+        reactions = emptyMap(),
+        isEdited = false,
+        status = MessageStatus.SENT.name,
+        replyInfo = null
+    )
 }

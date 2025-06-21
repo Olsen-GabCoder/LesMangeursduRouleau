@@ -16,7 +16,6 @@
         app:layout_constraintTop_toTopOf="parent"
         app:navigationIcon="@drawable/ic_arrow_back">
 
-        <!-- MODIFICATION: Inclusion du layout personnalisé pour la toolbar -->
         <include layout="@layout/toolbar_private_chat" />
 
     </com.google.android.material.appbar.MaterialToolbar>
@@ -30,7 +29,7 @@
         android:paddingBottom="8dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:stackFromEnd="true"
-        app:layout_constraintBottom_toTopOf="@+id/tv_typing_indicator_in_chat"
+        app:layout_constraintBottom_toTopOf="@+id/reply_bar_container"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/toolbar"
@@ -46,6 +45,72 @@
         app:layout_constraintStart_toStartOf="@+id/rv_messages"
         app:layout_constraintTop_toTopOf="@+id/rv_messages"
         tools:visibility="visible" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/reply_bar_container"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="?android:attr/colorBackground"
+        android:paddingStart="16dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/tv_typing_indicator_in_chat"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:visibility="visible">
+
+        <View
+            android:id="@+id/reply_bar_line"
+            android:layout_width="3dp"
+            android:layout_height="0dp"
+            android:background="?attr/colorPrimary"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_reply_bar_sender_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="?attr/colorPrimary"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toStartOf="@+id/btn_cancel_reply"
+            app:layout_constraintStart_toEndOf="@id/reply_bar_line"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Réponse à Olsen KAMPALA" />
+
+        <TextView
+            android:id="@+id/tv_reply_bar_preview"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="?android:attr/textColorSecondary"
+            app:layout_constraintEnd_toStartOf="@+id/btn_cancel_reply"
+            app:layout_constraintStart_toEndOf="@id/reply_bar_line"
+            app:layout_constraintTop_toBottomOf="@id/tv_reply_bar_sender_name"
+            tools:text="Ceci est le message original auquel nous répondons..." />
+
+        <ImageButton
+            android:id="@+id/btn_cancel_reply"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Annuler la réponse"
+            android:src="@drawable/ic_close"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="?android:attr/textColorSecondary" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <TextView
         android:id="@+id/tv_typing_indicator_in_chat"

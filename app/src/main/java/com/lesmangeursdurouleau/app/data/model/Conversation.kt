@@ -25,25 +25,10 @@ data class Conversation(
 
     val unreadCount: Map<String, Int> = emptyMap(),
 
-    // Nouveau champ pour gérer l'état de saisie des participants.
-    // La clé est l'ID de l'utilisateur, la valeur est `true` s'il écrit.
     val typingStatus: Map<String, Boolean> = emptyMap(),
 
-    // CORRECTION: Ajout de l'annotation @PropertyName pour résoudre l'ambiguïté du mapping Firestore
-    // pour les champs booléens préfixés par "is".
     @get:PropertyName("isFavorite")
-    val isFavorite: Boolean = false
+    var isFavorite: Boolean = false
 ) {
-    // Constructeur sans argument requis par Firestore
-    constructor() : this(
-        id = null,
-        participantIds = emptyList(),
-        participantNames = emptyMap(),
-        participantPhotoUrls = emptyMap(),
-        lastMessage = null,
-        lastMessageTimestamp = null,
-        unreadCount = emptyMap(),
-        typingStatus = emptyMap(),
-        isFavorite = false
-    )
+
 }

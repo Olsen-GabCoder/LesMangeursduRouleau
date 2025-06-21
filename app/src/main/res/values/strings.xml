@@ -14,7 +14,8 @@
     <string name="full_screen_image_view">Image en plein écran</string>
     <string name="close_full_screen_image_view">Fermer la vue plein écran</string>
     <string name="download_image">Télécharger l\'image</string>
-
+    <string name="user_avatar_description">Avatar de l\'utilisateur</string>
+    <string name="heart_indicator_description">Indicateur d\'intensité relationnelle</string>
     <string name="login_title">Connexion</string>
     <string name="reset_password_title">Réinitialiser le mot de passe</string>
     <string name="login_successful">Connexion réussie : %1$s</string>
@@ -34,7 +35,8 @@
     <string name="error_google_signin_failed_api">La connexion avec Google a échoué (code : %1$s).</string>
     <string name="error_google_signin_failed">La connexion avec Google a échoué.</string>
     <string name="typing_indicator">est en train d’écrire...</string>
-
+    <string name="action_favorite_title">Favori</string>
+    <color name="white_80_alpha">#CCFFFFFF</color>
     <string name="link_account_title">Lier le compte Google</string>
     <string name="link_account_message">Un compte existe déjà avec l\'adresse e-mail %1$s. Voulez-vous lier votre compte Google à ce compte existant ? Veuillez saisir le mot de passe de votre compte existant.</string>
     <string name="password_hint_for_linking">Mot de passe du compte existant</string>

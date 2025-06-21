@@ -31,9 +31,8 @@ class PrivateChatRepositoryImpl @Inject constructor(
     }
 
     private val conversationsCollection = firestore.collection(FirebaseConstants.COLLECTION_CONVERSATIONS)
-    private val usersCollection = firestore.collection(FirebaseConstants.COLLECTION_USERS) // Nécessaire pour createOrGetConversation
+    private val usersCollection = firestore.collection(FirebaseConstants.COLLECTION_USERS)
 
-    // NOUVELLE MÉTHODE
     override fun getConversation(conversationId: String): Flow<Resource<Conversation>> = callbackFlow {
         trySend(Resource.Loading())
         Log.d(TAG, "getConversation: Observation de la conversation $conversationId.")
@@ -444,8 +443,10 @@ class PrivateChatRepositoryImpl @Inject constructor(
     override suspend fun updateFavoriteStatus(conversationId: String, isFavorite: Boolean): Resource<Unit> {
         return try {
             Log.d(TAG, "updateFavoriteStatus: Mise à jour du statut favori à '$isFavorite' pour la conv $conversationId.")
+            // La clé de la map doit être le nom exact du champ dans Firestore.
+            val updateData = mapOf("isFavorite" to isFavorite)
             conversationsCollection.document(conversationId)
-                .update("isFavorite", isFavorite)
+                .update(updateData)
                 .await()
             Log.i(TAG, "updateFavoriteStatus: Statut favori mis à jour avec succès.")
             Resource.Success(Unit)

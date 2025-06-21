@@ -46,6 +46,15 @@ interface UserProfileRepository {
      */
     suspend fun updateUserTypingStatus(userId: String, isTyping: Boolean): Resource<Unit>
 
+    // NOUVELLE FONCTION
+    /**
+     * Met à jour le statut de présence (en ligne/hors ligne) et l'horodatage de la dernière vue.
+     * @param userId L'ID de l'utilisateur concerné.
+     * @param isOnline Le nouveau statut de présence.
+     */
+    suspend fun updateUserPresence(userId: String, isOnline: Boolean)
+
+
     /**
      * Met à jour la biographie d'un utilisateur.
      * @param userId L'ID de l'utilisateur.

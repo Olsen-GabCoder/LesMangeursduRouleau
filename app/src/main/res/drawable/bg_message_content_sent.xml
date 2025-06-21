@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Remplacez @color/your_sent_message_color par la couleur bleue souhaitée -->
+    <solid android:color="@color/design_default_color_primary" />
+
+    <corners android:radius="18dp" />
+
+</shape>

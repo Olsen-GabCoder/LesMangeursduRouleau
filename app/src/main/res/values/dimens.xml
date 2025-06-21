@@ -13,4 +13,8 @@
     <dimen name="reaction_emoji_margin_horizontal">2dp</dimen>
     <dimen name="reaction_emoji_margin_vertical">2dp</dimen>
     <dimen name="reaction_container_margin_top">4dp</dimen>
+    <dimen name="message_group_spacing_default">4dp</dimen>
+
+    <!-- Espacement vertical réduit entre les messages d'un même groupe -->
+    <dimen name="message_group_spacing_reduced">2dp</dimen>
 </resources>

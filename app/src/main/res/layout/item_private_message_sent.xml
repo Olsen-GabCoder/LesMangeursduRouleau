@@ -9,124 +9,168 @@
     android:paddingTop="2dp"
     android:paddingBottom="2dp">
 
-    <FrameLayout
+    <!-- Le conteneur principal de la bulle, entièrement géré par ConstraintLayout -->
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/bubble_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_chat_bubble_sent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintWidth_max="wrap"
+        android:paddingStart="12dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="8dp"
         app:layout_constrainedWidth="true"
-        app:layout_constraintHorizontal_bias="1.0">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_max="wrap">
 
-        <!-- AJOUT: Conteneur vertical pour l'image et/ou le texte -->
+        <!-- Conteneur pour la citation de réponse, cliquable -->
         <LinearLayout
+            android:id="@+id/reply_container"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="8dp"
-            android:paddingTop="8dp"
-            android:paddingEnd="8dp"
-            android:paddingBottom="24dp">
-
-            <!-- AJOUT: Vue pour l'image envoyée -->
-            <com.google.android.material.imageview.ShapeableImageView
-                android:id="@+id/iv_message_image"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:adjustViewBounds="true"
-                android:maxHeight="240dp"
-                android:scaleType="centerCrop"
-                android:visibility="gone"
-                app:shapeAppearanceOverlay="@style/ShapeAppearance.App.ChatImage"
-                tools:src="@tools:sample/backgrounds/scenic"
-                tools:visibility="visible" />
-
-            <TextView
-                android:id="@+id/tv_message_body"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textColor="@android:color/white"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-                android:autoLink="web"
-                android:textColorLink="@color/link_color_sent"
-                tools:text="Ceci est une légende pour l'image." />
-
-        </LinearLayout>
-
-        <!-- Conteneur pour l'indicateur (modifié), l'heure et le statut -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingEnd="8dp"
-            android:paddingBottom="4dp"
-            tools:ignore="RtlSymmetry">
-
-            <TextView
-                android:id="@+id/tv_edited_indicator"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/edited_indicator"
-                android:textColor="@color/white_60_alpha"
-                android:textSize="11sp"
-                android:textStyle="italic"
-                android:layout_marginEnd="4dp"
-                android:visibility="gone"
-                tools:visibility="visible"
-                tools:ignore="SmallSp"/>
-
-            <TextView
-                android:id="@+id/tv_message_timestamp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/white_60_alpha"
-                android:textSize="11sp"
-                tools:ignore="SmallSp"
-                tools:text="14:32" />
-
-            <ImageView
-                android:id="@+id/iv_message_status"
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:layout_marginStart="4dp"
-                app:tint="@color/white_60_alpha"
-                tools:src="@drawable/ic_check_double"
-                tools:visibility="visible"
-                android:visibility="gone"
-                android:contentDescription="@string/message_status_indicator" />
-        </LinearLayout>
-
-    </FrameLayout>
-
-    <LinearLayout
-        android:id="@+id/ll_reactions_container"
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="4dp"
-        android:background="@drawable/bg_reactions"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/bg_reply_quote_sent"
+        android:clickable="true"
+        android:focusable="true"
+        android:orientation="vertical"
         android:paddingStart="8dp"
         android:paddingTop="4dp"
         android:paddingEnd="8dp"
         android:paddingBottom="4dp"
         android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="@id/bubble_container"
-        app:layout_constraintTop_toBottomOf="@id/bubble_container"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         tools:visibility="visible">
 
         <TextView
-            android:id="@+id/tv_reactions"
+            android:id="@+id/tv_reply_sender_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
-            tools:text="❤️" />
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            tools:text="C_Kaize" />
+
+        <TextView
+            android:id="@+id/tv_reply_preview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/white_80_alpha"
+            android:textSize="13sp"
+            tools:text="Ok" />
     </LinearLayout>
 
+    <!-- Image du message -->
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/iv_message_image"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:adjustViewBounds="true"
+        android:maxHeight="240dp"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/reply_container"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.App.ChatImage"
+        tools:src="@tools:sample/backgrounds/scenic"
+        tools:visibility="visible" />
+
+    <!-- Corps du message texte -->
+    <TextView
+        android:id="@+id/tv_message_body"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:autoLink="web"
+        android:minWidth="50dp"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+        android:textColor="@android:color/white"
+        android:textColorLink="@color/link_color_sent"
+        app:layout_constrainedWidth="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/iv_message_image"
+        app:layout_constraintHorizontal_bias="0.0"
+        tools:text="Ma réponse" />
+
+    <!-- Indicateur "modifié" -->
+    <TextView
+        android:id="@+id/tv_edited_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:text="@string/edited_indicator"
+        android:textColor="@color/white_60_alpha"
+        android:textSize="11sp"
+        android:textStyle="italic"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/tv_message_timestamp"
+        app:layout_constraintEnd_toStartOf="@id/tv_message_timestamp"
+        app:layout_constraintTop_toTopOf="@id/tv_message_timestamp"
+        tools:ignore="SmallSp"
+        tools:visibility="visible" />
+
+    <!-- Timestamp du message -->
+    <TextView
+        android:id="@+id/tv_message_timestamp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="4dp"
+        android:textColor="@color/white_60_alpha"
+        android:textSize="11sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/iv_message_status"
+        app:layout_constraintTop_toBottomOf="@id/tv_message_body"
+        tools:ignore="SmallSp"
+        tools:text="14:32" />
+
+    <!-- Statut du message (lu, envoyé) -->
+    <ImageView
+        android:id="@+id/iv_message_status"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:contentDescription="@string/message_status_indicator"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/tv_message_timestamp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/tv_message_timestamp"
+        app:tint="@color/white_60_alpha"
+        tools:src="@drawable/ic_check_double"
+        tools:visibility="visible" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Conteneur des réactions, contraint à la bulle -->
+<LinearLayout
+android:id="@+id/ll_reactions_container"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:layout_marginTop="4dp"
+android:layout_marginEnd="16dp"
+android:background="@drawable/bg_reactions"
+android:gravity="center_vertical"
+android:orientation="horizontal"
+android:paddingStart="8dp"
+android:paddingTop="4dp"
+android:paddingEnd="8dp"
+android:paddingBottom="4dp"
+android:visibility="gone"
+app:layout_constraintEnd_toEndOf="@id/bubble_container"
+app:layout_constraintTop_toBottomOf="@id/bubble_container"
+tools:visibility="visible">
+
+<TextView
+    android:id="@+id/tv_reactions"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:textSize="16sp"
+    tools:text="❤️" />
+</LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>

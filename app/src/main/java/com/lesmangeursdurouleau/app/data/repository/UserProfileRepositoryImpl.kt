@@ -44,7 +44,10 @@ class UserProfileRepositoryImpl @Inject constructor(
             lastPermissionGrantedTimestamp = document.getLong("lastPermissionGrantedTimestamp"),
             followersCount = document.getLong("followersCount")?.toInt() ?: 0,
             followingCount = document.getLong("followingCount")?.toInt() ?: 0,
-            booksReadCount = document.getLong("booksReadCount")?.toInt() ?: 0
+            booksReadCount = document.getLong("booksReadCount")?.toInt() ?: 0,
+            // MODIFICATION : Ajout de la lecture des nouveaux champs de présence.
+            isOnline = document.getBoolean("isOnline") ?: false,
+            lastSeen = document.getTimestamp("lastSeen")?.toDate()
         )
     }
 
@@ -136,6 +139,27 @@ class UserProfileRepositoryImpl @Inject constructor(
             Resource.Error("Erreur: ${e.localizedMessage}")
         }
     }
+
+    // NOUVELLE FONCTION IMPLÉMENTÉE
+    override suspend fun updateUserPresence(userId: String, isOnline: Boolean) {
+        if (userId.isBlank()) return
+
+        try {
+            val presenceUpdate = mapOf(
+                "isOnline" to isOnline,
+                "lastSeen" to FieldValue.serverTimestamp() // Met à jour l'heure à chaque changement
+            )
+            usersCollection.document(userId).update(presenceUpdate).await()
+            Log.d(TAG, "Statut de présence mis à jour pour $userId : isOnline = $isOnline")
+        } catch (e: FirebaseFirestoreException) {
+            // Loguer spécifiquement les erreurs Firestore (ex: PERMISSION_DENIED)
+            Log.e(TAG, "Erreur Firestore lors de la mise à jour de la présence pour $userId: ${e.code}", e)
+        } catch (e: Exception) {
+            // Loguer les autres erreurs (ex: pas de réseau)
+            Log.e(TAG, "Erreur générale lors de la mise à jour de la présence pour $userId", e)
+        }
+    }
+
 
     override suspend fun updateUserBio(userId: String, bio: String): Resource<Unit> {
         return try {

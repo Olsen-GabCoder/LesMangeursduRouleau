@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Remplacez @color/your_received_message_color par la couleur grise souhaitée -->
+    <!-- J'utilise une couleur standard de Material Design pour l'exemple -->
+    <solid android:color="#E0E0E0" />
+
+    <corners android:radius="18dp" />
+
+</shape>
