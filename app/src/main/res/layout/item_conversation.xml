@@ -35,7 +35,6 @@
         app:layout_constraintHorizontal_chainStyle="packed"
         tools:text="Nom du Participant Très Long Pour Tester" />
 
-    <!-- AJOUT : Indicateur de favori -->
     <ImageView
         android:id="@+id/iv_favorite_indicator"
         android:layout_width="16dp"
@@ -51,20 +50,40 @@
         app:layout_constraintStart_toEndOf="@id/tv_participant_name"
         app:layout_constraintTop_toTopOf="@id/tv_participant_name" />
 
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tv_last_message"
+    <!-- MODIFICATION: Utilisation d'un FrameLayout pour superposer le dernier message et l'indicateur de saisie -->
+    <FrameLayout
+        android:id="@+id/message_container"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
         app:layout_constraintEnd_toStartOf="@+id/tv_unread_count"
         app:layout_constraintStart_toStartOf="@+id/tv_participant_name"
         app:layout_constraintTop_toBottomOf="@+id/tv_participant_name"
         app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintHorizontal_chainStyle="packed"
-        tools:text="Ceci est le dernier message de la conversation..." />
+        app:layout_constraintHorizontal_chainStyle="packed">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/tv_last_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+            tools:text="Ceci est le dernier message de la conversation..." />
+
+        <!-- AJOUT: Indicateur de saisie ("est en train d'écrire...") -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/tv_typing_indicator"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/typing_indicator"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+            android:textColor="?attr/colorPrimary"
+            android:textStyle="italic"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+    </FrameLayout>
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/tv_last_message_timestamp"
@@ -86,9 +105,9 @@
         android:textSize="12sp"
         android:textStyle="bold"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@+id/tv_last_message"
+        app:layout_constraintBottom_toBottomOf="@+id/message_container"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/tv_last_message"
+        app:layout_constraintTop_toTopOf="@+id/message_container"
         tools:text="3"
         tools:visibility="visible" />
 

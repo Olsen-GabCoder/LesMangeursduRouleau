@@ -27,11 +27,11 @@
         android:paddingBottom="8dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:stackFromEnd="true"
-        app:layout_constraintBottom_toTopOf="@+id/view_input_divider"
+        app:layout_constraintBottom_toTopOf="@+id/tv_typing_indicator_in_chat"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/toolbar"
-    tools:listitem="@layout/item_private_message_sent" />
+        tools:listitem="@layout/item_private_message_sent" />
 
     <ProgressBar
         android:id="@+id/progress_bar"
@@ -42,6 +42,22 @@
         app:layout_constraintEnd_toEndOf="@+id/rv_messages"
         app:layout_constraintStart_toStartOf="@+id/rv_messages"
         app:layout_constraintTop_toTopOf="@+id/rv_messages"
+        tools:visibility="visible" />
+
+    <!-- NOUVELLE VUE: Indicateur de saisie à l'intérieur du chat -->
+    <TextView
+        android:id="@+id/tv_typing_indicator_in_chat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="8dp"
+        android:text="@string/typing_indicator"
+        android:textAppearance="?attr/textAppearanceCaption"
+        android:textColor="?attr/colorPrimary"
+        android:textStyle="italic"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/view_input_divider"
+        app:layout_constraintStart_toStartOf="parent"
         tools:visibility="visible" />
 
     <View

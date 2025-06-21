@@ -10,26 +10,41 @@ import com.lesmangeursdurouleau.app.data.model.MessageStatus
 import com.lesmangeursdurouleau.app.data.model.PrivateMessage
 import com.lesmangeursdurouleau.app.data.model.User
 import com.lesmangeursdurouleau.app.data.repository.PrivateChatRepository
-// MODIFIÉ: Import de UserProfileRepository et suppression de UserRepository
 import com.lesmangeursdurouleau.app.data.repository.UserProfileRepository
 import com.lesmangeursdurouleau.app.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class PrivateChatViewModel @Inject constructor(
-    // MODIFIÉ: Remplacement de UserRepository par UserProfileRepository
     private val userProfileRepository: UserProfileRepository,
     private val privateChatRepository: PrivateChatRepository,
     private val firebaseAuth: FirebaseAuth,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    // L'ID de l'utilisateur avec qui on discute, passé via la navigation
-    private val targetUserId: String = savedStateHandle.get<String>("targetUserId")!!
+    // --- TYPING STATUS: DÉBUT DE LA NOUVELLE SECTION ---
 
+    companion object {
+        private const val TYPING_DEBOUNCE_MS = 500L
+        private const val TYPING_TIMEOUT_MS = 3000L
+    }
+
+    private val textInputFlow = MutableStateFlow("")
+    private var typingTimeoutJob: Job? = null
+    private var isCurrentlyTyping = false
+
+    // NOUVEAU: StateFlow pour exposer l'état de saisie de l'interlocuteur à la vue.
+    private val _isTargetUserTyping = MutableStateFlow(false)
+    val isTargetUserTyping = _isTargetUserTyping.asStateFlow()
+
+    // --- TYPING STATUS: FIN DE LA NOUVELLE SECTION ---
+
+    private val targetUserId: String = savedStateHandle.get<String>("targetUserId")!!
     private val _conversationId = MutableStateFlow<String?>(null)
 
     private val _messages = MutableStateFlow<Resource<List<PrivateMessage>>>(Resource.Loading())
@@ -50,6 +65,59 @@ class PrivateChatViewModel @Inject constructor(
     init {
         initializeConversation()
         loadTargetUser()
+        observeTypingStatus()
+    }
+
+    fun onUserTyping(text: String) {
+        textInputFlow.value = text
+    }
+
+    private fun observeTypingStatus() {
+        textInputFlow
+            .debounce(TYPING_DEBOUNCE_MS)
+            .onEach {
+                typingTimeoutJob?.cancel()
+
+                val currentUserId = firebaseAuth.currentUser?.uid
+                val convId = _conversationId.value
+                if (currentUserId == null || convId == null) return@onEach
+
+                if (it.isNotBlank() && !isCurrentlyTyping) {
+                    isCurrentlyTyping = true
+                    privateChatRepository.updateTypingStatus(convId, currentUserId, true)
+                }
+
+                if (it.isBlank() && isCurrentlyTyping) {
+                    setTypingStatus(false)
+                } else if (it.isNotBlank()) {
+                    typingTimeoutJob = viewModelScope.launch {
+                        delay(TYPING_TIMEOUT_MS)
+                        setTypingStatus(false)
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun setTypingStatus(isTyping: Boolean) {
+        typingTimeoutJob?.cancel()
+
+        val currentUserId = firebaseAuth.currentUser?.uid
+        val convId = _conversationId.value
+
+        if (currentUserId != null && convId != null && isCurrentlyTyping != isTyping) {
+            isCurrentlyTyping = isTyping
+            viewModelScope.launch {
+                privateChatRepository.updateTypingStatus(convId, currentUserId, isTyping)
+            }
+        } else if (isCurrentlyTyping != isTyping) {
+            isCurrentlyTyping = isTyping
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        setTypingStatus(false)
     }
 
     private fun initializeConversation() {
@@ -67,6 +135,8 @@ class PrivateChatViewModel @Inject constructor(
                     if (convId != null) {
                         loadMessages(convId)
                         markConversationAsRead(convId, currentUserId)
+                        // NOUVEAU: Démarrer l'observation des détails de la conversation
+                        observeConversationDetails(convId)
                     } else {
                         _messages.value = Resource.Error("Impossible de créer ou de trouver la conversation.")
                     }
@@ -81,6 +151,20 @@ class PrivateChatViewModel @Inject constructor(
         }
     }
 
+    // NOUVELLE MÉTHODE pour observer les détails de la conversation en temps réel.
+    private fun observeConversationDetails(conversationId: String) {
+        privateChatRepository.getConversation(conversationId)
+            .onEach { resource ->
+                if (resource is Resource.Success) {
+                    val conversation = resource.data
+                    // Mettre à jour le StateFlow en fonction du statut de l'interlocuteur.
+                    val isTyping = conversation?.typingStatus?.get(targetUserId) ?: false
+                    _isTargetUserTyping.value = isTyping
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
     private fun markConversationAsRead(conversationId: String, userId: String) {
         viewModelScope.launch {
             val result = privateChatRepository.markConversationAsRead(conversationId, userId)
@@ -91,7 +175,6 @@ class PrivateChatViewModel @Inject constructor(
     }
 
     private fun loadTargetUser() {
-        // MODIFIÉ: Appel sur userProfileRepository
         userProfileRepository.getUserById(targetUserId)
             .onEach { resource ->
                 _targetUser.value = resource
@@ -102,7 +185,6 @@ class PrivateChatViewModel @Inject constructor(
         privateChatRepository.getConversationMessages(conversationId)
             .onEach { resource ->
                 _messages.value = resource
-                // CORRIGÉ: Ajout d'une vérification de nullité sur resource.data
                 if (resource is Resource.Success && resource.data != null) {
                     markReceivedMessagesAsRead(resource.data)
                 }
@@ -114,9 +196,9 @@ class PrivateChatViewModel @Inject constructor(
         val convId = _conversationId.value ?: return
 
         val messagesToMarkAsRead = messages.filter {
-            it.senderId != currentUserId && // C'est un message reçu
-                    it.status == MessageStatus.SENT.name && // Il n'est pas déjà "lu"
-                    it.id != null // Son ID est valide
+            it.senderId != currentUserId &&
+                    it.status == MessageStatus.SENT.name &&
+                    it.id != null
         }.mapNotNull { it.id }
 
         if (messagesToMarkAsRead.isNotEmpty()) {
@@ -137,6 +219,7 @@ class PrivateChatViewModel @Inject constructor(
 
         viewModelScope.launch {
             _sendState.value = Resource.Loading()
+            setTypingStatus(false)
             val message = PrivateMessage(senderId = senderId, text = text)
             val result = privateChatRepository.sendPrivateMessage(convId, message)
             _sendState.value = result
@@ -152,7 +235,7 @@ class PrivateChatViewModel @Inject constructor(
 
         viewModelScope.launch {
             _sendState.value = Resource.Loading()
-            // TODO: Ajouter la possibilité de joindre un texte à l'image
+            setTypingStatus(false)
             val result = privateChatRepository.sendImageMessage(convId, uri, null)
             _sendState.value = result
         }

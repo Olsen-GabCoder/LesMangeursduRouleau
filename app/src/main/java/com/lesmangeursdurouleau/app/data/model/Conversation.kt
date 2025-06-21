@@ -1,6 +1,7 @@
 package com.lesmangeursdurouleau.app.data.model
 
 import com.google.firebase.firestore.DocumentId
+import com.google.firebase.firestore.PropertyName
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
@@ -24,7 +25,13 @@ data class Conversation(
 
     val unreadCount: Map<String, Int> = emptyMap(),
 
-    // CHAMP ESSENTIEL POUR RÉSOUDRE L'ERREUR
+    // Nouveau champ pour gérer l'état de saisie des participants.
+    // La clé est l'ID de l'utilisateur, la valeur est `true` s'il écrit.
+    val typingStatus: Map<String, Boolean> = emptyMap(),
+
+    // CORRECTION: Ajout de l'annotation @PropertyName pour résoudre l'ambiguïté du mapping Firestore
+    // pour les champs booléens préfixés par "is".
+    @get:PropertyName("isFavorite")
     val isFavorite: Boolean = false
 ) {
     // Constructeur sans argument requis par Firestore
@@ -36,6 +43,7 @@ data class Conversation(
         lastMessage = null,
         lastMessageTimestamp = null,
         unreadCount = emptyMap(),
-        isFavorite = false // Valeur par défaut pour le nouveau champ
+        typingStatus = emptyMap(),
+        isFavorite = false
     )
 }

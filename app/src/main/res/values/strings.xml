@@ -33,6 +33,7 @@
     <string name="error_google_token_null">Erreur Google : Le token d\'identification n\'a pas été reçu.</string>
     <string name="error_google_signin_failed_api">La connexion avec Google a échoué (code : %1$s).</string>
     <string name="error_google_signin_failed">La connexion avec Google a échoué.</string>
+    <string name="typing_indicator">est en train d’écrire...</string>
 
     <string name="link_account_title">Lier le compte Google</string>
     <string name="link_account_message">Un compte existe déjà avec l\'adresse e-mail %1$s. Voulez-vous lier votre compte Google à ce compte existant ? Veuillez saisir le mot de passe de votre compte existant.</string>

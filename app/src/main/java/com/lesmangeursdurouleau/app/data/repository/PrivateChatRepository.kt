@@ -11,7 +11,12 @@ import kotlinx.coroutines.flow.Flow
  */
 interface PrivateChatRepository {
 
-    // ... (toutes les méthodes existantes restent inchangées)
+    /**
+     * Récupère en temps réel les données d'une conversation spécifique.
+     * @param conversationId L'ID de la conversation à observer.
+     * @return Un Flow de Resource contenant l'objet Conversation mis à jour en temps réel.
+     */
+    fun getConversation(conversationId: String): Flow<Resource<Conversation>>
 
     /**
      * Récupère en temps réel la liste des conversations pour un utilisateur donné.
@@ -96,7 +101,6 @@ interface PrivateChatRepository {
      */
     suspend fun updateMessagesStatusToRead(conversationId: String, messageIds: List<String>): Resource<Unit>
 
-    // --- NOUVELLE MÉTHODE ---
     /**
      * Met à jour le statut "favori" d'une conversation.
      * @param conversationId L'ID de la conversation à mettre à jour.
@@ -104,4 +108,13 @@ interface PrivateChatRepository {
      * @return Une Resource indiquant le succès ou l'échec.
      */
     suspend fun updateFavoriteStatus(conversationId: String, isFavorite: Boolean): Resource<Unit>
+
+    /**
+     * Met à jour le statut de saisie ("est en train d'écrire...") d'un utilisateur dans une conversation.
+     * @param conversationId L'ID de la conversation.
+     * @param userId L'ID de l'utilisateur qui écrit.
+     * @param isTyping Le statut de saisie (true si en train d'écrire, false sinon).
+     * @return Une Resource indiquant le succès ou l'échec.
+     */
+    suspend fun updateTypingStatus(conversationId: String, userId: String, isTyping: Boolean): Resource<Unit>
 }

@@ -33,6 +33,40 @@ class PrivateChatRepositoryImpl @Inject constructor(
     private val conversationsCollection = firestore.collection(FirebaseConstants.COLLECTION_CONVERSATIONS)
     private val usersCollection = firestore.collection(FirebaseConstants.COLLECTION_USERS) // Nécessaire pour createOrGetConversation
 
+    // NOUVELLE MÉTHODE
+    override fun getConversation(conversationId: String): Flow<Resource<Conversation>> = callbackFlow {
+        trySend(Resource.Loading())
+        Log.d(TAG, "getConversation: Observation de la conversation $conversationId.")
+
+        val docRef = conversationsCollection.document(conversationId)
+        val listenerRegistration = docRef.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.e(TAG, "getConversation: Erreur Firestore pour $conversationId: ${error.message}", error)
+                trySend(Resource.Error("Erreur Firestore: ${error.localizedMessage}"))
+                close(error)
+                return@addSnapshotListener
+            }
+
+            if (snapshot != null && snapshot.exists()) {
+                val conversation = snapshot.toObject(Conversation::class.java)
+                if (conversation != null) {
+                    trySend(Resource.Success(conversation))
+                } else {
+                    Log.w(TAG, "getConversation: Échec de la conversion du snapshot pour $conversationId.")
+                    trySend(Resource.Error("Impossible de lire les données de la conversation."))
+                }
+            } else {
+                Log.w(TAG, "getConversation: Le document de conversation $conversationId n'existe pas.")
+                trySend(Resource.Error("La conversation n'existe pas ou plus."))
+            }
+        }
+
+        awaitClose {
+            Log.d(TAG, "getConversation: Fermeture du listener pour $conversationId.")
+            listenerRegistration.remove()
+        }
+    }
+
     override fun getUserConversations(userId: String): Flow<Resource<List<Conversation>>> = callbackFlow {
         trySend(Resource.Loading())
         Log.d(TAG, "getUserConversations: Récupération des conversations pour l'utilisateur $userId.")
@@ -418,6 +452,25 @@ class PrivateChatRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "updateFavoriteStatus: Erreur lors de la mise à jour du statut favori: ${e.message}", e)
             Resource.Error("Erreur lors de la mise à jour du favori: ${e.localizedMessage}")
+        }
+    }
+
+    override suspend fun updateTypingStatus(conversationId: String, userId: String, isTyping: Boolean): Resource<Unit> {
+        if (conversationId.isBlank() || userId.isBlank()) {
+            Log.w(TAG, "updateTypingStatus: conversationId ou userId est vide. Opération annulée.")
+            return Resource.Error("Identifiants invalides.")
+        }
+        return try {
+            Log.d(TAG, "updateTypingStatus: Mise à jour du statut de saisie à '$isTyping' pour l'utilisateur $userId dans la conv $conversationId.")
+            val fieldPathToUpdate = "typingStatus.$userId"
+            conversationsCollection.document(conversationId)
+                .update(fieldPathToUpdate, isTyping)
+                .await()
+            Log.i(TAG, "updateTypingStatus: Statut de saisie mis à jour avec succès.")
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "updateTypingStatus: Erreur lors de la mise à jour du statut de saisie: ${e.message}", e)
+            Resource.Error("Erreur technique lors de la mise à jour du statut : ${e.localizedMessage}")
         }
     }
 }

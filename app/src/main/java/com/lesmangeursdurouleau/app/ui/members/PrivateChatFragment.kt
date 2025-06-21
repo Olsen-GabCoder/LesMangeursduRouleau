@@ -13,6 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -138,6 +139,14 @@ class PrivateChatFragment : Fragment() {
                         }
                     }
                 }
+
+                // --- NOUVELLE OBSERVATION ---
+                // Observe l'état de saisie de l'interlocuteur et met à jour l'UI.
+                launch {
+                    viewModel.isTargetUserTyping.collect { isTyping ->
+                        binding.tvTypingIndicatorInChat.isVisible = isTyping
+                    }
+                }
             }
         }
     }
@@ -151,14 +160,12 @@ class PrivateChatFragment : Fragment() {
 
     private fun setupRecyclerView() {
         val currentUserId = firebaseAuth.currentUser?.uid ?: ""
-        // CORRIGÉ: L'instanciation de l'adapter inclut maintenant les 3 arguments requis.
         messagesAdapter = PrivateMessagesAdapter(
             currentUserId = currentUserId,
             onMessageLongClick = { anchorView, message ->
                 showActionsMenuForMessage(anchorView, message)
             },
             onImageClick = { imageUrl ->
-                // Gère le clic sur une image pour l'afficher en plein écran.
                 val action = PrivateChatFragmentDirections.actionPrivateChatFragmentToFullScreenImageFragment(imageUrl)
                 findNavController().navigate(action)
             }
@@ -300,7 +307,9 @@ class PrivateChatFragment : Fragment() {
     private fun setupInput() {
         binding.etMessageInput.addTextChangedListener {
             binding.btnSend.isEnabled = it.toString().isNotBlank()
+            viewModel.onUserTyping(it.toString())
         }
+
         binding.btnSend.setOnClickListener {
             val messageText = binding.etMessageInput.text.toString().trim()
             if (messageText.isNotEmpty()) {
